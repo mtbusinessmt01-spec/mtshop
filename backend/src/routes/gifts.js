@@ -1,11 +1,32 @@
 const express = require('express');
+<<<<<<< HEAD
 const { upload, fileToDataUrl } = require('../imageUpload');
+=======
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+>>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
 
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
 
 const router = express.Router();
 
+<<<<<<< HEAD
+=======
+const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'gifts');
+fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.jpg';
+    cb(null, `gift_${Date.now()}${ext}`);
+  },
+});
+const upload = multer({ storage });
+
+>>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
 // ---------- ADMIN: Gift CRUD ----------
 
 // Barcha giftlarni ko'rish (admin uchun, qolgan soni bilan)
@@ -19,7 +40,11 @@ router.post('/admin/gifts', authMiddleware, adminMiddleware, upload.single('imag
   const { name, price, quantity, unlimited } = req.body;
   if (!name || !price) return res.status(400).json({ error: 'Nomi va narxi kerak' });
 
+<<<<<<< HEAD
   const imageUrl = fileToDataUrl(req.file);
+=======
+  const imageUrl = req.file ? `/uploads/gifts/${req.file.filename}` : null;
+>>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
   const qty = unlimited === 'true' || unlimited === true ? null : parseInt(quantity, 10) || 0;
 
   const result = await db.prepare(
@@ -36,7 +61,11 @@ router.put('/admin/gifts/:id', authMiddleware, adminMiddleware, upload.single('i
   if (!gift) return res.status(404).json({ error: 'Gift topilmadi' });
 
   const { name, price, quantity, unlimited } = req.body;
+<<<<<<< HEAD
   const imageUrl = req.file ? fileToDataUrl(req.file) : gift.image_url;
+=======
+  const imageUrl = req.file ? `/uploads/gifts/${req.file.filename}` : gift.image_url;
+>>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
   const qty = unlimited === 'true' || unlimited === true
     ? null
     : (quantity !== undefined ? parseInt(quantity, 10) : gift.quantity);
@@ -70,6 +99,7 @@ router.post('/gifts/:id/buy', authMiddleware, async (req, res) => {
   if (!gift) return res.status(404).json({ error: 'Gift topilmadi' });
 
   const qty = Math.max(1, parseInt(req.body?.quantity, 10) || 1);
+<<<<<<< HEAD
   const totalPrice = Math.round(gift.price * qty * 100) / 100;
 
   // Avval sonini (agar cheklangan bo'lsa) atomik ravishda kamaytiramiz
@@ -101,6 +131,33 @@ router.post('/gifts/:id/buy', authMiddleware, async (req, res) => {
   for (let i = 0; i < qty; i++) await insertOne.run(req.user.id, gift.id, gift.price);
 
   const updatedUser = await db.prepare('SELECT coin_balance FROM users WHERE id = ?').get(req.user.id);
+=======
+
+  if (gift.quantity !== null && gift.quantity < qty) {
+    return res.status(400).json({ error: `Faqat ${gift.quantity} dona qoldi` });
+  }
+
+  const totalPrice = Math.round(gift.price * qty * 100) / 100;
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (user.coin_balance < totalPrice) {
+    return res.status(400).json({ error: 'Coin yetarli emas' });
+  }
+
+  const tx = db.transaction(async () => {
+    await db.prepare('UPDATE users SET coin_balance = coin_balance - ? WHERE id = ?')
+      .run(totalPrice, user.id);
+    if (gift.quantity !== null) {
+      await db.prepare('UPDATE gifts SET quantity = quantity - ? WHERE id = ?').run(qty, gift.id);
+    }
+    const insertOne = db.prepare(
+      'INSERT INTO user_gifts (user_id, gift_id, bought_price) VALUES (?, ?, ?)'
+    );
+    for (let i = 0; i < qty; i++) await insertOne.run(user.id, gift.id, gift.price);
+  });
+  await tx();
+
+  const updatedUser = await db.prepare('SELECT coin_balance FROM users WHERE id = ?').get(user.id);
+>>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
   res.json({ ok: true, coin_balance: updatedUser.coin_balance, bought_qty: qty });
 });
 

@@ -29,6 +29,7 @@ router.post('/transfers/coin', authMiddleware, async (req, res) => {
   const commission = Math.round(amt * COMMISSION_RATE * 100) / 100;
   const totalDeduct = amt + commission;
 
+<<<<<<< HEAD
   const deductResult = await db.prepare(
     'UPDATE users SET coin_balance = coin_balance - ? WHERE id = ? AND coin_balance >= ?'
   ).run(totalDeduct, req.user.id, totalDeduct);
@@ -44,6 +45,24 @@ router.post('/transfers/coin', authMiddleware, async (req, res) => {
   `).run(req.user.id, toUser.id, amt, commission, is_anonymous ? 1 : 0);
 
   const updated = await db.prepare('SELECT coin_balance FROM users WHERE id = ?').get(req.user.id);
+=======
+  const fromUser = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (fromUser.coin_balance < totalDeduct) {
+    return res.status(400).json({ error: `Coin yetarli emas (komissiya bilan ${totalDeduct} kerak)` });
+  }
+
+  const tx = db.transaction(async () => {
+    await db.prepare('UPDATE users SET coin_balance = coin_balance - ? WHERE id = ?').run(totalDeduct, fromUser.id);
+    await db.prepare('UPDATE users SET coin_balance = coin_balance + ? WHERE id = ?').run(amt, toUser.id);
+    await db.prepare(`
+      INSERT INTO transfers (from_user_id, to_user_id, item_type, coin_amount, commission, is_anonymous)
+      VALUES (?, ?, 'coin', ?, ?, ?)
+    `).run(fromUser.id, toUser.id, amt, commission, is_anonymous ? 1 : 0);
+  });
+  await tx();
+
+  const updated = await db.prepare('SELECT coin_balance FROM users WHERE id = ?').get(fromUser.id);
+>>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
   res.json({ ok: true, coin_balance: updated.coin_balance, sent: amt, commission });
 });
 

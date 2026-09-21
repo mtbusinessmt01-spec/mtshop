@@ -1,11 +1,32 @@
 const express = require('express');
+<<<<<<< HEAD
 const { upload, fileToDataUrl } = require('../imageUpload');
+=======
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+>>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
 
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
 
 const router = express.Router();
 
+<<<<<<< HEAD
+=======
+const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'cases');
+fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.jpg';
+    cb(null, `case_${Date.now()}${ext}`);
+  },
+});
+const upload = multer({ storage });
+
+>>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
 async function getCaseWithItems(caseId) {
   const c = await db.prepare('SELECT * FROM cases WHERE id = ?').get(caseId);
   if (!c) return null;
@@ -40,7 +61,11 @@ router.post('/admin/cases', authMiddleware, adminMiddleware, upload.single('imag
   if (!name || !price) return res.status(400).json({ error: "Nomi va narxi kerak" });
   if (!items.length) return res.status(400).json({ error: "Kamida bitta gift/coin qo'shish kerak" });
 
+<<<<<<< HEAD
   const imageUrl = fileToDataUrl(req.file);
+=======
+  const imageUrl = req.file ? `/uploads/cases/${req.file.filename}` : null;
+>>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
 
   const tx = db.transaction(async () => {
     const result = await db.prepare(
@@ -77,7 +102,11 @@ router.put('/admin/cases/:id', authMiddleware, adminMiddleware, upload.single('i
   if (req.body.items !== undefined) {
     try { items = JSON.parse(req.body.items); } catch { items = null; }
   }
+<<<<<<< HEAD
   const imageUrl = req.file ? fileToDataUrl(req.file) : existing.image_url;
+=======
+  const imageUrl = req.file ? `/uploads/cases/${req.file.filename}` : existing.image_url;
+>>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
 
   const tx = db.transaction(async () => {
     await db.prepare('UPDATE cases SET name = ?, price = ?, image_url = ? WHERE id = ?')
@@ -124,6 +153,7 @@ router.post('/cases/:id/buy', authMiddleware, async (req, res) => {
   const c = await db.prepare('SELECT * FROM cases WHERE id = ?').get(req.params.id);
   if (!c) return res.status(404).json({ error: 'Case topilmadi' });
 
+<<<<<<< HEAD
   // Balansni tekshirish va yechish bitta atomik SQL buyrug'ida bajariladi —
   // shu bilan bir vaqtda bir nechta so'rov kelsa ham (masalan tugma tez-tez bosilsa),
   // balans hech qachon manfiy bo'lib ketmaydi.
@@ -138,6 +168,18 @@ router.post('/cases/:id/buy', authMiddleware, async (req, res) => {
   await db.prepare('INSERT INTO user_cases (user_id, case_id) VALUES (?, ?)').run(req.user.id, c.id);
 
   const updatedUser = await db.prepare('SELECT coin_balance FROM users WHERE id = ?').get(req.user.id);
+=======
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (user.coin_balance < c.price) return res.status(400).json({ error: 'Coin yetarli emas' });
+
+  const tx = db.transaction(async () => {
+    await db.prepare('UPDATE users SET coin_balance = coin_balance - ? WHERE id = ?').run(c.price, user.id);
+    await db.prepare('INSERT INTO user_cases (user_id, case_id) VALUES (?, ?)').run(user.id, c.id);
+  });
+  await tx();
+
+  const updatedUser = await db.prepare('SELECT coin_balance FROM users WHERE id = ?').get(user.id);
+>>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
   res.json({ ok: true, coin_balance: updatedUser.coin_balance });
 });
 
