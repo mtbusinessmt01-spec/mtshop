@@ -43,9 +43,11 @@ app.post('/api/auth/login', async (req, res) => {
     if (!ok) return res.status(401).json({ error: 'Username yoki parol xato' });
 
     const token = signToken(user);
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
     res.cookie('token', token, {
       httpOnly: true,
-      sameSite: 'lax',
+      sameSite: isHttps ? 'none' : 'lax',
+      secure: isHttps,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     res.json({
@@ -62,7 +64,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('token');
+  res.clearCookie('token', { sameSite: 'none', secure: true });
   res.json({ ok: true });
 });
 
