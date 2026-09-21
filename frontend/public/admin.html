@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MTshop — Admin</title>
+<style>
+  :root {
+    --bg: #0f1115; --card: #171a21; --accent: #6c5ce7; --accent-2: #a29bfe;
+    --text: #f1f2f6; --muted: #8a8d98; --coin: #ffd166; --danger: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 20px; max-width: 720px; margin: 0 auto;
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  a.back { color: var(--accent-2); text-decoration: none; font-size: 13px; }
+  .card {
+    background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 20px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .card h2 { margin: 0 0 16px; font-size: 16px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  input[type=text], input[type=number] {
+    width: 100%; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08); background: #1f232e; color: var(--text); font-size: 14px;
+  }
+  input[type=file] { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+  button {
+    padding: 10px 18px; border: none; border-radius: 10px; cursor: pointer;
+    font-weight: 600; font-size: 13px;
+  }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), #5847c9); color: white; margin-top: 14px; }
+  .btn-danger { background: rgba(255,107,107,0.15); color: var(--danger); }
+  .btn-secondary { background: #1f232e; color: var(--text); }
+  .gift-list { display: flex; flex-direction: column; gap: 10px; }
+  .gift-item {
+    display: flex; align-items: center; gap: 12px; background: #1f232e;
+    padding: 10px; border-radius: 12px;
+  }
+  .gift-item img, .gift-item .noimg {
+    width: 44px; height: 44px; border-radius: 10px; object-fit: cover; background: #2a2f3c;
+    flex-shrink: 0;
+  }
+  .gift-item .info { flex: 1; }
+  .gift-item .name { font-weight: 600; font-size: 14px; }
+  .gift-item .meta { font-size: 12px; color: var(--muted); }
+  .item-row {
+    display: flex; gap: 6px; align-items: center; background: #1f232e;
+    padding: 8px; border-radius: 10px; margin-bottom: 8px; flex-wrap: wrap;
+  }
+  .item-row select, .item-row input {
+    padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
+    background: #2a2f3d; color: var(--text); font-size: 13px;
+  }
+  .item-row select { flex: 2; min-width: 110px; }
+  .item-row .coin-input, .item-row .gift-select { flex: 2; min-width: 110px; }
+  .item-row .chance-input { flex: 1; min-width: 70px; }
+  .item-row .remove-item { background: rgba(255,107,107,0.15); color: var(--danger); padding: 8px 10px; }
+  .user-row {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    background: #1f232e; padding: 10px; border-radius: 12px; margin-bottom: 8px;
+  }
+  .user-row .u-info { flex: 1; min-width: 120px; }
+  .user-row .u-name { font-weight: 700; font-size: 14px; }
+  .user-row .u-meta { font-size: 12px; color: var(--muted); }
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
+  .badge.admin { background: rgba(108,92,231,0.2); color: var(--accent-2); }
+  .badge.blocked { background: rgba(255,107,107,0.2); color: var(--danger); }
+  .coin-mini { display: flex; gap: 4px; align-items: center; }
+  .coin-mini input {
+    width: 70px; padding: 6px 8px; border-radius: 8px; font-size: 12px;
+    border: 1px solid rgba(255,255,255,0.08); background: #2a2f3d; color: var(--text);
+  }
+  .coin-mini button { padding: 6px 10px; font-size: 11px; }
+  .btn-give { background: rgba(107,203,119,0.15); color: #6bcB77; }
+  .btn-take { background: rgba(255,107,107,0.15); color: var(--danger); }
+  .msg { font-size: 13px; margin-top: 10px; }
+  .msg.error { color: var(--danger); }
+  .msg.success { color: #6bcB77; }
+  .dropzone {
+    border: 2px dashed rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 18px;
+    text-align: center;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 13px;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+  .dropzone.dragover { border-color: var(--accent-2); background: rgba(108,92,231,0.08); color: var(--accent-2); }
+  .dropzone img.dz-preview { max-width: 100%; max-height: 90px; border-radius: 10px; display: block; margin: 0 auto 8px; }
+  .dropzone input[type=file] { display: none; }
+  .status-drop {
+    width: 34px; height: 34px; border-radius: 8px;
+    border: 1px dashed rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 14px; color: var(--muted);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .status-drop.dragover { border-color: var(--accent-2); background: rgba(108,92,231,0.15); }
+  .admin-nav {
+    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 20px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .admin-nav-btn {
+    flex-shrink: 0; padding: 10px 14px; border-radius: 12px; border: none;
+    background: #1f232e; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer;
+    white-space: nowrap;
+  }
+  .admin-nav-btn.active { background: linear-gradient(135deg, var(--accent), #5847c9); color: white; }
+</style>
+</head>
+<body>
+  <a class="back" href="index.html">&larr; Bosh sahifaga</a>
+  <h1>🛠️ Admin panel</h1>
+  <div class="sub">Foydalanuvchilar, gift va case boshqaruvi</div>
+
+  <div class="admin-nav">
+    <button class="admin-nav-btn active" data-section="users" onclick="switchAdminSection('users')">👤 Foydalanuvchilar</button>
+    <button class="admin-nav-btn" data-section="gifts" onclick="switchAdminSection('gifts')">🎁 Giftlar</button>
+    <button class="admin-nav-btn" data-section="cases" onclick="switchAdminSection('cases')">📦 Case'lar</button>
+    <button class="admin-nav-btn" data-section="transfers" onclick="switchAdminSection('transfers')">📤 Transfer tarixi</button>
+    <button class="admin-nav-btn" data-section="credits" onclick="switchAdminSection('credits')">💳 Kredit</button>
+    <button class="admin-nav-btn" data-section="pets" onclick="switchAdminSection('pets')">🐾 Pet</button>
+  </div>
+
+  <div class="admin-section" data-section="users">
+  <div class="card">
+    <h2 id="userFormTitle">Yangi hisob yaratish</h2>
+    <form id="userForm">
+      <input type="hidden" id="userEditId">
+      <label>Username</label>
+      <input type="text" id="userUsername" required>
+
+      <label id="userPasswordLabel">Parol</label>
+      <input type="text" id="userPassword">
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="userIsAdmin">
+        <label style="margin:0" for="userIsAdmin">Admin huquqi</label>
+      </div>
+      <div class="checkbox-row" id="userBlockedWrap" style="display:none">
+        <input type="checkbox" id="userIsBlocked">
+        <label style="margin:0" for="userIsBlocked">Bloklangan</label>
+      </div>
+
+      <div class="row">
+        <button type="submit" class="btn-primary" id="userSubmitBtn">Yaratish</button>
+        <button type="button" class="btn-secondary" id="userCancelEdit" style="display:none">Bekor qilish</button>
+      </div>
+      <div class="msg" id="userFormMsg"></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Foydalanuvchilar</h2>
+    <div class="gift-list" id="userList">Yuklanmoqda...</div>
+  </div>
+  </div>
+
+  <div class="admin-section" data-section="gifts" style="display:none">
+  <div class="card">
+    <h2 id="formTitle">Yangi gift qo'shish</h2>
+    <form id="giftForm">
+      <input type="hidden" id="editId">
+      <label>Nomi</label>
+      <input type="text" id="name" required>
+
+      <label>Narxi (coin)</label>
+      <input type="number" id="price" min="0" step="0.01" required>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="unlimited">
+        <label style="margin:0" for="unlimited">Cheksiz (tugamaydi)</label>
+      </div>
+
+      <div id="qtyWrap">
+        <label>Soni (dona)</label>
+        <input type="number" id="quantity" min="0" step="1">
+      </div>
+
+      <label>Rasm</label>
+      <div class="dropzone" id="imageDropzone" onclick="document.getElementById('image').click()">
+        <div id="imageDropzoneText">🖼️ Rasmni shu yerga tashlang yoki bosing</div>
+        <input type="file" id="image" accept="image/*">
+      </div>
+
+      <div class="row">
+        <button type="submit" class="btn-primary" id="submitBtn">Qo'shish</button>
+        <button type="button" class="btn-secondary" id="cancelEdit" style="display:none">Bekor qilish</button>
+      </div>
+      <div class="msg" id="formMsg"></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Mavjud giftlar</h2>
+    <div class="gift-list" id="giftList">Yuklanmoqda...</div>
+  </div>
+  </div>
+
+  <div class="admin-section" data-section="cases" style="display:none">
+  <div class="card">
+    <h2 id="caseFormTitle">Yangi case yaratish</h2>
+    <form id="caseForm">
+      <input type="hidden" id="caseEditId">
+      <label>Nomi</label>
+      <input type="text" id="caseName" required>
+
+      <label>Narxi (coin)</label>
+      <input type="number" id="casePrice" min="0" step="0.01" required>
+
+      <label>Rasm</label>
+      <div class="dropzone" id="caseImageDropzone" onclick="document.getElementById('caseImage').click()">
+        <div id="caseImageDropzoneText">🖼️ Rasmni shu yerga tashlang yoki bosing</div>
+        <input type="file" id="caseImage" accept="image/*">
+      </div>
+
+      <label style="margin-top:16px">Case ichidagi narsalar (gift yoki coin) va shanslari (%)</label>
+      <div id="caseItems"></div>
+      <button type="button" class="btn-secondary" id="addItemBtn" style="margin-top:8px">+ Narsa qo'shish</button>
+
+      <div class="row">
+        <button type="submit" class="btn-primary" id="caseSubmitBtn">Yaratish</button>
+        <button type="button" class="btn-secondary" id="caseCancelEdit" style="display:none">Bekor qilish</button>
+      </div>
+      <div class="msg" id="caseFormMsg"></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Mavjud case'lar</h2>
+    <div class="gift-list" id="caseList">Yuklanmoqda...</div>
+  </div>
+  </div>
+
+  <div class="admin-section" data-section="transfers" style="display:none">
+  <div class="card">
+    <h2>Transfer tarixi</h2>
+    <div class="gift-list" id="transferList">Yuklanmoqda...</div>
+  </div>
+  </div>
+
+  <div class="admin-section" data-section="credits" style="display:none">
+  <div class="card">
+    <h2 id="creditFormTitle">Yangi kredit turi yaratish</h2>
+    <form id="creditForm">
+      <input type="hidden" id="creditEditId">
+      <label>Nomi</label>
+      <input type="text" id="creditName" required>
+
+      <label>Minimal summa (coin)</label>
+      <input type="number" id="creditMin" min="0" step="0.01" required>
+
+      <label>Maksimal summa (coin)</label>
+      <input type="number" id="creditMax" min="0" step="0.01" required>
+
+      <label>Foizi (%)</label>
+      <input type="number" id="creditInterest" min="0" step="0.01" required>
+
+      <label>Necha haftaga bo'lib to'lanadi</label>
+      <input type="number" id="creditWeeks" min="1" step="1" required>
+
+      <div class="row">
+        <button type="submit" class="btn-primary" id="creditSubmitBtn">Yaratish</button>
+        <button type="button" class="btn-secondary" id="creditCancelEdit" style="display:none">Bekor qilish</button>
+      </div>
+      <div class="msg" id="creditFormMsg"></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Mavjud kredit turlari</h2>
+    <div class="gift-list" id="creditList">Yuklanmoqda...</div>
+  </div>
+  </div>
+
+  <div class="admin-section" data-section="pets" style="display:none">
+  <div class="card">
+    <h2 id="petFormTitle">Yangi pet turi yaratish</h2>
+    <form id="petForm">
+      <input type="hidden" id="petEditId">
+      <label>Nomi</label>
+      <input type="text" id="petName" required>
+
+      <label>Narxi (coin)</label>
+      <input type="number" id="petPrice" min="0" step="0.01" required>
+
+      <label>Rasm</label>
+      <div class="dropzone" id="petImageDropzone" onclick="document.getElementById('petImage').click()">
+        <div id="petImageDropzoneText">🖼️ Rasmni shu yerga tashlang yoki bosing</div>
+        <input type="file" id="petImage" accept="image/*">
+      </div>
+
+      <label>Har 3 soatda beradigan coin</label>
+      <input type="number" id="petCoinPer3h" min="0" step="0.01" required>
+
+      <label>To'yish uchun kerakli XP</label>
+      <input type="number" id="petXpToFeed" min="0" step="0.01" required>
+
+      <label>1 LV oshishi uchun kerakli XP</label>
+      <input type="number" id="petXpPerLevel" min="0" step="0.01" required>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="petUnlimited">
+        <label style="margin:0" for="petUnlimited">Cheksiz (tugamaydi)</label>
+      </div>
+      <div id="petStockWrap">
+        <label>Shopda nechta dona</label>
+        <input type="number" id="petStock" min="0" step="1">
+      </div>
+
+      <div class="row">
+        <button type="submit" class="btn-primary" id="petSubmitBtn">Yaratish</button>
+        <button type="button" class="btn-secondary" id="petCancelEdit" style="display:none">Bekor qilish</button>
+      </div>
+      <div class="msg" id="petFormMsg"></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Mavjud pet turlari</h2>
+    <div class="gift-list" id="petList">Yuklanmoqda...</div>
+  </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    let gifts = [];
+    let cases = [];
+    let users = [];
+    let transfers = [];
+    let creditTypes = [];
+    let petTypes = [];
+    let itemRowCount = 0;
+
+    // ---------- DROPZONE (drag & drop rasm) ----------
+
+    function setupDropzone(dropzoneId, inputId, textId, previewLabel) {
+      const zone = document.getElementById(dropzoneId);
+      const input = document.getElementById(inputId);
+      const textEl = document.getElementById(textId);
+
+      function showPreview(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          textEl.innerHTML = `<img class="dz-preview" src="${e.target.result}"><div>${file.name}</div>`;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      input.addEventListener('change', () => showPreview(input.files[0]));
+
+      zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+          input.files = e.dataTransfer.files;
+          showPreview(input.files[0]);
+        }
+      });
+    }
+
+    setupDropzone('imageDropzone', 'image', 'imageDropzoneText');
+    setupDropzone('caseImageDropzone', 'caseImage', 'caseImageDropzoneText');
+
+    // Status rasm drop-zonalari dinamik ro'yxatda bo'lgani uchun event delegation ishlatamiz
+    document.getElementById('userList').addEventListener('dragover', (e) => {
+      const zone = e.target.closest('.status-drop');
+      if (zone) { e.preventDefault(); zone.classList.add('dragover'); }
+    });
+    document.getElementById('userList').addEventListener('dragleave', (e) => {
+      const zone = e.target.closest('.status-drop');
+      if (zone) zone.classList.remove('dragover');
+    });
+    document.getElementById('userList').addEventListener('drop', (e) => {
+      const zone = e.target.closest('.status-drop');
+      if (!zone) return;
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        const userId = zone.id.replace('statusDrop_', '');
+        uploadStatusImage(userId, e.dataTransfer.files[0]);
+      }
+    });
+
+    function switchAdminSection(section) {
+      document.querySelectorAll('.admin-section').forEach(el => {
+        el.style.display = el.dataset.section === section ? 'block' : 'none';
+      });
+      document.querySelectorAll('.admin-nav-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.section === section);
+      });
+    }
+
+    async function checkAdmin() {
+      const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
+      if (!res.ok) { window.location.href = 'login.html'; return; }
+      const me = await res.json();
+      if (!me.is_admin) { alert('Bu sahifa faqat admin uchun'); window.location.href = 'index.html'; }
+    }
+
+    // ---------- USER MANAGEMENT ----------
+
+    async function loadUsers() {
+      const res = await fetch(`${API_BASE}/api/admin/users`, { credentials: 'include' });
+      users = await res.json();
+      renderUserList();
+    }
+
+    function renderUserList() {
+      const el = document.getElementById('userList');
+      if (!users.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Hali foydalanuvchi yo\'q</div>'; return; }
+      el.innerHTML = users.map(u => `
+        <div class="user-row">
+          ${u.status_image_url ? `<img src="${API_BASE}${u.status_image_url}" class="ci-icon">` : ''}
+          <div class="u-info">
+            <div class="u-name">@${u.username}
+              ${u.is_admin ? '<span class="badge admin">ADMIN</span>' : ''}
+              ${u.is_blocked ? '<span class="badge blocked">BLOK</span>' : ''}
+            </div>
+            <div class="u-meta">🪙 ${u.coin_balance} coin</div>
+          </div>
+          <div class="coin-mini">
+            <input type="number" id="coinAmt_${u.id}" placeholder="miqdor" min="0" step="0.01">
+            <button class="btn-give" onclick="giveTakeCoin(${u.id}, 'give')">+ Berish</button>
+            <button class="btn-take" onclick="giveTakeCoin(${u.id}, 'take')">− Olish</button>
+          </div>
+          <button class="btn-secondary" onclick="editUser(${u.id})">Tahrirlash</button>
+          <button class="btn-danger" onclick="deleteUser(${u.id})">O'chirish</button>
+          <label class="status-drop" id="statusDrop_${u.id}" title="Status rasm (bosing yoki tashlang)">
+            🏷️
+            <input type="file" accept="image/*" style="display:none" id="statusInput_${u.id}" onchange="uploadStatusImage(${u.id}, this.files[0])">
+          </label>
+        </div>
+      `).join('');
+    }
+
+    async function uploadStatusImage(userId, file) {
+      if (!file) return;
+      const fd = new FormData();
+      fd.append('status_image', file);
+      const res = await fetch(`${API_BASE}/api/admin/users/${userId}/status-image`, {
+        method: 'POST', credentials: 'include', body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) { showAdminToast(data.error || 'Xatolik'); return; }
+      showAdminToast('Status rasm o\'rnatildi!');
+      loadUsers();
+    }
+
+    async function giveTakeCoin(userId, action) {
+      const input = document.getElementById(`coinAmt_${userId}`);
+      const amount = parseFloat(input.value);
+      if (!amount || amount <= 0) { showAdminToast("Miqdorni to'g'ri kiriting"); return; }
+
+      const res = await fetch(`${API_BASE}/api/admin/users/${userId}/coin`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, action }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showAdminToast(data.error || 'Xatolik'); return; }
+      input.value = '';
+      loadUsers();
+    }
+
+    function editUser(id) {
+      const u = users.find(x => x.id === id);
+      document.getElementById('userEditId').value = u.id;
+      document.getElementById('userUsername').value = u.username;
+      document.getElementById('userPassword').value = '';
+      document.getElementById('userPassword').placeholder = "Yangi parol (bo'sh qoldirsa o'zgarmaydi)";
+      document.getElementById('userPasswordLabel').textContent = 'Yangi parol (ixtiyoriy)';
+      document.getElementById('userIsAdmin').checked = !!u.is_admin;
+      document.getElementById('userIsBlocked').checked = !!u.is_blocked;
+      document.getElementById('userBlockedWrap').style.display = 'flex';
+      document.getElementById('userFormTitle').textContent = `"@${u.username}" ni tahrirlash`;
+      document.getElementById('userSubmitBtn').textContent = 'Saqlash';
+      document.getElementById('userCancelEdit').style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetUserForm() {
+      document.getElementById('userForm').reset();
+      document.getElementById('userEditId').value = '';
+      document.getElementById('userPassword').placeholder = '';
+      document.getElementById('userPasswordLabel').textContent = 'Parol';
+      document.getElementById('userBlockedWrap').style.display = 'none';
+      document.getElementById('userFormTitle').textContent = 'Yangi hisob yaratish';
+      document.getElementById('userSubmitBtn').textContent = 'Yaratish';
+      document.getElementById('userCancelEdit').style.display = 'none';
+    }
+
+    document.getElementById('userCancelEdit').addEventListener('click', resetUserForm);
+
+    async function deleteUser(id) {
+      if (!confirm("Rostdan o'chirilsinmi?")) return;
+      const res = await fetch(`${API_BASE}/api/admin/users/${id}`, { method: 'DELETE', credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) { showAdminToast(data.error || 'Xatolik'); return; }
+      loadUsers();
+    }
+
+    document.getElementById('userForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('userFormMsg');
+      msg.textContent = ''; msg.className = 'msg';
+
+      const editId = document.getElementById('userEditId').value;
+      const username = document.getElementById('userUsername').value.trim();
+      const password = document.getElementById('userPassword').value;
+      const is_admin = document.getElementById('userIsAdmin').checked;
+      const is_blocked = document.getElementById('userIsBlocked').checked;
+
+      if (!editId && !password) {
+        msg.textContent = 'Yangi hisob uchun parol kerak';
+        msg.classList.add('error');
+        return;
+      }
+
+      const url = editId ? `${API_BASE}/api/admin/users/${editId}` : `${API_BASE}/api/admin/users`;
+      const method = editId ? 'PUT' : 'POST';
+      const body = editId
+        ? { username, password: password || undefined, is_admin, is_blocked }
+        : { username, password, is_admin };
+
+      const res = await fetch(url, {
+        method, credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        msg.textContent = data.error || 'Xatolik';
+        msg.classList.add('error');
+        return;
+      }
+      msg.textContent = 'Saqlandi!';
+      msg.classList.add('success');
+      resetUserForm();
+      loadUsers();
+    });
+
+    function showAdminToast(text) {
+      alert(text);
+    }
+
+    async function loadGifts() {
+      const res = await fetch(`${API_BASE}/api/admin/gifts`, { credentials: 'include' });
+      gifts = await res.json();
+      renderList();
+    }
+
+    function renderList() {
+      const el = document.getElementById('giftList');
+      if (!gifts.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Hali gift yo\'q</div>'; return; }
+      el.innerHTML = gifts.map(g => `
+        <div class="gift-item">
+          ${g.image_url ? `<img src="${API_BASE}${g.image_url}">` : `<div class="noimg"></div>`}
+          <div class="info">
+            <div class="name">${g.name}</div>
+            <div class="meta">${g.price} coin &middot; ${g.quantity === null ? 'cheksiz' : g.quantity + ' dona'}</div>
+          </div>
+          <button class="btn-secondary" onclick="editGift(${g.id})">Tahrirlash</button>
+          <button class="btn-danger" onclick="deleteGift(${g.id})">O'chirish</button>
+        </div>
+      `).join('');
+    }
+
+    function editGift(id) {
+      const g = gifts.find(x => x.id === id);
+      document.getElementById('editId').value = g.id;
+      document.getElementById('name').value = g.name;
+      document.getElementById('price').value = g.price;
+      document.getElementById('unlimited').checked = g.quantity === null;
+      document.getElementById('quantity').value = g.quantity ?? '';
+      document.getElementById('qtyWrap').style.display = g.quantity === null ? 'none' : 'block';
+      document.getElementById('formTitle').textContent = `"${g.name}" ni tahrirlash`;
+      document.getElementById('submitBtn').textContent = 'Saqlash';
+      document.getElementById('cancelEdit').style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetForm() {
+      document.getElementById('giftForm').reset();
+      document.getElementById('editId').value = '';
+      document.getElementById('qtyWrap').style.display = 'block';
+      document.getElementById('formTitle').textContent = "Yangi gift qo'shish";
+      document.getElementById('submitBtn').textContent = 'Qo\'shish';
+      document.getElementById('cancelEdit').style.display = 'none';
+      document.getElementById('imageDropzoneText').innerHTML = '🖼️ Rasmni shu yerga tashlang yoki bosing';
+    }
+
+    document.getElementById('cancelEdit').addEventListener('click', resetForm);
+
+    document.getElementById('unlimited').addEventListener('change', (e) => {
+      document.getElementById('qtyWrap').style.display = e.target.checked ? 'none' : 'block';
+    });
+
+    async function deleteGift(id) {
+      if (!confirm('Rostdan o\'chirilsinmi?')) return;
+      await fetch(`${API_BASE}/api/admin/gifts/${id}`, { method: 'DELETE', credentials: 'include' });
+      loadGifts();
+    }
+
+    document.getElementById('giftForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('formMsg');
+      msg.textContent = ''; msg.className = 'msg';
+
+      const editId = document.getElementById('editId').value;
+      const fd = new FormData();
+      fd.append('name', document.getElementById('name').value);
+      fd.append('price', document.getElementById('price').value);
+      fd.append('unlimited', document.getElementById('unlimited').checked);
+      fd.append('quantity', document.getElementById('quantity').value || 0);
+      const imageFile = document.getElementById('image').files[0];
+      if (imageFile) fd.append('image', imageFile);
+
+      const url = editId ? `${API_BASE}/api/admin/gifts/${editId}` : `${API_BASE}/api/admin/gifts`;
+      const method = editId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, { method, credentials: 'include', body: fd });
+      const data = await res.json();
+      if (!res.ok) {
+        msg.textContent = data.error || 'Xatolik';
+        msg.classList.add('error');
+        return;
+      }
+      msg.textContent = 'Saqlandi!';
+      msg.classList.add('success');
+      resetForm();
+      loadGifts();
+    });
+
+    // ---------- CASE MANAGEMENT ----------
+
+    function addItemRow(existing) {
+      itemRowCount++;
+      const rowId = `item_${itemRowCount}`;
+      const wrap = document.getElementById('caseItems');
+      const div = document.createElement('div');
+      div.className = 'item-row';
+      div.id = rowId;
+
+      const giftOptions = gifts.map(g => `<option value="${g.id}">${g.name} (${g.price} coin)</option>`).join('');
+
+      div.innerHTML = `
+        <select class="type-select" onchange="toggleItemType('${rowId}')">
+          <option value="gift">🎁 Gift</option>
+          <option value="coin">🪙 Coin</option>
+        </select>
+        <select class="gift-select">${giftOptions}</select>
+        <input type="number" class="coin-input" placeholder="Coin miqdori" min="0" step="0.01" style="display:none">
+        <input type="number" class="chance-input" placeholder="Shans %" min="0" max="100" step="0.01">
+        <button type="button" class="remove-item" onclick="document.getElementById('${rowId}').remove()">✕</button>
+      `;
+      wrap.appendChild(div);
+
+      if (existing) {
+        div.querySelector('.type-select').value = existing.item_type;
+        toggleItemType(rowId);
+        if (existing.item_type === 'gift') {
+          div.querySelector('.gift-select').value = existing.gift_id;
+        } else {
+          div.querySelector('.coin-input').value = existing.coin_amount;
+        }
+        div.querySelector('.chance-input').value = existing.chance_percent;
+      }
+    }
+
+    function toggleItemType(rowId) {
+      const row = document.getElementById(rowId);
+      const type = row.querySelector('.type-select').value;
+      row.querySelector('.gift-select').style.display = type === 'gift' ? 'block' : 'none';
+      row.querySelector('.coin-input').style.display = type === 'coin' ? 'block' : 'none';
+    }
+
+    document.getElementById('addItemBtn').addEventListener('click', () => addItemRow());
+
+    function collectItems() {
+      const rows = document.querySelectorAll('#caseItems .item-row');
+      const items = [];
+      rows.forEach(row => {
+        const type = row.querySelector('.type-select').value;
+        const chance = parseFloat(row.querySelector('.chance-input').value) || 0;
+        if (type === 'gift') {
+          items.push({ item_type: 'gift', gift_id: parseInt(row.querySelector('.gift-select').value, 10), chance_percent: chance });
+        } else {
+          items.push({ item_type: 'coin', coin_amount: parseFloat(row.querySelector('.coin-input').value) || 0, chance_percent: chance });
+        }
+      });
+      return items;
+    }
+
+    async function loadCases() {
+      const res = await fetch(`${API_BASE}/api/admin/cases`, { credentials: 'include' });
+      cases = await res.json();
+      renderCaseList();
+    }
+
+    function renderCaseList() {
+      const el = document.getElementById('caseList');
+      if (!cases.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Hali case yo\'q</div>'; return; }
+      el.innerHTML = cases.map(c => `
+        <div class="gift-item">
+          ${c.image_url ? `<img src="${API_BASE}${c.image_url}">` : `<div class="noimg"></div>`}
+          <div class="info">
+            <div class="name">${c.name}</div>
+            <div class="meta">${c.price} coin &middot; ${c.items.length} ta narsa</div>
+          </div>
+          <button class="btn-secondary" onclick="editCase(${c.id})">Tahrirlash</button>
+          <button class="btn-danger" onclick="deleteCase(${c.id})">O'chirish</button>
+        </div>
+      `).join('');
+    }
+
+    function editCase(id) {
+      const c = cases.find(x => x.id === id);
+      document.getElementById('caseEditId').value = c.id;
+      document.getElementById('caseName').value = c.name;
+      document.getElementById('casePrice').value = c.price;
+      document.getElementById('caseFormTitle').textContent = `"${c.name}" ni tahrirlash`;
+      document.getElementById('caseSubmitBtn').textContent = 'Saqlash';
+      document.getElementById('caseCancelEdit').style.display = 'inline-block';
+
+      document.getElementById('caseItems').innerHTML = '';
+      c.items.forEach(it => addItemRow(it));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetCaseForm() {
+      document.getElementById('caseForm').reset();
+      document.getElementById('caseEditId').value = '';
+      document.getElementById('caseItems').innerHTML = '';
+      addItemRow();
+      document.getElementById('caseFormTitle').textContent = 'Yangi case yaratish';
+      document.getElementById('caseSubmitBtn').textContent = 'Yaratish';
+      document.getElementById('caseCancelEdit').style.display = 'none';
+      document.getElementById('caseImageDropzoneText').innerHTML = '🖼️ Rasmni shu yerga tashlang yoki bosing';
+    }
+
+    document.getElementById('caseCancelEdit').addEventListener('click', resetCaseForm);
+
+    async function deleteCase(id) {
+      if (!confirm("Rostdan o'chirilsinmi?")) return;
+      await fetch(`${API_BASE}/api/admin/cases/${id}`, { method: 'DELETE', credentials: 'include' });
+      loadCases();
+    }
+
+    document.getElementById('caseForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('caseFormMsg');
+      msg.textContent = ''; msg.className = 'msg';
+
+      const items = collectItems();
+      if (!items.length) {
+        msg.textContent = "Kamida bitta narsa qo'shing";
+        msg.classList.add('error');
+        return;
+      }
+
+      const editId = document.getElementById('caseEditId').value;
+      const fd = new FormData();
+      fd.append('name', document.getElementById('caseName').value);
+      fd.append('price', document.getElementById('casePrice').value);
+      fd.append('items', JSON.stringify(items));
+      const imageFile = document.getElementById('caseImage').files[0];
+      if (imageFile) fd.append('image', imageFile);
+
+      const url = editId ? `${API_BASE}/api/admin/cases/${editId}` : `${API_BASE}/api/admin/cases`;
+      const method = editId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, { method, credentials: 'include', body: fd });
+      const data = await res.json();
+      if (!res.ok) {
+        msg.textContent = data.error || 'Xatolik';
+        msg.classList.add('error');
+        return;
+      }
+      msg.textContent = 'Saqlandi!';
+      msg.classList.add('success');
+      resetCaseForm();
+      loadCases();
+    });
+
+    async function loadTransfers() {
+      const res = await fetch(`${API_BASE}/api/admin/transfers`, { credentials: 'include' });
+      transfers = await res.json();
+      renderTransferList();
+    }
+
+    function transferLabel(t) {
+      if (t.item_type === 'coin') return `🪙 ${t.coin_amount} coin (komissiya: ${t.commission})`;
+      if (t.item_type === 'gift') return `🎁 ${t.gift_name || 'gift'}`;
+      return `📦 ${t.case_name || 'case'}`;
+    }
+
+    function renderTransferList() {
+      const el = document.getElementById('transferList');
+      if (!transfers.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Hali transfer yo\'q</div>'; return; }
+      el.innerHTML = transfers.map(t => `
+        <div class="gift-item">
+          <div class="info">
+            <div class="name">@${t.from_username} → @${t.to_username}</div>
+            <div class="meta">${transferLabel(t)} &middot; ${t.created_at}</div>
+          </div>
+          <button class="btn-danger" onclick="deleteTransfer(${t.id})">O'chirish</button>
+        </div>
+      `).join('');
+    }
+
+    async function deleteTransfer(id) {
+      if (!confirm("Rostdan o'chirilsinmi?")) return;
+      await fetch(`${API_BASE}/api/admin/transfers/${id}`, { method: 'DELETE', credentials: 'include' });
+      loadTransfers();
+    }
+
+    async function loadCreditTypes() {
+      const res = await fetch(`${API_BASE}/api/admin/credit-types`, { credentials: 'include' });
+      creditTypes = await res.json();
+      renderCreditList();
+    }
+
+    function renderCreditList() {
+      const el = document.getElementById('creditList');
+      if (!creditTypes.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Hali kredit turi yo\'q</div>'; return; }
+      el.innerHTML = creditTypes.map(c => `
+        <div class="gift-item">
+          <div class="info">
+            <div class="name">${c.name}</div>
+            <div class="meta">${c.min_amount}–${c.max_amount} coin &middot; ${c.interest_percent}% &middot; ${c.installments_weeks} hafta</div>
+          </div>
+          <button class="btn-secondary" onclick="editCreditType(${c.id})">Tahrirlash</button>
+          <button class="btn-danger" onclick="deleteCreditType(${c.id})">O'chirish</button>
+        </div>
+      `).join('');
+    }
+
+    function editCreditType(id) {
+      const c = creditTypes.find(x => x.id === id);
+      document.getElementById('creditEditId').value = c.id;
+      document.getElementById('creditName').value = c.name;
+      document.getElementById('creditMin').value = c.min_amount;
+      document.getElementById('creditMax').value = c.max_amount;
+      document.getElementById('creditInterest').value = c.interest_percent;
+      document.getElementById('creditWeeks').value = c.installments_weeks;
+      document.getElementById('creditFormTitle').textContent = `"${c.name}" ni tahrirlash`;
+      document.getElementById('creditSubmitBtn').textContent = 'Saqlash';
+      document.getElementById('creditCancelEdit').style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetCreditForm() {
+      document.getElementById('creditForm').reset();
+      document.getElementById('creditEditId').value = '';
+      document.getElementById('creditFormTitle').textContent = 'Yangi kredit turi yaratish';
+      document.getElementById('creditSubmitBtn').textContent = 'Yaratish';
+      document.getElementById('creditCancelEdit').style.display = 'none';
+    }
+
+    document.getElementById('creditCancelEdit').addEventListener('click', resetCreditForm);
+
+    async function deleteCreditType(id) {
+      if (!confirm("Rostdan o'chirilsinmi?")) return;
+      await fetch(`${API_BASE}/api/admin/credit-types/${id}`, { method: 'DELETE', credentials: 'include' });
+      loadCreditTypes();
+    }
+
+    document.getElementById('creditForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('creditFormMsg');
+      msg.textContent = ''; msg.className = 'msg';
+
+      const editId = document.getElementById('creditEditId').value;
+      const body = {
+        name: document.getElementById('creditName').value,
+        min_amount: document.getElementById('creditMin').value,
+        max_amount: document.getElementById('creditMax').value,
+        interest_percent: document.getElementById('creditInterest').value,
+        installments_weeks: document.getElementById('creditWeeks').value,
+      };
+
+      const url = editId ? `${API_BASE}/api/admin/credit-types/${editId}` : `${API_BASE}/api/admin/credit-types`;
+      const method = editId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method, credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        msg.textContent = data.error || 'Xatolik';
+        msg.classList.add('error');
+        return;
+      }
+      msg.textContent = 'Saqlandi!';
+      msg.classList.add('success');
+      resetCreditForm();
+      loadCreditTypes();
+    });
+
+    document.getElementById('petUnlimited').addEventListener('change', (e) => {
+      document.getElementById('petStockWrap').style.display = e.target.checked ? 'none' : 'block';
+    });
+
+    async function loadPetTypes() {
+      const res = await fetch(`${API_BASE}/api/admin/pet-types`, { credentials: 'include' });
+      petTypes = await res.json();
+      renderPetList();
+    }
+
+    function renderPetList() {
+      const el = document.getElementById('petList');
+      if (!petTypes.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Hali pet turi yo\'q</div>'; return; }
+      el.innerHTML = petTypes.map(p => `
+        <div class="gift-item">
+          ${p.image_url ? `<img src="${API_BASE}${p.image_url}">` : `<div class="noimg"></div>`}
+          <div class="info">
+            <div class="name">${p.name}</div>
+            <div class="meta">${p.price} coin &middot; ${p.coin_per_3h}/3soat &middot; ${p.stock === null ? 'cheksiz' : p.stock + ' dona'}</div>
+          </div>
+          <button class="btn-secondary" onclick="editPetType(${p.id})">Tahrirlash</button>
+          <button class="btn-danger" onclick="deletePetType(${p.id})">O'chirish</button>
+        </div>
+      `).join('');
+    }
+
+    function editPetType(id) {
+      const p = petTypes.find(x => x.id === id);
+      document.getElementById('petEditId').value = p.id;
+      document.getElementById('petName').value = p.name;
+      document.getElementById('petPrice').value = p.price;
+      document.getElementById('petCoinPer3h').value = p.coin_per_3h;
+      document.getElementById('petXpToFeed').value = p.xp_to_feed_full;
+      document.getElementById('petXpPerLevel').value = p.xp_per_level;
+      document.getElementById('petUnlimited').checked = p.stock === null;
+      document.getElementById('petStock').value = p.stock ?? '';
+      document.getElementById('petStockWrap').style.display = p.stock === null ? 'none' : 'block';
+      document.getElementById('petFormTitle').textContent = `"${p.name}" ni tahrirlash`;
+      document.getElementById('petSubmitBtn').textContent = 'Saqlash';
+      document.getElementById('petCancelEdit').style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetPetForm() {
+      document.getElementById('petForm').reset();
+      document.getElementById('petEditId').value = '';
+      document.getElementById('petStockWrap').style.display = 'block';
+      document.getElementById('petFormTitle').textContent = 'Yangi pet turi yaratish';
+      document.getElementById('petSubmitBtn').textContent = 'Yaratish';
+      document.getElementById('petCancelEdit').style.display = 'none';
+      document.getElementById('petImageDropzoneText').innerHTML = '🖼️ Rasmni shu yerga tashlang yoki bosing';
+    }
+
+    document.getElementById('petCancelEdit').addEventListener('click', resetPetForm);
+
+    async function deletePetType(id) {
+      if (!confirm("Rostdan o'chirilsinmi?")) return;
+      await fetch(`${API_BASE}/api/admin/pet-types/${id}`, { method: 'DELETE', credentials: 'include' });
+      loadPetTypes();
+    }
+
+    document.getElementById('petForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('petFormMsg');
+      msg.textContent = ''; msg.className = 'msg';
+
+      const editId = document.getElementById('petEditId').value;
+      const fd = new FormData();
+      fd.append('name', document.getElementById('petName').value);
+      fd.append('price', document.getElementById('petPrice').value);
+      fd.append('coin_per_3h', document.getElementById('petCoinPer3h').value);
+      fd.append('xp_to_feed_full', document.getElementById('petXpToFeed').value);
+      fd.append('xp_per_level', document.getElementById('petXpPerLevel').value);
+      fd.append('unlimited', document.getElementById('petUnlimited').checked);
+      fd.append('stock', document.getElementById('petStock').value || 0);
+      const imageFile = document.getElementById('petImage').files[0];
+      if (imageFile) fd.append('image', imageFile);
+
+      const url = editId ? `${API_BASE}/api/admin/pet-types/${editId}` : `${API_BASE}/api/admin/pet-types`;
+      const method = editId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, { method, credentials: 'include', body: fd });
+      const data = await res.json();
+      if (!res.ok) {
+        msg.textContent = data.error || 'Xatolik';
+        msg.classList.add('error');
+        return;
+      }
+      msg.textContent = 'Saqlandi!';
+      msg.classList.add('success');
+      resetPetForm();
+      loadPetTypes();
+    });
+
+    setupDropzone('petImageDropzone', 'petImage', 'petImageDropzoneText');
+
+    checkAdmin().then(async () => {
+      await loadUsers();
+      await loadGifts();
+      await loadCases();
+      await loadTransfers();
+      await loadCreditTypes();
+      await loadPetTypes();
+      addItemRow(); // birinchi qatorni avtomatik qo'shish
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MTshop</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --card: #171a21;
+    --accent: #6c5ce7;
+    --accent-2: #a29bfe;
+    --text: #f1f2f6;
+    --muted: #8a8d98;
+    --coin: #ffd166;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  #app { display: none; flex-direction: column; height: 100vh; }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  header .brand { font-weight: 800; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  header .logo-icon { width: 28px; height: 28px; border-radius: 8px; object-fit: cover; vertical-align: middle; }
+  header .brand span { color: var(--accent-2); }
+  .coin-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #1f232e;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 18px 90px;
+  }
+  .page-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .page-sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  .section-title { font-weight: 700; font-size: 15px; margin-bottom: 12px; }
+  .type-tabs { display: flex; gap: 8px; }
+  .type-tab {
+    flex: 1; padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
+    background: #1f232e; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .type-tab.active { background: linear-gradient(135deg, var(--accent), #5847c9); color: white; border-color: transparent; }
+  .send-label { display: block; font-size: 12px; color: var(--muted); margin: 14px 0 6px; }
+  .send-input {
+    width: 100%; padding: 11px 12px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08); background: #1f232e; color: var(--text); font-size: 14px;
+  }
+  .send-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .msg { font-size: 13px; margin-top: 10px; }
+  .msg.error { color: #ff6b6b; }
+  .msg.success { color: #6bcB77; }
+  .placeholder {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--muted);
+    border: 1px dashed rgba(255,255,255,0.1);
+  }
+  nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--card);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+  }
+  nav button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 6px 4px;
+    cursor: pointer;
+    flex: 1;
+  }
+  nav button .icon { font-size: 20px; }
+  nav button.active { color: var(--accent-2); }
+  #loadingScreen {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 14px;
+  }
+  .gift-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 14px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .gift-card img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 12px;
+    background: #1f232e;
+    margin-bottom: 10px;
+  }
+  .gift-img-fallback {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    background: #1f232e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin-bottom: 10px;
+  }
+  .gift-name { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+  .gift-qty { color: var(--muted); font-size: 11px; margin-bottom: 10px; }
+  .gift-price { color: var(--coin); font-weight: 700; font-size: 13px; margin-bottom: 10px; }
+  .btn {
+    width: 100%;
+    padding: 9px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), #5847c9);
+    color: white;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.secondary {
+    background: #2a2f3d;
+  }
+  .empty-msg { color: var(--muted); text-align: center; padding: 40px 0; }
+  .toast {
+    position: fixed;
+    bottom: 90px; left: 50%;
+    transform: translateX(-50%);
+    background: #23262f;
+    color: var(--text);
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 50;
+  }
+  .admin-link {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 12px;
+    margin-top: 20px;
+    border-radius: 12px;
+    background: #2a2f3d;
+    color: var(--accent-2);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  /* ---- Modal ---- */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.65);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--card);
+    width: 100%;
+    max-width: 480px;
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+    max-height: 85vh;
+    overflow-y: auto;
+    animation: slideUp 0.25s ease-out;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+  .modal-sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+  .modal-close {
+    position: absolute; top: 14px; right: 18px;
+    background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer;
+  }
+  .case-item-row {
+    display: flex; align-items: center; gap: 12px;
+    background: #1f232e; padding: 10px; border-radius: 12px; margin-bottom: 8px;
+  }
+  .case-item-row .ci-icon {
+    width: 40px; height: 40px; border-radius: 10px; object-fit: cover;
+    background: #2a2f3d; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink:0;
+  }
+  .case-item-row .ci-name { flex: 1; font-size: 13px; font-weight: 600; }
+  .case-item-row .ci-chance { font-weight: 700; color: var(--accent-2); font-size: 13px; }
+
+  /* ---- Reel (case ochish animatsiyasi) ---- */
+  .reel-viewport {
+    position: relative;
+    width: 100%;
+    height: 100px;
+    overflow: hidden;
+    background: #1f232e;
+    border-radius: 14px;
+    margin: 16px 0;
+  }
+  .reel-marker {
+    position: absolute; top: 0; bottom: 0; left: 50%;
+    width: 2px; background: var(--accent-2); z-index: 5;
+    box-shadow: 0 0 8px var(--accent-2);
+  }
+  .reel-track {
+    display: flex; align-items: center; height: 100%;
+    position: absolute; left: 50%; top: 0;
+  }
+  .reel-cell {
+    width: 90px; height: 84px; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    margin: 0 5px;
+    background: #2a2f3d; border-radius: 12px;
+    font-size: 26px;
+  }
+  .reel-cell img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+  .reel-cell .rc-label { font-size: 10px; color: var(--muted); margin-top: 4px; max-width: 80px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .win-reveal {
+    text-align: center; padding: 10px 0;
+    animation: popIn 0.4s cubic-bezier(.34,1.56,.64,1);
+  }
+  .win-reveal img { width: 90px; height: 90px; border-radius: 16px; object-fit: cover; margin-bottom: 10px; box-shadow: 0 0 30px rgba(108,92,231,0.6); }
+  .win-reveal .win-icon { font-size: 60px; margin-bottom: 10px; }
+  .win-reveal .win-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+  @keyframes popIn {
+    0% { transform: scale(0.3); opacity: 0; }
+    60% { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  .buy-pop {
+    text-align: center; padding: 10px 0;
+    animation: popIn 0.4s cubic-bezier(.34,1.56,.64,1);
+  }
+  .buy-pop img, .buy-pop .bp-icon-fallback {
+    width: 100px; height: 100px; border-radius: 18px; object-fit: cover; margin: 0 auto 14px;
+    box-shadow: 0 0 30px rgba(108,92,231,0.5);
+  }
+  .bp-icon-fallback { display: flex; align-items: center; justify-content: center; font-size: 44px; background: #2a2f3d; }
+  .receipt {
+    background: #1f232e; border-radius: 12px; padding: 14px; margin-top: 10px;
+    border: 1px dashed rgba(255,255,255,0.15);
+  }
+  .receipt-row { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; }
+  .receipt-row span:first-child { color: var(--muted); }
+  .receipt-row span:last-child { font-weight: 700; }
+  .btn-back {
+    display: block; width: 100%; margin-top: 10px; padding: 10px; border: none; border-radius: 10px;
+    background: #1f232e; color: var(--muted); font-size: 13px; cursor: pointer;
+  }
+  .qty-row { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 14px; }
+  .qty-btn {
+    width: 40px; height: 40px; border-radius: 12px; border: none;
+    background: #1f232e; color: var(--text); font-size: 20px; font-weight: 700; cursor: pointer;
+  }
+  .qty-btn:active { background: var(--accent); }
+  .qty-value { font-size: 20px; font-weight: 800; min-width: 30px; text-align: center; }
+</style>
+</head>
+<body>
+  <div id="loadingScreen">Yuklanmoqda...</div>
+
+  <div id="app">
+    <header>
+      <div class="brand"><img src="logo.jpg" alt="MTshop" class="logo-icon"> <span>MTshop</span></div>
+      <div class="coin-badge">🪙 <span id="coinBalance">0</span></div>
+    </header>
+
+    <main id="main">
+      <!-- tab content shu yerga chiqadi -->
+    </main>
+
+    <nav>
+      <button data-tab="shops" class="active"><span class="icon">🛍️</span>Shops</button>
+      <button data-tab="inventor"><span class="icon">🎒</span>Inventor</button>
+      <button data-tab="jonatmoq"><span class="icon">📤</span>Jo'natmoq</button>
+      <button data-tab="mypet"><span class="icon">🐾</span>MyPet</button>
+      <button data-tab="kreditlar"><span class="icon">💳</span>Kreditlar</button>
+      <button data-tab="profils"><span class="icon">👤</span>Profils</button>
+    </nav>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box" style="position:relative">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    let currentUser = null;
+    let actionInProgress = false; // tugmani ketma-ket tez-tez bosishning oldini olish uchun
+
+    async function init() {
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
+        if (!res.ok) {
+          window.location.href = 'login.html';
+          return;
+        }
+        currentUser = await res.json();
+        updateCoinBadge();
+        document.getElementById('loadingScreen').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+        renderTab('shops');
+        checkIncomingTransfers();
+      } catch (e) {
+        window.location.href = 'login.html';
+      }
+    }
+
+    function updateCoinBadge() {
+      document.getElementById('coinBalance').textContent = currentUser.coin_balance;
+    }
+
+    function showToast(msg) {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2200);
+    }
+
+    function giftImg(g) {
+      return g.image_url
+        ? `<img src="${g.image_url}" alt="${g.name}">`
+        : `<div class="gift-img-fallback">🎁</div>`;
+    }
+
+    async function renderTab(tab) {
+      document.querySelectorAll('nav button').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === tab);
+      });
+      const main = document.getElementById('main');
+
+      if (tab === 'shops') {
+        main.innerHTML = `
+          <div class="page-title">Shops</div>
+          <div class="page-sub">Giftlar va case'larni sotib oling.</div>
+          <div class="section-title">🎁 Giftlar</div>
+          <div id="shopGrid" class="grid"></div>
+          <div class="section-title" style="margin-top:24px">📦 Case'lar</div>
+          <div id="shopCaseGrid" class="grid"></div>
+        `;
+        loadShop();
+        loadShopCases();
+      } else if (tab === 'inventor') {
+        main.innerHTML = `
+          <div class="page-title">Inventor</div>
+          <div class="page-sub">Sizning giftlaringiz va case'laringiz.</div>
+          <div class="section-title">🎁 Giftlarim</div>
+          <div id="invGrid" class="grid"></div>
+          <div class="section-title" style="margin-top:24px">📦 Case'larim</div>
+          <div id="invCaseGrid" class="grid"></div>
+        `;
+        loadInventory();
+        loadInventoryCases();
+      } else if (tab === 'jonatmoq') {
+        renderJonatmoq(main);
+      } else if (tab === 'kreditlar') {
+        renderKreditlar(main);
+      } else if (tab === 'mypet') {
+        renderMyPet(main);
+      } else if (tab === 'profils') {
+        renderProfil(main);
+      }
+    }
+
+    const UZ_MONTHS = ['yanvar','fevral','mart','aprel','may','iyun','iyul','avgust','sentabr','oktabr','noyabr','dekabr'];
+    function formatUzDate(isoStr) {
+      const d = new Date(isoStr);
+      return `${d.getDate()}-${UZ_MONTHS[d.getMonth()]} ${d.getFullYear()}-yil`;
+    }
+
+    let myCreditsCache = [];
+    let creditTypesCache = [];
+
+    async function renderKreditlar(main) {
+      main.innerHTML = `
+        <div class="page-title">Kreditlar</div>
+        <div class="page-sub">Kredit oling yoki mavjud to'lovlaringizni ko'ring.</div>
+        <div class="section-title">💳 Mening kreditlarim</div>
+        <div id="myCreditsList"></div>
+        <div class="section-title" style="margin-top:24px">🏦 Mavjud kredit turlari</div>
+        <div id="creditTypesList"></div>
+      `;
+      loadMyCredits();
+      loadCreditTypesForUser();
+    }
+
+    async function loadMyCredits() {
+      const el = document.getElementById('myCreditsList');
+      el.innerHTML = '<div class="empty-msg">Yuklanmoqda...</div>';
+      const res = await fetch(`${API_BASE}/api/credits/my`, { credentials: 'include' });
+      const list = await res.json();
+      myCreditsCache = list;
+      const active = list.filter(c => c.status !== 'paid');
+      if (!active.length) {
+        el.innerHTML = '<div class="empty-msg">Faol kreditingiz yo\'q</div>';
+        return;
+      }
+      el.innerHTML = active.map(c => `
+        <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:10px;">
+          <div style="font-weight:700; margin-bottom:6px;">${c.type_name}</div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">Qolgan qarz: 🪙 ${c.remaining_amount}</div>
+          <button class="btn" onclick="openCreditDetail(${c.id})">Ko'rish</button>
+        </div>
+      `).join('');
+    }
+
+    function openCreditDetail(creditId) {
+      const c = myCreditsCache.find(x => x.id === creditId);
+      if (!c) return;
+      const statusBadge = c.status === 'defaulted' ? `<div style="color:#ff6b6b;font-weight:700;margin-bottom:10px;">⛔ BLOKLANGAN</div>` : '';
+      const paymentsHtml = c.payments.length
+        ? c.payments.map(p => `
+            <div class="case-item-row">
+              <div class="ci-icon">${p.payment_type === 'early' ? '⚡' : '📅'}</div>
+              <div class="ci-name">🪙 ${p.amount} ${p.payment_type === 'early' ? '(oldindan)' : '(jadval)'}</div>
+              <div class="ci-chance" style="font-size:11px;">${formatUzDate(p.created_at)}</div>
+            </div>`).join('')
+        : `<div class="modal-sub">Hali to'lov qilinmagan</div>`;
+
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">${c.type_name}</div>
+        ${statusBadge}
+        <div class="case-item-row"><div class="ci-name">Siz olgan summa</div><div class="ci-chance">🪙 ${c.principal_amount}</div></div>
+        <div class="case-item-row"><div class="ci-name">Siz qaytaradigan summa</div><div class="ci-chance">🪙 ${c.total_to_pay}</div></div>
+        <div class="case-item-row"><div class="ci-name">Kredit foizi</div><div class="ci-chance">${c.interest_percent}%</div></div>
+        <div class="case-item-row"><div class="ci-name">Qolgan qarz</div><div class="ci-chance">🪙 ${c.remaining_amount}</div></div>
+        <div class="case-item-row"><div class="ci-name">Keyingi to'lov</div><div class="ci-chance" style="font-size:12px;">${formatUzDate(c.next_payment_at)}</div></div>
+
+        <div class="modal-sub" style="margin-top:16px">Oxirgi to'lovlarim</div>
+        ${paymentsHtml}
+
+        ${c.status === 'active' ? `<button class="btn" style="margin-top:14px" onclick="openPayChoice(${c.id})">To'lash</button>` : ''}
+      `;
+      openModal();
+    }
+
+    function openPayChoice(creditId) {
+      const c = myCreditsCache.find(x => x.id === creditId);
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">To'lov usulini tanlang</div>
+        <div class="modal-sub">"${c.type_name}" uchun</div>
+        <div class="gift-card" style="text-align:left; padding:14px; margin-bottom:10px;">
+          <div style="font-weight:700; margin-bottom:4px;">📅 Jadval bo'yicha</div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">Haftalik belgilangan to'lov: 🪙 ${Math.min(c.weekly_payment, c.remaining_amount)}</div>
+          <button class="btn" onclick="payScheduled(${c.id})">Shu summani to'lash</button>
+        </div>
+        <div class="gift-card" style="text-align:left; padding:14px;">
+          <div style="font-weight:700; margin-bottom:4px;">⚡ Oldindan to'lov</div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">O'zingiz xohlagan summani to'lang (qolgan qarz: 🪙 ${c.remaining_amount})</div>
+          <input type="number" class="send-input" id="earlyPayAmount" placeholder="Miqdor" min="0" max="${c.remaining_amount}" step="0.01" style="margin-bottom:10px;">
+          <button class="btn" onclick="payEarly(${c.id})">To'lash</button>
+        </div>
+        <button class="btn-back" onclick="openCreditDetail(${c.id})">&larr; Orqaga</button>
+      `;
+    }
+
+    async function payScheduled(creditId) {
+      await doPay(creditId, { mode: 'scheduled' });
+    }
+
+    async function payEarly(creditId) {
+      const amount = parseFloat(document.getElementById('earlyPayAmount').value);
+      if (!amount || amount <= 0) { showToast("Miqdorni to'g'ri kiriting"); return; }
+      await doPay(creditId, { mode: 'early', amount });
+    }
+
+    async function doPay(creditId, body) {
+      const res = await fetch(`${API_BASE}/api/credits/${creditId}/pay`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
+      currentUser.coin_balance = data.coin_balance;
+      updateCoinBadge();
+      showReceipt(data);
+      loadMyCredits();
+    }
+
+    function showReceipt(data) {
+      const now = new Date();
+      document.getElementById('modalBody').innerHTML = `
+        <div class="win-reveal">
+          <div class="win-icon">✅</div>
+          <div class="win-title">To'lov tasdiqlandi</div>
+          <div class="receipt">
+            <div class="receipt-row"><span>To'langan summa</span><span>🪙 ${data.paid_amount}</span></div>
+            <div class="receipt-row"><span>Qolgan qarz</span><span>🪙 ${data.remaining_amount}</span></div>
+            <div class="receipt-row"><span>Holat</span><span>${data.status === 'paid' ? "To'liq yopildi 🎉" : 'Faol'}</span></div>
+            <div class="receipt-row"><span>Sana</span><span>${formatUzDate(now.toISOString())}</span></div>
+          </div>
+          <button class="btn" style="margin-top:14px" onclick="closeModal(); loadMyCredits();">Yopish</button>
+        </div>
+      `;
+    }
+
+    async function loadCreditTypesForUser() {
+      const el = document.getElementById('creditTypesList');
+      el.innerHTML = '<div class="empty-msg">Yuklanmoqda...</div>';
+      const res = await fetch(`${API_BASE}/api/credits/types`, { credentials: 'include' });
+      const types = await res.json();
+      creditTypesCache = types;
+      if (!types.length) {
+        el.innerHTML = '<div class="empty-msg">Hozircha kredit turlari yo\'q</div>';
+        return;
+      }
+      el.innerHTML = types.map(t => `
+        <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:10px;">
+          <div style="font-weight:700; margin-bottom:6px;">${t.name}</div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">
+            ${t.min_amount}–${t.max_amount} coin &middot; ${t.interest_percent}% foiz
+          </div>
+          <button class="btn" onclick="openCreditTypeModal(${t.id})">Ko'rish</button>
+        </div>
+      `).join('');
+    }
+
+    function openCreditTypeModal(typeId) {
+      const t = creditTypesCache.find(x => x.id === typeId);
+      if (!t) return;
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">${t.name}</div>
+        <div class="case-item-row"><div class="ci-name">Minimal summa</div><div class="ci-chance">🪙 ${t.min_amount}</div></div>
+        <div class="case-item-row"><div class="ci-name">Maksimal summa</div><div class="ci-chance">🪙 ${t.max_amount}</div></div>
+        <div class="case-item-row"><div class="ci-name">Foizi</div><div class="ci-chance">${t.interest_percent}%</div></div>
+        <div class="case-item-row"><div class="ci-name">To'lash muddati</div><div class="ci-chance">${t.installments_weeks} hafta</div></div>
+
+        <label class="send-label">Qancha coin olmoqchisiz?</label>
+        <input type="number" class="send-input" id="takeCreditAmt" min="${t.min_amount}" max="${t.max_amount}" step="0.01" placeholder="${t.min_amount} - ${t.max_amount}">
+        <div class="msg" id="takeCreditMsg"></div>
+        <button class="btn" style="margin-top:14px" onclick="submitTakeCredit(${t.id})">Kredit olish</button>
+      `;
+      openModal();
+    }
+
+    async function submitTakeCredit(typeId) {
+      const msg = document.getElementById('takeCreditMsg');
+      msg.textContent = ''; msg.className = 'msg';
+      const amount = parseFloat(document.getElementById('takeCreditAmt').value);
+      if (!amount) { msg.textContent = "Miqdorni kiriting"; msg.classList.add('error'); return; }
+
+      const res = await fetch(`${API_BASE}/api/credits/take`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credit_type_id: typeId, amount }),
+      });
+      const data = await res.json();
+      if (!res.ok) { msg.textContent = data.error || 'Xatolik'; msg.classList.add('error'); return; }
+
+      currentUser.coin_balance = data.coin_balance;
+      updateCoinBadge();
+      closeModal();
+      showToast("Kredit olindi! Coin hisobingizga tushdi 🪙");
+      loadMyCredits();
+      loadCreditTypesForUser();
+    }
+
+    async function renderJonatmoq(main) {
+      main.innerHTML = `
+        <div class="page-title">Jo'natmoq</div>
+        <div class="page-sub">Boshqa foydalanuvchiga gift, coin yoki case yuboring. Coin yuborishda 3% komissiya olinadi.</div>
+
+        <div class="section-title">Nima yuboramiz?</div>
+        <div class="type-tabs">
+          <button class="type-tab active" data-type="coin" onclick="switchSendType('coin')">🪙 Coin</button>
+          <button class="type-tab" data-type="gift" onclick="switchSendType('gift')">🎁 Gift</button>
+          <button class="type-tab" data-type="case" onclick="switchSendType('case')">📦 Case</button>
+        </div>
+
+        <div class="gift-card" style="text-align:left; padding:18px; margin-top:14px;">
+          <label class="send-label">Kimga (username)</label>
+          <input type="text" id="sendToUsername" class="send-input" placeholder="masalan: ali">
+
+          <div id="sendCoinBlock">
+            <label class="send-label">Miqdor (coin)</label>
+            <input type="number" id="sendCoinAmount" class="send-input" min="0" step="0.01" placeholder="0">
+            <div class="send-hint" id="commissionHint"></div>
+          </div>
+
+          <div id="sendGiftBlock" style="display:none">
+            <label class="send-label">Qaysi gift</label>
+            <select id="sendGiftSelect" class="send-input"></select>
+          </div>
+
+          <div id="sendCaseBlock" style="display:none">
+            <label class="send-label">Qaysi case</label>
+            <select id="sendCaseSelect" class="send-input"></select>
+          </div>
+
+          <button class="btn" style="margin-top:14px" onclick="submitSend()">Yuborish</button>
+          <div class="msg" id="sendMsg"></div>
+        </div>
+      `;
+
+      document.getElementById('sendCoinAmount').addEventListener('input', updateCommissionHint);
+
+      // Gift va case ro'yxatlarini yuklab dropdown'larga joylaymiz
+      const [giftsRes, casesRes] = await Promise.all([
+        fetch(`${API_BASE}/api/inventory/gifts`, { credentials: 'include' }),
+        fetch(`${API_BASE}/api/inventory/cases`, { credentials: 'include' }),
+      ]);
+      const myGifts = await giftsRes.json();
+      const myCases = await casesRes.json();
+
+      const giftSelect = document.getElementById('sendGiftSelect');
+      giftSelect.innerHTML = myGifts.length
+        ? myGifts.map(g => `<option value="${g.inventory_id}">${g.name} (${g.current_price} coin)</option>`).join('')
+        : `<option value="">Sizda gift yo'q</option>`;
+
+      const caseSelect = document.getElementById('sendCaseSelect');
+      caseSelect.innerHTML = myCases.length
+        ? myCases.map(c => `<option value="${c.inventory_id}">${c.name}</option>`).join('')
+        : `<option value="">Sizda case yo'q</option>`;
+    }
+
+    function switchSendType(type) {
+      document.querySelectorAll('.type-tab').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+      document.getElementById('sendCoinBlock').style.display = type === 'coin' ? 'block' : 'none';
+      document.getElementById('sendGiftBlock').style.display = type === 'gift' ? 'block' : 'none';
+      document.getElementById('sendCaseBlock').style.display = type === 'case' ? 'block' : 'none';
+    }
+
+    function updateCommissionHint() {
+      const amt = parseFloat(document.getElementById('sendCoinAmount').value) || 0;
+      const commission = Math.round(amt * 0.03 * 100) / 100;
+      const hint = document.getElementById('commissionHint');
+      hint.textContent = amt > 0 ? `Komissiya: ${commission} coin — jami ${amt + commission} coin yechiladi` : '';
+    }
+
+    const ITEM_TYPE_LABELS = { coin: 'Coin', gift: 'Gift', case: 'Case' };
+
+    function submitSend() {
+      const msg = document.getElementById('sendMsg');
+      msg.textContent = ''; msg.className = 'msg';
+
+      const toUsername = document.getElementById('sendToUsername').value.trim();
+      if (!toUsername) { msg.textContent = 'Username kiriting'; msg.classList.add('error'); return; }
+
+      const type = document.querySelector('.type-tab.active').dataset.type;
+      let body;
+
+      if (type === 'coin') {
+        const amount = parseFloat(document.getElementById('sendCoinAmount').value);
+        if (!amount || amount <= 0) { msg.textContent = "Miqdorni to'g'ri kiriting"; msg.classList.add('error'); return; }
+        body = { to_username: toUsername, amount };
+      } else if (type === 'gift') {
+        const inventory_id = document.getElementById('sendGiftSelect').value;
+        if (!inventory_id) { msg.textContent = 'Gift tanlang'; msg.classList.add('error'); return; }
+        body = { to_username: toUsername, inventory_id };
+      } else {
+        const inventory_id = document.getElementById('sendCaseSelect').value;
+        if (!inventory_id) { msg.textContent = 'Case tanlang'; msg.classList.add('error'); return; }
+        body = { to_username: toUsername, inventory_id };
+      }
+
+      openSendConfirmModal(type, body);
+    }
+
+    function openSendConfirmModal(type, body) {
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">Yuborishni tasdiqlang</div>
+        <div class="case-item-row"><div class="ci-name">Narsa</div><div class="ci-chance">${ITEM_TYPE_LABELS[type]}</div></div>
+        <div class="case-item-row"><div class="ci-name">Kimga</div><div class="ci-chance">@${body.to_username}</div></div>
+        ${type === 'coin' ? `<div class="case-item-row"><div class="ci-name">Miqdor</div><div class="ci-chance">🪙 ${body.amount}</div></div>` : ''}
+
+        <div class="modal-sub" style="margin-top:16px">Anonim sifatida jo'natilsinmi?</div>
+        <div class="modal-sub" style="font-size:11px; margin-top:-8px;">("Ha" desangiz, qabul qiluvchi sizdan kelganini bilmaydi)</div>
+        <div class="type-tabs" style="margin-top:10px;">
+          <button class="type-tab" id="anonYesBtn" onclick="setAnonChoice(true)">Ha</button>
+          <button class="type-tab active" id="anonNoBtn" onclick="setAnonChoice(false)">Yo'q</button>
+        </div>
+
+        <button class="btn" style="margin-top:16px" onclick="finalizeSend('${type}')">Yuborish</button>
+      `;
+      window.__pendingSendBody = body;
+      window.__pendingSendAnon = false;
+      openModal();
+    }
+
+    function setAnonChoice(isAnon) {
+      window.__pendingSendAnon = isAnon;
+      document.getElementById('anonYesBtn').classList.toggle('active', isAnon);
+      document.getElementById('anonNoBtn').classList.toggle('active', !isAnon);
+    }
+
+    async function finalizeSend(type) {
+      const body = { ...window.__pendingSendBody, is_anonymous: window.__pendingSendAnon };
+      const url = `${API_BASE}/api/transfers/${type}`;
+
+      const res = await fetch(url, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
+
+      if (data.coin_balance !== undefined) {
+        currentUser.coin_balance = data.coin_balance;
+        updateCoinBadge();
+      }
+      closeModal();
+      showToast("Muvaffaqiyatli yuborildi! ✅");
+      renderJonatmoq(document.getElementById('main'));
+    }
+
+    // ---------- Kelgan narsalar bildirishnomasi ----------
+
+    async function checkIncomingTransfers() {
+      const res = await fetch(`${API_BASE}/api/transfers/unseen`, { credentials: 'include' });
+      if (!res.ok) return;
+      const list = await res.json();
+      if (!list.length) return;
+      showIncomingModal(list, 0);
+    }
+
+    function transferItemLine(t) {
+      if (t.item_type === 'coin') return `🪙 ${t.coin_amount} coin`;
+      if (t.item_type === 'gift') return `🎁 ${t.gift_name || 'Gift'}`;
+      return `📦 ${t.case_name || 'Case'}`;
+    }
+
+    function showIncomingModal(list, index) {
+      const t = list[index];
+      const from = t.from_username ? `@${t.from_username}` : 'Anonim foydalanuvchi';
+      document.getElementById('modalBody').innerHTML = `
+        <div class="win-reveal">
+          <div class="win-icon">📬</div>
+          <div class="win-title">Sizga kelgan narsa bor!</div>
+          <div class="modal-sub">${from} sizga yubordi:</div>
+          <div class="receipt">
+            <div class="receipt-row"><span>Narsa</span><span>${transferItemLine(t)}</span></div>
+            <div class="receipt-row"><span>Sana</span><span>${formatUzDate(t.created_at)}</span></div>
+          </div>
+          <button class="btn" style="margin-top:14px" onclick="advanceIncomingModal(${index})">
+            ${index < list.length - 1 ? 'Keyingisi' : 'Yopish'}
+          </button>
+        </div>
+      `;
+      window.__incomingList = list;
+      openModal();
+    }
+
+    async function advanceIncomingModal(index) {
+      const list = window.__incomingList;
+      if (index < list.length - 1) {
+        showIncomingModal(list, index + 1);
+      } else {
+        closeModal();
+        await fetch(`${API_BASE}/api/transfers/mark-seen`, { method: 'POST', credentials: 'include' });
+        loadInventory();
+        loadInventoryCases();
+      }
+    }
+
+    async function renderMyPet(main) {
+      main.innerHTML = `
+        <div class="page-title">MyPet</div>
+        <div class="page-sub">Pet'laringizni ovqatlantiring va kuzating.</div>
+        <div class="section-title">🐾 Mening pet'larim</div>
+        <div id="myPetsList"></div>
+        <div class="section-title" style="margin-top:24px">🏪 PetShop</div>
+        <div id="petShopGrid" class="grid"></div>
+      `;
+      loadMyPets();
+      loadPetShop();
+    }
+
+    let myPetsCache = [];
+
+    function petStatusBadge(status) {
+      if (status === 'dead') return `<span style="color:#ff6b6b;font-weight:700">💀 O'lgan</span>`;
+      if (status === 'sick') return `<span style="color:#ffd166;font-weight:700">🤒 Kasal</span>`;
+      return `<span style="color:#6bcB77;font-weight:700">💚 Sog'lom</span>`;
+    }
+
+    async function loadMyPets() {
+      const el = document.getElementById('myPetsList');
+      el.innerHTML = '<div class="empty-msg">Yuklanmoqda...</div>';
+      const res = await fetch(`${API_BASE}/api/pets/my`, { credentials: 'include' });
+      const pets = await res.json();
+      myPetsCache = pets;
+      if (!pets.length) {
+        el.innerHTML = '<div class="empty-msg">Sizda pet yo\'q. Pastdan PetShop orqali sotib oling.</div>';
+        return;
+      }
+      el.innerHTML = pets.map(p => `
+        <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+            ${p.pet_image_url ? `<img src="${p.pet_image_url}" style="width:48px;height:48px;border-radius:12px;object-fit:cover;">` : `<div class="noimg" style="width:48px;height:48px;border-radius:12px;background:#2a2f3d;"></div>`}
+            <div>
+              <div style="font-weight:700;">${p.name || p.pet_name} <span style="color:var(--muted);font-weight:400;font-size:12px;">LV ${p.level}</span></div>
+              <div style="font-size:12px;">${petStatusBadge(p.status)}</div>
+            </div>
+          </div>
+          <button class="btn" onclick="openPetStats(${p.id})">📊 Statistika</button>
+        </div>
+      `).join('');
+    }
+
+    function openPetStats(petId) {
+      const p = myPetsCache.find(x => x.id === petId);
+      if (!p) return;
+
+      const hungerInfo = p.status === 'dead'
+        ? `Pet o'lgan`
+        : p.status === 'sick'
+          ? `Kasal — ${p.hours_until_death} soatdan keyin o'lishi mumkin`
+          : `${p.hours_until_sick} soatdan keyin ochqaydi (kasal bo'ladi)`;
+
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title" style="display:flex; align-items:center; gap:8px;">
+          <span id="petStatNameDisplay">${p.name || p.pet_name}</span>
+          <button class="btn-secondary" style="padding:4px 8px; font-size:12px;" onclick="editPetNameInline(${p.id})">✏️</button>
+        </div>
+        <div class="modal-sub">Turi: ${p.pet_name}</div>
+
+        <div class="case-item-row"><div class="ci-name">Sog'lomlik darajasi</div><div class="ci-chance">${petStatusBadge(p.status)}</div></div>
+        <div class="case-item-row"><div class="ci-name">Holat</div><div class="ci-chance" style="font-size:12px;">${hungerInfo}</div></div>
+        <div class="case-item-row"><div class="ci-name">Daraja (LV)</div><div class="ci-chance">LV ${p.level}</div></div>
+        <div class="case-item-row"><div class="ci-name">XP</div><div class="ci-chance">${Math.round(p.xp*100)/100} / ${p.xp_per_level}</div></div>
+        <div class="case-item-row"><div class="ci-name">Keyingi LV (${p.level + 1})</div><div class="ci-chance" style="font-size:12px;">To'yish uchun ${p.next_level_required_feed_xp} XP kifoya</div></div>
+        <div class="case-item-row"><div class="ci-name">Daromad</div><div class="ci-chance">🪙 ${p.coin_per_3h} / 3soat</div></div>
+
+        ${p.status !== 'dead' ? `<button class="btn" style="margin-top:14px" onclick="openFeedModal(${p.id})">🍖 Ovqatlantirish</button>` : ''}
+        ${p.status === 'sick' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="curePet(${p.id})">💊 Davolash (25 coin)</button>` : ''}
+      `;
+      openModal();
+    }
+
+    async function editPetNameInline(petId) {
+      const p = myPetsCache.find(x => x.id === petId);
+      const newName = prompt("Petga yangi ism bering:", p.name || '');
+      if (newName === null) return;
+      const res = await fetch(`${API_BASE}/api/pets/${petId}/name`, {
+        method: 'PUT', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
+      showToast("Ism o'zgartirildi!");
+      await loadMyPets();
+      openPetStats(petId);
+    }
+
+    async function openFeedModal(petId) {
+      document.getElementById('modalBody').innerHTML = `<div class="modal-title">Yuklanmoqda...</div>`;
+      openModal();
+      const res = await fetch(`${API_BASE}/api/inventory/gifts`, { credentials: 'include' });
+      const myGifts = await res.json();
+
+      // Bir xil giftlarni guruhlaymiz (masalan 6 ta Ayiqcha)
+      const grouped = {};
+      myGifts.forEach(g => {
+        if (!grouped[g.gift_id]) {
+          grouped[g.gift_id] = { gift_id: g.gift_id, name: g.name, image_url: g.image_url, current_price: g.current_price, count: 0 };
+        }
+        grouped[g.gift_id].count += 1;
+      });
+      const groups = Object.values(grouped);
+
+      if (!groups.length) {
+        document.getElementById('modalBody').innerHTML = `
+          <div class="modal-title">Giftlaringiz yo'q</div>
+          <div class="modal-sub">Petni ovqatlantirish uchun avval Shops'dan gift sotib oling.</div>
+        `;
+        return;
+      }
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">Ovqatlantirish uchun gift tanlang</div>
+        <div class="modal-sub">Gift narxi qancha bo'lsa, shuncha XP beradi (narx/10)</div>
+        ${groups.map(g => `
+          <div class="case-item-row" style="cursor:pointer" onclick="openFeedQtyModal(${petId}, ${g.gift_id})">
+            ${g.image_url ? `<img class="ci-icon" src="${g.image_url}">` : `<div class="ci-icon">🎁</div>`}
+            <div class="ci-name">${g.name} <span style="color:var(--muted)">x${g.count}</span></div>
+            <div class="ci-chance">${g.current_price} coin</div>
+          </div>
+        `).join('')}
+      `;
+      window.__feedGroups = groups;
+    }
+
+    function openFeedQtyModal(petId, giftId) {
+      const g = window.__feedGroups.find(x => x.gift_id === giftId);
+      if (!g) return;
+      document.getElementById('modalBody').innerHTML = `
+        <div class="buy-pop">
+          ${g.image_url ? `<img src="${g.image_url}">` : `<div class="bp-icon-fallback">🎁</div>`}
+          <div class="win-title">${g.name}</div>
+          <div class="modal-sub">Nechta giftni berasan ovqatlanishga?</div>
+        </div>
+        <div class="qty-row">
+          <button class="qty-btn" onclick="changeFeedQty(-1, ${g.count})">−</button>
+          <div class="qty-value" id="feedQtyValue">1</div>
+          <button class="qty-btn" onclick="changeFeedQty(1, ${g.count})">+</button>
+        </div>
+        <div class="modal-sub" style="text-align:center; margin-top:6px;" id="feedQtyXp">+${Math.round(g.current_price/10*100)/100} XP</div>
+        <button class="btn" style="margin-top:14px" onclick="confirmFeed(${petId}, ${giftId})">Ovqatlantirish</button>
+        <button class="btn-back" onclick="openFeedModal(${petId})">&larr; Orqaga</button>
+      `;
+      window.__feedUnitXp = g.current_price / 10;
+    }
+
+    function changeFeedQty(delta, maxQty) {
+      const el = document.getElementById('feedQtyValue');
+      let val = parseInt(el.textContent, 10) + delta;
+      if (val < 1) val = 1;
+      if (val > maxQty) val = maxQty;
+      el.textContent = val;
+      document.getElementById('feedQtyXp').textContent = `+${Math.round(val * window.__feedUnitXp * 100) / 100} XP`;
+    }
+
+    async function confirmFeed(petId, giftId) {
+      const quantity = parseInt(document.getElementById('feedQtyValue').textContent, 10);
+      const res = await fetch(`${API_BASE}/api/pets/${petId}/feed`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gift_id: giftId, quantity }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
+      closeModal();
+      const msg = data.leveled_up
+        ? `🎉 Level oshdi! Endi LV ${data.new_level}`
+        : (data.satisfied_hunger ? "Pet to'ydi! 🍖" : "XP qo'shildi, lekin to'liq to'ymadi");
+      showToast(msg);
+      loadMyPets();
+      loadInventory();
+    }
+
+    async function curePet(petId) {
+      const res = await fetch(`${API_BASE}/api/pets/${petId}/heal`, { method: 'POST', credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
+      currentUser.coin_balance = data.coin_balance;
+      updateCoinBadge();
+      closeModal();
+      showToast('Pet davolandi! 💊');
+      loadMyPets();
+    }
+
+    async function loadPetShop() {
+      const el = document.getElementById('petShopGrid');
+      el.innerHTML = '<div class="empty-msg">Yuklanmoqda...</div>';
+      const res = await fetch(`${API_BASE}/api/pets/types`, { credentials: 'include' });
+      const types = await res.json();
+      if (!types.length) {
+        el.innerHTML = '<div class="empty-msg">Hozircha pet turlari yo\'q</div>';
+        return;
+      }
+      el.innerHTML = types.map(t => `
+        <div class="gift-card">
+          ${giftImg({ image_url: t.image_url, name: t.name })}
+          <div class="gift-name">${t.name}</div>
+          <div class="gift-qty">${t.stock === null ? 'Cheksiz' : 'Qoldi: ' + t.stock}</div>
+          <div class="gift-price">🪙 ${t.price}</div>
+          <button class="btn" onclick="buyPet(${t.id})">Sotib olish</button>
+        </div>
+      `).join('');
+    }
+
+    async function buyPet(typeId) {
+      if (actionInProgress) return;
+      actionInProgress = true;
+      try {
+        const res = await fetch(`${API_BASE}/api/pets/types/${typeId}/buy`, { method: 'POST', credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
+        currentUser.coin_balance = data.coin_balance;
+        updateCoinBadge();
+        showToast('Pet sotib olindi! 🐾');
+        loadMyPets();
+        loadPetShop();
+      } finally {
+        actionInProgress = false;
+      }
+    }
+
+    function renderProfil(main) {
+      const statusImg = currentUser.status_image_url
+        ? `<img src="${currentUser.status_image_url}" style="width:28px;height:28px;border-radius:8px;object-fit:cover;vertical-align:middle;margin-left:6px;">`
+        : '';
+      main.innerHTML = `
+        <div class="page-title">Profils</div>
+        <div class="page-sub">@${currentUser.username}${statusImg}</div>
+        <div class="gift-card" style="text-align:left; padding:20px;">
+          <div style="margin-bottom:8px;"><b>Username:</b> ${currentUser.username}</div>
+          <div style="margin-bottom:8px;"><b>Coin balans:</b> ${currentUser.coin_balance} 🪙</div>
+        </div>
+        ${currentUser.is_admin ? `<a href="admin.html" class="admin-link">⚙️ Admin panel</a>` : ''}
+        <button class="btn secondary" style="margin-top:14px;" onclick="logout()">Hisobdan chiqish</button>
+
+        <div class="section-title" style="margin-top:28px">🔍 Foydalanuvchilarni qidirish</div>
+        <input type="text" class="send-input" id="userSearchInput" placeholder="Username kiriting...">
+        <div id="userSearchResults" style="margin-top:12px"></div>
+      `;
+
+      let searchTimeout;
+      document.getElementById('userSearchInput').addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        const q = e.target.value.trim();
+        if (!q) { document.getElementById('userSearchResults').innerHTML = ''; return; }
+        searchTimeout = setTimeout(() => runUserSearch(q), 300);
+      });
+    }
+
+    async function runUserSearch(q) {
+      const el = document.getElementById('userSearchResults');
+      el.innerHTML = '<div class="empty-msg">Qidirilmoqda...</div>';
+      const res = await fetch(`${API_BASE}/api/users/search?q=${encodeURIComponent(q)}`, { credentials: 'include' });
+      const list = await res.json();
+      if (!list.length) { el.innerHTML = '<div class="empty-msg">Topilmadi</div>'; return; }
+      el.innerHTML = list.map(u => {
+        const img = u.status_image_url
+          ? `<img src="${u.status_image_url}" class="ci-icon">`
+          : `<div class="ci-icon">👤</div>`;
+        return `
+          <div class="case-item-row" style="cursor:pointer" onclick="openUserProfile('${u.username}')">
+            ${img}
+            <div class="ci-name">@${u.username}</div>
+          </div>`;
+      }).join('');
+    }
+
+    async function openUserProfile(username) {
+      document.getElementById('modalBody').innerHTML = `<div class="modal-title">Yuklanmoqda...</div>`;
+      openModal();
+
+      const res = await fetch(`${API_BASE}/api/users/${encodeURIComponent(username)}/profile`, { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) {
+        document.getElementById('modalBody').innerHTML = `<div class="modal-title">Xatolik</div><div class="modal-sub">${data.error || ''}</div>`;
+        return;
+      }
+
+      const statusImg = data.status_image_url
+        ? `<img src="${data.status_image_url}" style="width:24px;height:24px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-left:6px;">`
+        : '';
+
+      const giftsHtml = data.gifts.length
+        ? data.gifts.map(g => `
+            <div class="case-item-row">
+              ${g.image_url ? `<img class="ci-icon" src="${g.image_url}">` : `<div class="ci-icon">🎁</div>`}
+              <div class="ci-name">${g.name}</div>
+              <div class="ci-chance">x${g.count}</div>
+            </div>`).join('')
+        : `<div class="modal-sub">Giftlari yo'q</div>`;
+
+      const casesHtml = data.cases.length
+        ? data.cases.map(c => `
+            <div class="case-item-row">
+              ${c.image_url ? `<img class="ci-icon" src="${c.image_url}">` : `<div class="ci-icon">📦</div>`}
+              <div class="ci-name">${c.name}</div>
+              <div class="ci-chance">x${c.count}</div>
+            </div>`).join('')
+        : `<div class="modal-sub">Case'lari yo'q</div>`;
+
+      const petsHtml = data.pets.length
+        ? `<div class="modal-sub">${data.pets.length} ta pet bor</div>`
+        : `<div class="modal-sub">Pet'lari yo'q</div>`;
+
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">@${data.username}${statusImg}</div>
+        <div class="modal-sub" style="margin-top:14px">🎁 Giftlari</div>
+        ${giftsHtml}
+        <div class="modal-sub" style="margin-top:14px">📦 Case'lari</div>
+        ${casesHtml}
+        <div class="modal-sub" style="margin-top:14px">🐾 Pet'lari</div>
+        ${petsHtml}
+      `;
+    }
+
+    async function logout() {
+      await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+      window.location.href = 'login.html';
+    }
+
+    let lastLoadedShopGifts = [];
+
+    async function loadShop() {
+      const grid = document.getElementById('shopGrid');
+      grid.innerHTML = '<div class="empty-msg">Yuklanmoqda...</div>';
+      const res = await fetch(`${API_BASE}/api/gifts`, { credentials: 'include' });
+      const gifts = await res.json();
+      lastLoadedShopGifts = gifts;
+      if (!gifts.length) {
+        grid.innerHTML = '<div class="empty-msg">Hozircha giftlar yo\'q</div>';
+        return;
+      }
+      grid.innerHTML = gifts.map(g => `
+        <div class="gift-card">
+          ${giftImg(g)}
+          <div class="gift-name">${g.name}</div>
+          <div class="gift-qty">${g.quantity === null ? 'Cheksiz' : 'Qoldi: ' + g.quantity}</div>
+          <div class="gift-price">🪙 ${g.price}</div>
+          <button class="btn" onclick="openGiftInfoModal(${g.id})">Ko'rish</button>
+        </div>
+      `).join('');
+    }
+
+    function openGiftInfoModal(giftId) {
+      const g = lastLoadedShopGifts.find(x => x.id === giftId);
+      if (!g) return;
+      const maxQty = g.quantity === null ? 999 : g.quantity;
+      const media = g.image_url ? `<img src="${g.image_url}">` : `<div class="bp-icon-fallback">🎁</div>`;
+
+      document.getElementById('modalBody').innerHTML = `
+        <div class="buy-pop">
+          ${media}
+          <div class="win-title">${g.name}</div>
+          <div class="modal-sub">🪙 ${g.price} &middot; ${g.quantity === null ? 'Cheksiz' : 'Qoldi: ' + g.quantity}</div>
+        </div>
+        <div class="qty-row">
+          <button class="qty-btn" onclick="changeGiftQty(-1, ${maxQty})">−</button>
+          <div class="qty-value" id="giftQtyValue">1</div>
+          <button class="qty-btn" onclick="changeGiftQty(1, ${maxQty})">+</button>
+        </div>
+        <div class="modal-sub" style="text-align:center; margin-top:6px;" id="giftQtyTotal">Jami: 🪙 ${g.price}</div>
+        <button class="btn" style="margin-top:14px" onclick="confirmBuyGift(${g.id})">Sotib olish</button>
+      `;
+      window.__giftUnitPrice = g.price;
+      openModal();
+    }
+
+    function changeGiftQty(delta, maxQty) {
+      const el = document.getElementById('giftQtyValue');
+      let val = parseInt(el.textContent, 10) + delta;
+      if (val < 1) val = 1;
+      if (val > maxQty) val = maxQty;
+      el.textContent = val;
+      document.getElementById('giftQtyTotal').textContent = `Jami: 🪙 ${Math.round(val * window.__giftUnitPrice * 100) / 100}`;
+    }
+
+    async function confirmBuyGift(giftId) {
+      const quantity = parseInt(document.getElementById('giftQtyValue').textContent, 10);
+      await buyGift(giftId, quantity);
+    }
+
+    async function buyGift(giftId, quantity) {
+      if (actionInProgress) return;
+      actionInProgress = true;
+      try {
+        const res = await fetch(`${API_BASE}/api/gifts/${giftId}/buy`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quantity: quantity || 1 }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Xatolik');
+          return;
+        }
+        currentUser.coin_balance = data.coin_balance;
+        updateCoinBadge();
+        loadShop();
+
+        const gift = lastLoadedShopGifts.find(g => g.id === giftId);
+        const media = gift && gift.image_url
+          ? `<img src="${gift.image_url}">`
+          : `<div class="bp-icon-fallback">🎁</div>`;
+        document.getElementById('modalBody').innerHTML = `
+          <div class="buy-pop">
+            ${media}
+            <div class="win-title">✅ Sotib olindi!</div>
+            <div class="modal-sub">${gift ? gift.name : ''} x${data.bought_qty || quantity} inventorga tushdi</div>
+            <button class="btn" onclick="closeModal()">Yopish</button>
+          </div>
+        `;
+        openModal();
+      } finally {
+        actionInProgress = false;
+      }
+    }
+
+    async function loadInventory() {
+      const grid = document.getElementById('invGrid');
+      grid.innerHTML = '<div class="empty-msg">Yuklanmoqda...</div>';
+      const res = await fetch(`${API_BASE}/api/inventory/gifts`, { credentials: 'include' });
+      const items = await res.json();
+      if (!items.length) {
+        grid.innerHTML = '<div class="empty-msg">Inventoringiz hozircha bo\'sh</div>';
+        return;
+      }
+      grid.innerHTML = items.map(it => `
+        <div class="gift-card">
+          ${giftImg({ image_url: it.image_url, name: it.name })}
+          <div class="gift-name">${it.name}</div>
+          <div class="gift-price">🪙 ${Math.round(it.current_price * 0.8 * 100) / 100} (sotish narxi)</div>
+          <button class="btn secondary" onclick="sellGift(${it.inventory_id})">Sotish</button>
+        </div>
+      `).join('');
+    }
+
+    async function sellGift(inventoryId) {
+      const res = await fetch(`${API_BASE}/api/inventory/gifts/${inventoryId}/sell`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Xatolik');
+        return;
+      }
+      currentUser.coin_balance = data.coin_balance;
+      updateCoinBadge();
+      showToast(`Sotildi! +${data.sold_for} coin`);
+      loadInventory();
+    }
+
+    document.querySelectorAll('nav button').forEach(btn => {
+      btn.addEventListener('click', () => renderTab(btn.dataset.tab));
+    });
+
+    let shopCasesCache = {};
+
+    async function loadShopCases() {
+      const grid = document.getElementById('shopCaseGrid');
+      grid.innerHTML = '<div class="empty-msg">Yuklanmoqda...</div>';
+      const res = await fetch(`${API_BASE}/api/cases`, { credentials: 'include' });
+      const list = await res.json();
+      list.forEach(c => shopCasesCache[c.id] = c);
+      if (!list.length) {
+        grid.innerHTML = '<div class="empty-msg">Hozircha case\'lar yo\'q</div>';
+        return;
+      }
+      grid.innerHTML = list.map(c => `
+        <div class="gift-card">
+          ${giftImg(c)}
+          <div class="gift-name">${c.name}</div>
+          <div class="gift-qty">${c.items.length} ta narsa</div>
+          <div class="gift-price">🪙 ${c.price}</div>
+          <button class="btn" onclick="openCaseInfoModal(${c.id})">Ko'rish</button>
+        </div>
+      `).join('');
+    }
+
+    function itemIcon(it) {
+      if (it.item_type === 'coin') return `<div class="ci-icon">🪙</div>`;
+      return it.gift_image_url
+        ? `<img class="ci-icon" src="${it.gift_image_url}">`
+        : `<div class="ci-icon">🎁</div>`;
+    }
+
+    function openCaseInfoModal(caseId) {
+      const c = shopCasesCache[caseId];
+      if (!c) return;
+      const total = c.items.reduce((s, it) => s + it.chance_percent, 0);
+      const rows = c.items.map(it => {
+        const label = it.item_type === 'coin' ? `${it.coin_amount} coin` : it.gift_name;
+        const pct = total > 0 ? Math.round(it.chance_percent / total * 1000) / 10 : 0;
+        return `
+          <div class="case-item-row">
+            ${itemIcon(it)}
+            <div class="ci-name">${label}</div>
+            <div class="ci-chance">${pct}%</div>
+          </div>`;
+      }).join('');
+
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">${c.name}</div>
+        <div class="modal-sub">Ichida chiqishi mumkin bo'lgan narsalar:</div>
+        ${rows}
+        <button class="btn" style="margin-top:14px" onclick="buyCase(${c.id}, true)">Sotib olish — 🪙 ${c.price}</button>
+      `;
+      openModal();
+    }
+
+    function openModal() { document.getElementById('modalOverlay').classList.add('open'); }
+    function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+    async function buyCase(caseId, fromModal) {
+      if (actionInProgress) return;
+      actionInProgress = true;
+      try {
+        const res = await fetch(`${API_BASE}/api/cases/${caseId}/buy`, { method: 'POST', credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
+        currentUser.coin_balance = data.coin_balance;
+        updateCoinBadge();
+        if (fromModal) closeModal();
+        showToast('Sotib olindi! Inventorga tushdi 📦');
+        loadShopCases();
+      } finally {
+        actionInProgress = false;
+      }
+    }
+
+    async function loadInventoryCases() {
+      const grid = document.getElementById('invCaseGrid');
+      grid.innerHTML = '<div class="empty-msg">Yuklanmoqda...</div>';
+      const res = await fetch(`${API_BASE}/api/inventory/cases`, { credentials: 'include' });
+      const items = await res.json();
+      if (!items.length) {
+        grid.innerHTML = '<div class="empty-msg">Case\'laringiz yo\'q</div>';
+        return;
+      }
+      grid.innerHTML = items.map(it => `
+        <div class="gift-card">
+          ${giftImg(it)}
+          <div class="gift-name">${it.name}</div>
+          <button class="btn" onclick="openCase(${it.inventory_id}, ${it.case_id})">Ochish 🎉</button>
+        </div>
+      `).join('');
+    }
+
+    async function ensureCasesCache() {
+      if (Object.keys(shopCasesCache).length) return;
+      const res = await fetch(`${API_BASE}/api/cases`, { credentials: 'include' });
+      const list = await res.json();
+      list.forEach(c => shopCasesCache[c.id] = c);
+    }
+
+    function reelCellHTML(it) {
+      if (!it) return `<div class="reel-cell">❓</div>`;
+      if (it.item_type === 'coin') {
+        return `<div class="reel-cell">🪙<div class="rc-label">${it.coin_amount} coin</div></div>`;
+      }
+      const img = it.gift_image_url
+        ? `<img src="${it.gift_image_url}">`
+        : `🎁`;
+      return `<div class="reel-cell">${img}<div class="rc-label">${it.gift_name || ''}</div></div>`;
+    }
+
+    async function openCase(inventoryId, caseId) {
+      await ensureCasesCache();
+      const caseData = shopCasesCache[caseId];
+
+      // Avval reel animatsiyasini ko'rsatamiz, keyin natijani serverdan olamiz
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">Case ochilmoqda...</div>
+        <div class="modal-sub">Omadingizni sinab ko'ring 🎲</div>
+        <div class="reel-viewport">
+          <div class="reel-marker"></div>
+          <div class="reel-track" id="reelTrack"></div>
+        </div>
+      `;
+      openModal();
+
+      const res = await fetch(`${API_BASE}/api/inventory/cases/${inventoryId}/open`, {
+        method: 'POST', credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        document.getElementById('modalBody').innerHTML = `<div class="modal-title">Xatolik</div><div class="modal-sub">${data.error || ''}</div>`;
+        return;
+      }
+
+      // Reel uchun tasodifiy narsalar ro'yxati, oxirida yutgan narsa
+      const pool = (caseData && caseData.items.length) ? caseData.items : [data.won.item_type === 'coin'
+        ? { item_type: 'coin', coin_amount: data.won.coin_amount }
+        : { item_type: 'gift', gift_name: data.won.name, gift_image_url: data.won.image_url }];
+
+      const LANDING_INDEX = 26;
+      const TOTAL_CELLS = 30;
+      const cells = [];
+      for (let i = 0; i < TOTAL_CELLS; i++) {
+        if (i === LANDING_INDEX) {
+          cells.push(data.won.item_type === 'coin'
+            ? { item_type: 'coin', coin_amount: data.won.coin_amount }
+            : { item_type: 'gift', gift_name: data.won.name, gift_image_url: data.won.image_url });
+        } else {
+          cells.push(pool[Math.floor(Math.random() * pool.length)]);
+        }
+      }
+
+      const track = document.getElementById('reelTrack');
+      track.innerHTML = cells.map(reelCellHTML).join('');
+
+      const cellWidth = 100; // 90 + 2*5 margin
+      const targetX = -(LANDING_INDEX * cellWidth + cellWidth / 2);
+      track.style.transition = 'none';
+      track.style.transform = 'translateX(0px)';
+      // keyingi freymda animatsiyani boshlaymiz
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          track.style.transition = 'transform 2.6s cubic-bezier(.12,.85,.15,1)';
+          track.style.transform = `translateX(${targetX}px)`;
+        });
+      });
+
+      currentUser.coin_balance = data.coin_balance;
+      updateCoinBadge();
+
+      setTimeout(() => {
+        const win = data.won;
+        const body = document.getElementById('modalBody');
+        if (!body) return;
+        const winMedia = win.item_type === 'coin'
+          ? `<div class="win-icon">🪙</div>`
+          : (win.image_url ? `<img src="${win.image_url}">` : `<div class="win-icon">🎁</div>`);
+        const winText = win.item_type === 'coin' ? `${win.coin_amount} coin` : win.name;
+        body.innerHTML = `
+          <div class="win-reveal">
+            ${winMedia}
+            <div class="win-title">🎉 Siz yutdingiz!</div>
+            <div class="modal-sub">${winText}</div>
+            <button class="btn" onclick="closeModal(); loadInventoryCases(); loadInventory();">Ajoyib!</button>
+          </div>
+        `;
+      }, 2900);
+    }
+
+    init();
+  </script>
+</body>
+</html>
