@@ -1,31 +1,11 @@
 const express = require('express');
-<<<<<<< HEAD
 const { upload, fileToDataUrl } = require('../imageUpload');
-=======
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
 
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
 
 const router = express.Router();
 
-<<<<<<< HEAD
-=======
-const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'pets');
-fs.mkdirSync(uploadDir, { recursive: true });
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.jpg';
-    cb(null, `pet_${Date.now()}${ext}`);
-  },
-});
-const upload = multer({ storage });
-
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
 const MAX_PETS_PER_USER = 2;
 const HOUR_MS = 60 * 60 * 1000;
 const FEED_INTERVAL_MS = 6 * 60 * 60 * 1000;   // 6 soat
@@ -45,11 +25,7 @@ router.post('/admin/pet-types', authMiddleware, adminMiddleware, upload.single('
   if (!name || !price || !coin_per_3h || !xp_to_feed_full || !xp_per_level) {
     return res.status(400).json({ error: 'Barcha maydonlarni to\'ldiring' });
   }
-<<<<<<< HEAD
   const imageUrl = fileToDataUrl(req.file);
-=======
-  const imageUrl = req.file ? `/uploads/pets/${req.file.filename}` : null;
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
   const stockVal = (unlimited === 'true' || unlimited === true) ? null : parseInt(stock, 10) || 0;
 
   const result = await db.prepare(`
@@ -66,11 +42,7 @@ router.put('/admin/pet-types/:id', authMiddleware, adminMiddleware, upload.singl
   if (!existing) return res.status(404).json({ error: 'Topilmadi' });
 
   const { name, price, coin_per_3h, xp_to_feed_full, xp_per_level, stock, unlimited } = req.body || {};
-<<<<<<< HEAD
   const imageUrl = req.file ? fileToDataUrl(req.file) : existing.image_url;
-=======
-  const imageUrl = req.file ? `/uploads/pets/${req.file.filename}` : existing.image_url;
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
   const stockVal = (unlimited === 'true' || unlimited === true)
     ? null
     : (stock !== undefined ? parseInt(stock, 10) : existing.stock);
@@ -164,7 +136,6 @@ router.post('/pets/types/:id/buy', authMiddleware, async (req, res) => {
     return res.status(400).json({ error: `Maksimum ${MAX_PETS_PER_USER} ta pet egalik qilishingiz mumkin` });
   }
 
-<<<<<<< HEAD
   const nowIso = new Date().toISOString();
 
   if (petType.stock !== null) {
@@ -191,25 +162,6 @@ router.post('/pets/types/:id/buy', authMiddleware, async (req, res) => {
   `).run(req.user.id, petType.id, nowIso, nowIso);
 
   const updatedUser = await db.prepare('SELECT coin_balance FROM users WHERE id = ?').get(req.user.id);
-=======
-  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
-  if (user.coin_balance < petType.price) return res.status(400).json({ error: 'Coin yetarli emas' });
-
-  const nowIso = new Date().toISOString();
-  const tx = db.transaction(async () => {
-    await db.prepare('UPDATE users SET coin_balance = coin_balance - ? WHERE id = ?').run(petType.price, user.id);
-    if (petType.stock !== null) {
-      await db.prepare('UPDATE pet_types SET stock = stock - 1 WHERE id = ?').run(petType.id);
-    }
-    await db.prepare(`
-      INSERT INTO user_pets (user_id, pet_type_id, level, xp, status, last_fed_at, last_income_at)
-      VALUES (?, ?, 1, 0, 'healthy', ?, ?)
-    `).run(user.id, petType.id, nowIso, nowIso);
-  });
-  await tx();
-
-  const updatedUser = await db.prepare('SELECT coin_balance FROM users WHERE id = ?').get(user.id);
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
   res.json({ ok: true, coin_balance: updatedUser.coin_balance });
 });
 
@@ -312,7 +264,6 @@ router.post('/pets/:id/heal', authMiddleware, async (req, res) => {
   if (!pet) return res.status(404).json({ error: 'Pet topilmadi' });
   if (pet.status !== 'sick') return res.status(400).json({ error: 'Pet kasal emas' });
 
-<<<<<<< HEAD
   const nowIso = new Date().toISOString();
 
   const deductResult = await db.prepare(
@@ -323,19 +274,6 @@ router.post('/pets/:id/heal', authMiddleware, async (req, res) => {
   // Davolash pet'ni to'ydirilgan holatga ham qaytaradi (soat qayta boshlanadi)
   await db.prepare("UPDATE user_pets SET status = 'healthy', last_fed_at = ?, last_income_at = ? WHERE id = ?")
     .run(nowIso, nowIso, pet.id);
-=======
-  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
-  if (user.coin_balance < HEAL_COST) return res.status(400).json({ error: 'Coin yetarli emas' });
-
-  const nowIso = new Date().toISOString();
-  const tx = db.transaction(async () => {
-    await db.prepare('UPDATE users SET coin_balance = coin_balance - ? WHERE id = ?').run(HEAL_COST, req.user.id);
-    // Davolash pet'ni to'ydirilgan holatga ham qaytaradi (soat qayta boshlanadi)
-    await db.prepare("UPDATE user_pets SET status = 'healthy', last_fed_at = ?, last_income_at = ? WHERE id = ?")
-      .run(nowIso, nowIso, pet.id);
-  });
-  await tx();
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
 
   const updatedUser = await db.prepare('SELECT coin_balance FROM users WHERE id = ?').get(req.user.id);
   res.json({ ok: true, coin_balance: updatedUser.coin_balance });

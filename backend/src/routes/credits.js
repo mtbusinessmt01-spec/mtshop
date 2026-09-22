@@ -165,12 +165,6 @@ router.post('/credits/:id/pay', authMiddleware, async (req, res) => {
     payAmount = Math.min(credit.weekly_payment, credit.remaining_amount);
   }
 
-<<<<<<< HEAD
-=======
-  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
-  if (user.coin_balance < payAmount) return res.status(400).json({ error: 'Coin yetarli emas' });
-
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
   const newRemaining = Math.round((credit.remaining_amount - payAmount) * 100) / 100;
   const newStatus = newRemaining <= 0 ? 'paid' : 'active';
   // Jadval bo'yicha to'lov navbatdagi sanani bir haftaga suradi; oldindan to'lov sanani o'zgartirmaydi
@@ -178,7 +172,6 @@ router.post('/credits/:id/pay', authMiddleware, async (req, res) => {
     ? credit.next_payment_at
     : new Date(new Date(credit.next_payment_at).getTime() + WEEK_MS).toISOString();
 
-<<<<<<< HEAD
   const deductResult = await db.prepare(
     'UPDATE users SET coin_balance = coin_balance - ? WHERE id = ? AND coin_balance >= ?'
   ).run(payAmount, req.user.id, payAmount);
@@ -192,18 +185,6 @@ router.post('/credits/:id/pay', authMiddleware, async (req, res) => {
   await db.prepare(`
     INSERT INTO credit_payments (user_credit_id, amount, payment_type) VALUES (?, ?, ?)
   `).run(credit.id, payAmount, mode === 'early' ? 'early' : 'scheduled');
-=======
-  const tx = db.transaction(async () => {
-    await db.prepare('UPDATE users SET coin_balance = coin_balance - ? WHERE id = ?').run(payAmount, req.user.id);
-    await db.prepare(`
-      UPDATE user_credits SET remaining_amount = ?, status = ?, next_payment_at = ? WHERE id = ?
-    `).run(newRemaining, newStatus, nextPaymentAt, credit.id);
-    await db.prepare(`
-      INSERT INTO credit_payments (user_credit_id, amount, payment_type) VALUES (?, ?, ?)
-    `).run(credit.id, payAmount, mode === 'early' ? 'early' : 'scheduled');
-  });
-  await tx();
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
 
   const updatedUser = await db.prepare('SELECT coin_balance FROM users WHERE id = ?').get(req.user.id);
   res.json({

@@ -423,7 +423,7 @@
       if (!users.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Hali foydalanuvchi yo\'q</div>'; return; }
       el.innerHTML = users.map(u => `
         <div class="user-row">
-          ${u.status_image_url ? `<img src="${API_BASE}${u.status_image_url}" class="ci-icon">` : ''}
+          ${u.status_image_url ? `<img src="${u.status_image_url}" class="ci-icon">` : ''}
           <div class="u-info">
             <div class="u-name">@${u.username}
               ${u.is_admin ? '<span class="badge admin">ADMIN</span>' : ''}
@@ -567,7 +567,7 @@
       if (!gifts.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Hali gift yo\'q</div>'; return; }
       el.innerHTML = gifts.map(g => `
         <div class="gift-item">
-          ${g.image_url ? `<img src="${API_BASE}${g.image_url}">` : `<div class="noimg"></div>`}
+          ${g.image_url ? `<img src="${g.image_url}">` : `<div class="noimg"></div>`}
           <div class="info">
             <div class="name">${g.name}</div>
             <div class="meta">${g.price} coin &middot; ${g.quantity === null ? 'cheksiz' : g.quantity + ' dona'}</div>
@@ -715,7 +715,7 @@
       if (!cases.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Hali case yo\'q</div>'; return; }
       el.innerHTML = cases.map(c => `
         <div class="gift-item">
-          ${c.image_url ? `<img src="${API_BASE}${c.image_url}">` : `<div class="noimg"></div>`}
+          ${c.image_url ? `<img src="${c.image_url}">` : `<div class="noimg"></div>`}
           <div class="info">
             <div class="name">${c.name}</div>
             <div class="meta">${c.price} coin &middot; ${c.items.length} ta narsa</div>
@@ -927,7 +927,7 @@
       if (!petTypes.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Hali pet turi yo\'q</div>'; return; }
       el.innerHTML = petTypes.map(p => `
         <div class="gift-item">
-          ${p.image_url ? `<img src="${API_BASE}${p.image_url}">` : `<div class="noimg"></div>`}
+          ${p.image_url ? `<img src="${p.image_url}">` : `<div class="noimg"></div>`}
           <div class="info">
             <div class="name">${p.name}</div>
             <div class="meta">${p.price} coin &middot; ${p.coin_per_3h}/3soat &middot; ${p.stock === null ? 'cheksiz' : p.stock + ' dona'}</div>

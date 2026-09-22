@@ -323,10 +323,7 @@
   <script src="config.js"></script>
   <script>
     let currentUser = null;
-<<<<<<< HEAD
     let actionInProgress = false; // tugmani ketma-ket tez-tez bosishning oldini olish uchun
-=======
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
 
     async function init() {
       try {
@@ -360,11 +357,7 @@
 
     function giftImg(g) {
       return g.image_url
-<<<<<<< HEAD
         ? `<img src="${g.image_url}" alt="${g.name}">`
-=======
-        ? `<img src="${API_BASE}${g.image_url}" alt="${g.name}">`
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
         : `<div class="gift-img-fallback">🎁</div>`;
     }
 
@@ -833,11 +826,7 @@
       el.innerHTML = pets.map(p => `
         <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:10px;">
           <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-<<<<<<< HEAD
             ${p.pet_image_url ? `<img src="${p.pet_image_url}" style="width:48px;height:48px;border-radius:12px;object-fit:cover;">` : `<div class="noimg" style="width:48px;height:48px;border-radius:12px;background:#2a2f3d;"></div>`}
-=======
-            ${p.pet_image_url ? `<img src="${API_BASE}${p.pet_image_url}" style="width:48px;height:48px;border-radius:12px;object-fit:cover;">` : `<div class="noimg" style="width:48px;height:48px;border-radius:12px;background:#2a2f3d;"></div>`}
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
             <div>
               <div style="font-weight:700;">${p.name || p.pet_name} <span style="color:var(--muted);font-weight:400;font-size:12px;">LV ${p.level}</span></div>
               <div style="font-size:12px;">${petStatusBadge(p.status)}</div>
@@ -922,11 +911,7 @@
         <div class="modal-sub">Gift narxi qancha bo'lsa, shuncha XP beradi (narx/10)</div>
         ${groups.map(g => `
           <div class="case-item-row" style="cursor:pointer" onclick="openFeedQtyModal(${petId}, ${g.gift_id})">
-<<<<<<< HEAD
             ${g.image_url ? `<img class="ci-icon" src="${g.image_url}">` : `<div class="ci-icon">🎁</div>`}
-=======
-            ${g.image_url ? `<img class="ci-icon" src="${API_BASE}${g.image_url}">` : `<div class="ci-icon">🎁</div>`}
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
             <div class="ci-name">${g.name} <span style="color:var(--muted)">x${g.count}</span></div>
             <div class="ci-chance">${g.current_price} coin</div>
           </div>
@@ -940,11 +925,7 @@
       if (!g) return;
       document.getElementById('modalBody').innerHTML = `
         <div class="buy-pop">
-<<<<<<< HEAD
           ${g.image_url ? `<img src="${g.image_url}">` : `<div class="bp-icon-fallback">🎁</div>`}
-=======
-          ${g.image_url ? `<img src="${API_BASE}${g.image_url}">` : `<div class="bp-icon-fallback">🎁</div>`}
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
           <div class="win-title">${g.name}</div>
           <div class="modal-sub">Nechta giftni berasan ovqatlanishga?</div>
         </div>
@@ -1019,7 +1000,6 @@
     }
 
     async function buyPet(typeId) {
-<<<<<<< HEAD
       if (actionInProgress) return;
       actionInProgress = true;
       try {
@@ -1034,25 +1014,11 @@
       } finally {
         actionInProgress = false;
       }
-=======
-      const res = await fetch(`${API_BASE}/api/pets/types/${typeId}/buy`, { method: 'POST', credentials: 'include' });
-      const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
-      currentUser.coin_balance = data.coin_balance;
-      updateCoinBadge();
-      showToast('Pet sotib olindi! 🐾');
-      loadMyPets();
-      loadPetShop();
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
     }
 
     function renderProfil(main) {
       const statusImg = currentUser.status_image_url
-<<<<<<< HEAD
         ? `<img src="${currentUser.status_image_url}" style="width:28px;height:28px;border-radius:8px;object-fit:cover;vertical-align:middle;margin-left:6px;">`
-=======
-        ? `<img src="${API_BASE}${currentUser.status_image_url}" style="width:28px;height:28px;border-radius:8px;object-fit:cover;vertical-align:middle;margin-left:6px;">`
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
         : '';
       main.innerHTML = `
         <div class="page-title">Profils</div>
@@ -1086,11 +1052,7 @@
       if (!list.length) { el.innerHTML = '<div class="empty-msg">Topilmadi</div>'; return; }
       el.innerHTML = list.map(u => {
         const img = u.status_image_url
-<<<<<<< HEAD
           ? `<img src="${u.status_image_url}" class="ci-icon">`
-=======
-          ? `<img src="${API_BASE}${u.status_image_url}" class="ci-icon">`
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
           : `<div class="ci-icon">👤</div>`;
         return `
           <div class="case-item-row" style="cursor:pointer" onclick="openUserProfile('${u.username}')">
@@ -1112,21 +1074,13 @@
       }
 
       const statusImg = data.status_image_url
-<<<<<<< HEAD
         ? `<img src="${data.status_image_url}" style="width:24px;height:24px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-left:6px;">`
-=======
-        ? `<img src="${API_BASE}${data.status_image_url}" style="width:24px;height:24px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-left:6px;">`
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
         : '';
 
       const giftsHtml = data.gifts.length
         ? data.gifts.map(g => `
             <div class="case-item-row">
-<<<<<<< HEAD
               ${g.image_url ? `<img class="ci-icon" src="${g.image_url}">` : `<div class="ci-icon">🎁</div>`}
-=======
-              ${g.image_url ? `<img class="ci-icon" src="${API_BASE}${g.image_url}">` : `<div class="ci-icon">🎁</div>`}
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
               <div class="ci-name">${g.name}</div>
               <div class="ci-chance">x${g.count}</div>
             </div>`).join('')
@@ -1135,11 +1089,7 @@
       const casesHtml = data.cases.length
         ? data.cases.map(c => `
             <div class="case-item-row">
-<<<<<<< HEAD
               ${c.image_url ? `<img class="ci-icon" src="${c.image_url}">` : `<div class="ci-icon">📦</div>`}
-=======
-              ${c.image_url ? `<img class="ci-icon" src="${API_BASE}${c.image_url}">` : `<div class="ci-icon">📦</div>`}
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
               <div class="ci-name">${c.name}</div>
               <div class="ci-chance">x${c.count}</div>
             </div>`).join('')
@@ -1192,11 +1142,7 @@
       const g = lastLoadedShopGifts.find(x => x.id === giftId);
       if (!g) return;
       const maxQty = g.quantity === null ? 999 : g.quantity;
-<<<<<<< HEAD
       const media = g.image_url ? `<img src="${g.image_url}">` : `<div class="bp-icon-fallback">🎁</div>`;
-=======
-      const media = g.image_url ? `<img src="${API_BASE}${g.image_url}">` : `<div class="bp-icon-fallback">🎁</div>`;
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
 
       document.getElementById('modalBody').innerHTML = `
         <div class="buy-pop">
@@ -1231,7 +1177,6 @@
     }
 
     async function buyGift(giftId, quantity) {
-<<<<<<< HEAD
       if (actionInProgress) return;
       actionInProgress = true;
       try {
@@ -1266,36 +1211,6 @@
       } finally {
         actionInProgress = false;
       }
-=======
-      const res = await fetch(`${API_BASE}/api/gifts/${giftId}/buy`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantity: quantity || 1 }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        showToast(data.error || 'Xatolik');
-        return;
-      }
-      currentUser.coin_balance = data.coin_balance;
-      updateCoinBadge();
-      loadShop();
-
-      const gift = lastLoadedShopGifts.find(g => g.id === giftId);
-      const media = gift && gift.image_url
-        ? `<img src="${API_BASE}${gift.image_url}">`
-        : `<div class="bp-icon-fallback">🎁</div>`;
-      document.getElementById('modalBody').innerHTML = `
-        <div class="buy-pop">
-          ${media}
-          <div class="win-title">✅ Sotib olindi!</div>
-          <div class="modal-sub">${gift ? gift.name : ''} x${data.bought_qty || quantity} inventorga tushdi</div>
-          <button class="btn" onclick="closeModal()">Yopish</button>
-        </div>
-      `;
-      openModal();
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
     }
 
     async function loadInventory() {
@@ -1363,11 +1278,7 @@
     function itemIcon(it) {
       if (it.item_type === 'coin') return `<div class="ci-icon">🪙</div>`;
       return it.gift_image_url
-<<<<<<< HEAD
         ? `<img class="ci-icon" src="${it.gift_image_url}">`
-=======
-        ? `<img class="ci-icon" src="${API_BASE}${it.gift_image_url}">`
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
         : `<div class="ci-icon">🎁</div>`;
     }
 
@@ -1399,7 +1310,6 @@
     function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
 
     async function buyCase(caseId, fromModal) {
-<<<<<<< HEAD
       if (actionInProgress) return;
       actionInProgress = true;
       try {
@@ -1414,16 +1324,6 @@
       } finally {
         actionInProgress = false;
       }
-=======
-      const res = await fetch(`${API_BASE}/api/cases/${caseId}/buy`, { method: 'POST', credentials: 'include' });
-      const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
-      currentUser.coin_balance = data.coin_balance;
-      updateCoinBadge();
-      if (fromModal) closeModal();
-      showToast('Sotib olindi! Inventorga tushdi 📦');
-      loadShopCases();
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
     }
 
     async function loadInventoryCases() {
@@ -1457,11 +1357,7 @@
         return `<div class="reel-cell">🪙<div class="rc-label">${it.coin_amount} coin</div></div>`;
       }
       const img = it.gift_image_url
-<<<<<<< HEAD
         ? `<img src="${it.gift_image_url}">`
-=======
-        ? `<img src="${API_BASE}${it.gift_image_url}">`
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
         : `🎁`;
       return `<div class="reel-cell">${img}<div class="rc-label">${it.gift_name || ''}</div></div>`;
     }
@@ -1532,11 +1428,7 @@
         if (!body) return;
         const winMedia = win.item_type === 'coin'
           ? `<div class="win-icon">🪙</div>`
-<<<<<<< HEAD
           : (win.image_url ? `<img src="${win.image_url}">` : `<div class="win-icon">🎁</div>`);
-=======
-          : (win.image_url ? `<img src="${API_BASE}${win.image_url}">` : `<div class="win-icon">🎁</div>`);
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
         const winText = win.item_type === 'coin' ? `${win.coin_amount} coin` : win.name;
         body.innerHTML = `
           <div class="win-reveal">

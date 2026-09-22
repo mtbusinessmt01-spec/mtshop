@@ -1,24 +1,11 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { upload, fileToDataUrl } = require('../imageUpload');
 
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
 
 const router = express.Router();
-
-const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'status');
-fs.mkdirSync(uploadDir, { recursive: true });
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.jpg';
-    cb(null, `status_${Date.now()}${ext}`);
-  },
-});
-const upload = multer({ storage });
 
 // Barcha foydalanuvchilar ro'yxati
 router.get('/admin/users', authMiddleware, adminMiddleware, async (req, res) => {
@@ -86,7 +73,7 @@ router.post('/admin/users/:id/status-image', authMiddleware, adminMiddleware, up
   if (!user) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
   if (!req.file) return res.status(400).json({ error: 'Rasm tanlanmadi' });
 
-  const url = `/uploads/status/${req.file.filename}`;
+  const url = fileToDataUrl(req.file);
   await db.prepare('UPDATE users SET status_image_url = ? WHERE id = ?').run(url, id);
   res.json({ ok: true, status_image_url: url });
 });
