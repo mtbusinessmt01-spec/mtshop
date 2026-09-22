@@ -18,7 +18,6 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({ origin: true, credentials: true }));
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use('/api', giftsRouter);
 app.use('/api', casesRouter);
 app.use('/api', usersRouter);
@@ -43,17 +42,11 @@ app.post('/api/auth/login', async (req, res) => {
     if (!ok) return res.status(401).json({ error: 'Username yoki parol xato' });
 
     const token = signToken(user);
-<<<<<<< HEAD
-    res.cookie('token', token, {
-      httpOnly: true,
-      sameSite: 'lax',
-=======
     const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
     res.cookie('token', token, {
       httpOnly: true,
       sameSite: isHttps ? 'none' : 'lax',
       secure: isHttps,
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     res.json({
@@ -70,11 +63,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
-<<<<<<< HEAD
-  res.clearCookie('token');
-=======
   res.clearCookie('token', { sameSite: 'none', secure: true });
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
   res.json({ ok: true });
 });
 
@@ -111,8 +100,4 @@ db.initDb()
   .catch((e) => {
     console.error('Bazani ishga tushirishda xato:', e);
     process.exit(1);
-<<<<<<< HEAD
   });
-=======
-  });
->>>>>>> bb4ea32104466f7f5e0caadbde8e1ab38ce4edd2
