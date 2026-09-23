@@ -113,7 +113,22 @@ router.delete('/admin/users/:id', authMiddleware, adminMiddleware, async (req, r
   }
   const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(id);
   if (!user) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
-  await db.prepare('DELETE FROM users WHERE id = ?').run(id);
+
+  const tx = db.transaction(async () => {
+    await db.prepare('DELETE FROM user_gifts WHERE user_id = ?').run(id);
+    await db.prepare('DELETE FROM user_cases WHERE user_id = ?').run(id);
+    await db.prepare('DELETE FROM user_pets WHERE user_id = ?').run(id);
+    await db.prepare(`
+      DELETE FROM credit_payments WHERE user_credit_id IN (SELECT id FROM user_credits WHERE user_id = ?)
+    `).run(id);
+    await db.prepare('DELETE FROM user_credits WHERE user_id = ?').run(id);
+    // Transfer tarixi saqlanadi, faqat foydalanuvchiga bog'lanish yo'qotiladi bo'lmaydi
+    // (chunki from_user_id/to_user_id NOT NULL) — shuning uchun bu transferlarni o'chiramiz
+    await db.prepare('DELETE FROM transfers WHERE from_user_id = ? OR to_user_id = ?').run(id, id);
+    await db.prepare('DELETE FROM users WHERE id = ?').run(id);
+  });
+  await tx();
+
   res.json({ ok: true });
 });
 

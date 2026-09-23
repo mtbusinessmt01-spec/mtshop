@@ -50,7 +50,16 @@ router.put('/admin/gifts/:id', authMiddleware, adminMiddleware, upload.single('i
 
 // Giftni o'chirish
 router.delete('/admin/gifts/:id', authMiddleware, adminMiddleware, async (req, res) => {
-  await db.prepare('DELETE FROM gifts WHERE id = ?').run(req.params.id);
+  const tx = db.transaction(async () => {
+    // Foydalanuvchilar inventaridagi shu giftni ham tozalaymiz
+    await db.prepare('DELETE FROM user_gifts WHERE gift_id = ?').run(req.params.id);
+    // Case'lar ichidagi shu giftga ishora qiluvchi narsalarni olib tashlaymiz
+    await db.prepare('DELETE FROM case_items WHERE gift_id = ?').run(req.params.id);
+    // Transfer tarixida bu giftga bo'lgan bog'lanishni yo'qotamiz (tarix o'zi qoladi)
+    await db.prepare('UPDATE transfers SET gift_id = NULL WHERE gift_id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM gifts WHERE id = ?').run(req.params.id);
+  });
+  await tx();
   res.json({ ok: true });
 });
 

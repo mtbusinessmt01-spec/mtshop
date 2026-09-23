@@ -63,7 +63,12 @@ router.put('/admin/pet-types/:id', authMiddleware, adminMiddleware, upload.singl
 });
 
 router.delete('/admin/pet-types/:id', authMiddleware, adminMiddleware, async (req, res) => {
-  await db.prepare('DELETE FROM pet_types WHERE id = ?').run(req.params.id);
+  const tx = db.transaction(async () => {
+    // Foydalanuvchilarning shu turdagi pet'larini ham tozalaymiz
+    await db.prepare('DELETE FROM user_pets WHERE pet_type_id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM pet_types WHERE id = ?').run(req.params.id);
+  });
+  await tx();
   res.json({ ok: true });
 });
 

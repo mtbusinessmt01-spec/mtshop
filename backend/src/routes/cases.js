@@ -106,6 +106,10 @@ router.put('/admin/cases/:id', authMiddleware, adminMiddleware, upload.single('i
 
 router.delete('/admin/cases/:id', authMiddleware, adminMiddleware, async (req, res) => {
   const tx = db.transaction(async () => {
+    // Foydalanuvchilar inventaridagi shu case'ni ham tozalaymiz
+    await db.prepare('DELETE FROM user_cases WHERE case_id = ?').run(req.params.id);
+    // Transfer tarixida bu case'ga bo'lgan bog'lanishni yo'qotamiz (tarix o'zi qoladi)
+    await db.prepare('UPDATE transfers SET case_id = NULL WHERE case_id = ?').run(req.params.id);
     await db.prepare('DELETE FROM case_items WHERE case_id = ?').run(req.params.id);
     await db.prepare('DELETE FROM cases WHERE id = ?').run(req.params.id);
   });
