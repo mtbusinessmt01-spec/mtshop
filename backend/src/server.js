@@ -18,6 +18,13 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({ origin: true, credentials: true }));
+
+// Frontend (login.html, index.html, admin.html va h.k.) endi shu backend orqali
+// beriladi — shunda ikkalasi bitta manzilda bo'lib, brauzer cookie'ni
+// "cross-site" deb hisoblamaydi (mobil Safari'dagi bloklash muammosi yo'qoladi).
+const frontendDir = path.join(__dirname, '..', '..', 'frontend', 'public');
+app.use(express.static(frontendDir));
+
 app.use('/api', giftsRouter);
 app.use('/api', casesRouter);
 app.use('/api', usersRouter);
