@@ -63,6 +63,8 @@ async function initDb() {
   await ensureColumn('user_pets', 'name', 'TEXT');
   await ensureColumn('transfers', 'is_anonymous', 'INTEGER NOT NULL DEFAULT 0');
   await ensureColumn('transfers', 'seen', 'INTEGER NOT NULL DEFAULT 0');
+  // Gift noyobligi: 'common' (oddiy), 'rare' (noyob), 'legendary' (afsonaviy) — noyob giftlar chiqqanda push yuboriladi
+  await ensureColumn('gifts', 'rarity', "TEXT NOT NULL DEFAULT 'common'");
 
   console.log('Turso bazasi tayyor.');
 }

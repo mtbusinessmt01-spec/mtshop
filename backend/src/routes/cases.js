@@ -2,6 +2,7 @@ const express = require('express');
 const { upload, fileToDataUrl } = require('../imageUpload');
 
 const db = require('../db');
+const push = require('../push');
 const { authMiddleware, adminMiddleware } = require('../auth');
 
 const router = express.Router();
@@ -198,7 +199,21 @@ router.post('/inventory/cases/:inventoryId/open', authMiddleware, async (req, re
     wonDisplay = { item_type: 'coin', coin_amount: won.coin_amount };
   } else {
     const gift = await db.prepare('SELECT * FROM gifts WHERE id = ?').get(won.gift_id);
-    wonDisplay = { item_type: 'gift', gift_id: won.gift_id, name: gift?.name, image_url: gift?.image_url };
+    wonDisplay = { item_type: 'gift', gift_id: won.gift_id, name: gift?.name, image_url: gift?.image_url, rarity: gift?.rarity || 'common' };
+
+    // Noyob (rare) yoki afsonaviy (legendary) gift chiqsa push yuboramiz.
+    // Case ochilish animatsiyasi (~3 soniya) tugagach kelishi uchun biroz kechiktiramiz (spoiler bo'lmasligi uchun).
+    if (gift && (gift.rarity === 'rare' || gift.rarity === 'legendary')) {
+      const legendary = gift.rarity === 'legendary';
+      setTimeout(() => {
+        push.notifyUser(req.user.id, {
+          title: legendary ? '🌟 AFSONAVIY gift yutdingiz!' : '💎 Noyob gift yutdingiz!',
+          body: `Case'dan "${gift.name}" chiqdi! Inventoringizni tekshiring.`,
+          url: '/index.html',
+          tag: 'rare-gift',
+        });
+      }, 4000);
+    }
   }
 
   res.json({ ok: true, won: wonDisplay, coin_balance: updatedUser.coin_balance });

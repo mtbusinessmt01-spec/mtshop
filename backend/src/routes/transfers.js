@@ -1,8 +1,20 @@
 const express = require('express');
 const db = require('../db');
+const push = require('../push');
 const { authMiddleware, adminMiddleware } = require('../auth');
 
 const router = express.Router();
+
+// Qabul qiluvchiga push yuboradi (xato bo'lsa ham transferni to'xtatmaydi)
+function notifyTransfer(fromUsername, toUserId, isAnonymous, itemText) {
+  const who = isAnonymous ? 'Kimdir' : `@${fromUsername}`;
+  push.notifyUser(toUserId, {
+    title: '📬 Sizga sovg\'a keldi!',
+    body: `${who} sizga ${itemText} yubordi.`,
+    url: '/index.html',
+    tag: 'transfer',
+  });
+}
 
 const COMMISSION_RATE = 0.03; // 3%
 
@@ -43,6 +55,8 @@ router.post('/transfers/coin', authMiddleware, async (req, res) => {
     VALUES (?, ?, 'coin', ?, ?, ?)
   `).run(req.user.id, toUser.id, amt, commission, is_anonymous ? 1 : 0);
 
+  notifyTransfer(req.user.username, toUser.id, is_anonymous, `${amt} coin`);
+
   const updated = await db.prepare('SELECT coin_balance FROM users WHERE id = ?').get(req.user.id);
   res.json({ ok: true, coin_balance: updated.coin_balance, sent: amt, commission });
 });
@@ -72,6 +86,9 @@ router.post('/transfers/gift', authMiddleware, async (req, res) => {
   });
   await tx();
 
+  const g = await db.prepare('SELECT name FROM gifts WHERE id = ?').get(item.gift_id);
+  notifyTransfer(req.user.username, toUser.id, is_anonymous, `🎁 ${g ? g.name : 'gift'}`);
+
   res.json({ ok: true });
 });
 
@@ -99,6 +116,9 @@ router.post('/transfers/case', authMiddleware, async (req, res) => {
     `).run(req.user.id, toUser.id, item.case_id, is_anonymous ? 1 : 0);
   });
   await tx();
+
+  const c = await db.prepare('SELECT name FROM cases WHERE id = ?').get(item.case_id);
+  notifyTransfer(req.user.username, toUser.id, is_anonymous, `📦 ${c ? c.name : 'case'}`);
 
   res.json({ ok: true });
 });

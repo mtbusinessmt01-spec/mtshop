@@ -6,6 +6,11 @@ const { authMiddleware, adminMiddleware } = require('../auth');
 
 const router = express.Router();
 
+const RARITIES = ['common', 'rare', 'legendary'];
+function cleanRarity(r, fallback = 'common') {
+  return RARITIES.includes(r) ? r : fallback;
+}
+
 // ---------- ADMIN: Gift CRUD ----------
 
 // Barcha giftlarni ko'rish (admin uchun, qolgan soni bilan)
@@ -16,15 +21,15 @@ router.get('/admin/gifts', authMiddleware, adminMiddleware, async (req, res) => 
 
 // Yangi gift yaratish
 router.post('/admin/gifts', authMiddleware, adminMiddleware, upload.single('image'), async (req, res) => {
-  const { name, price, quantity, unlimited } = req.body;
+  const { name, price, quantity, unlimited, rarity } = req.body;
   if (!name || !price) return res.status(400).json({ error: 'Nomi va narxi kerak' });
 
   const imageUrl = fileToDataUrl(req.file);
   const qty = unlimited === 'true' || unlimited === true ? null : parseInt(quantity, 10) || 0;
 
   const result = await db.prepare(
-    'INSERT INTO gifts (name, image_url, price, quantity) VALUES (?, ?, ?, ?)'
-  ).run(name, imageUrl, parseFloat(price), qty);
+    'INSERT INTO gifts (name, image_url, price, quantity, rarity) VALUES (?, ?, ?, ?, ?)'
+  ).run(name, imageUrl, parseFloat(price), qty, cleanRarity(rarity));
 
   res.json(await db.prepare('SELECT * FROM gifts WHERE id = ?').get(result.lastInsertRowid));
 });
@@ -35,15 +40,15 @@ router.put('/admin/gifts/:id', authMiddleware, adminMiddleware, upload.single('i
   const gift = await db.prepare('SELECT * FROM gifts WHERE id = ?').get(id);
   if (!gift) return res.status(404).json({ error: 'Gift topilmadi' });
 
-  const { name, price, quantity, unlimited } = req.body;
+  const { name, price, quantity, unlimited, rarity } = req.body;
   const imageUrl = req.file ? fileToDataUrl(req.file) : gift.image_url;
   const qty = unlimited === 'true' || unlimited === true
     ? null
     : (quantity !== undefined ? parseInt(quantity, 10) : gift.quantity);
 
   await db.prepare(
-    'UPDATE gifts SET name = ?, price = ?, quantity = ?, image_url = ? WHERE id = ?'
-  ).run(name || gift.name, price ? parseFloat(price) : gift.price, qty, imageUrl, id);
+    'UPDATE gifts SET name = ?, price = ?, quantity = ?, image_url = ?, rarity = ? WHERE id = ?'
+  ).run(name || gift.name, price ? parseFloat(price) : gift.price, qty, imageUrl, cleanRarity(rarity, gift.rarity || 'common'), id);
 
   res.json(await db.prepare('SELECT * FROM gifts WHERE id = ?').get(id));
 });

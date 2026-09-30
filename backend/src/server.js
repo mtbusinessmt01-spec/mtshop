@@ -13,6 +13,8 @@ const usersRouter = require('./routes/users');
 const transfersRouter = require('./routes/transfers');
 const creditsRouter = require('./routes/credits');
 const petsRouter = require('./routes/pets');
+const pushRouter = require('./routes/push');
+const push = require('./push');
 
 const app = express();
 app.use(express.json());
@@ -31,6 +33,7 @@ app.use('/api', usersRouter);
 app.use('/api', transfersRouter);
 app.use('/api', creditsRouter);
 app.use('/api', petsRouter);
+app.use('/api', pushRouter);
 
 // --- AUTH ---
 
@@ -99,10 +102,12 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 4000;
 
 db.initDb()
+  .then(() => push.initPush())
   .then(() => {
     app.listen(PORT, () => {
       console.log(`MTshop backend http://localhost:${PORT} da ishlamoqda`);
     });
+    push.startScheduler();
   })
   .catch((e) => {
     console.error('Bazani ishga tushirishda xato:', e);

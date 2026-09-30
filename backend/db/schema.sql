@@ -134,3 +134,40 @@ CREATE TABLE IF NOT EXISTS transfers (
   seen INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- ---------- Web Push bildirishnomalar ----------
+
+-- Umumiy sozlamalar (masalan VAPID kalitlari) — bazada saqlanadi, shuning uchun qayta deploy qilinsa ham yo'qolmaydi
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+-- Foydalanuvchi qurilmalarining push obunalari (bitta foydalanuvchida bir nechta qurilma bo'lishi mumkin)
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Avtomatik eslatmalar bir xil holat uchun qayta-qayta yuborilmasligi uchun jurnal
+CREATE TABLE IF NOT EXISTS notification_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  kind TEXT NOT NULL,
+  ref_id INTEGER NOT NULL,
+  marker TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(user_id, kind, ref_id, marker)
+);
+
+-- Admin push'ga qo'shgan rasmlar (push xabarda rasm URL sifatida beriladi, shuning uchun bazada saqlanib alohida manzildan tarqatiladi)
+CREATE TABLE IF NOT EXISTS push_images (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  mime TEXT NOT NULL,
+  data TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

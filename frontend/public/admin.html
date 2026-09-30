@@ -129,6 +129,7 @@
     <button class="admin-nav-btn" data-section="transfers" onclick="switchAdminSection('transfers')">📤 Transfer tarixi</button>
     <button class="admin-nav-btn" data-section="credits" onclick="switchAdminSection('credits')">💳 Kredit</button>
     <button class="admin-nav-btn" data-section="pets" onclick="switchAdminSection('pets')">🐾 Pet</button>
+    <button class="admin-nav-btn" data-section="push" onclick="switchAdminSection('push')">🔔 Bildirishnoma</button>
   </div>
 
   <div class="admin-section" data-section="users">
@@ -185,6 +186,14 @@
         <label>Soni (dona)</label>
         <input type="number" id="quantity" min="0" step="1">
       </div>
+
+      <label>Noyobligi</label>
+      <select id="giftRarity" class="send-input">
+        <option value="common">Oddiy</option>
+        <option value="rare">💎 Noyob (rare)</option>
+        <option value="legendary">🌟 Afsonaviy (legendary)</option>
+      </select>
+      <div class="msg" style="margin-top:6px;">Case'dan Noyob/Afsonaviy gift chiqsa, foydalanuvchiga avtomatik bildirishnoma yuboriladi.</div>
 
       <label>Rasm</label>
       <div class="dropzone" id="imageDropzone" onclick="document.getElementById('image').click()">
@@ -328,6 +337,48 @@
   <div class="card">
     <h2>Mavjud pet turlari</h2>
     <div class="gift-list" id="petList">Yuklanmoqda...</div>
+  </div>
+  </div>
+
+  <div class="admin-section" data-section="push" style="display:none">
+  <div class="card">
+    <h2>Bildirishnoma statistikasi</h2>
+    <div class="gift-list" id="pushStats">Yuklanmoqda...</div>
+  </div>
+
+  <div class="card">
+    <h2>Bildirishnoma yuborish</h2>
+    <form id="pushForm">
+      <label>Kimga</label>
+      <select id="pushTarget" class="send-input" onchange="onPushTargetChange()">
+        <option value="all">Barchaga</option>
+        <option value="user">Bitta foydalanuvchiga</option>
+        <option value="users">Tanlangan foydalanuvchilarga</option>
+      </select>
+
+      <div id="pushUserPickWrap" style="display:none">
+        <label style="margin-top:14px">Foydalanuvchilar</label>
+        <div class="gift-list" id="pushUserPick" style="max-height:220px; overflow-y:auto;"></div>
+      </div>
+
+      <label style="margin-top:14px">Sarlavha</label>
+      <input type="text" id="pushTitle" class="send-input" maxlength="80" required>
+
+      <label style="margin-top:14px">Matn</label>
+      <textarea id="pushBody" class="send-input" rows="3" maxlength="300" required style="resize:vertical"></textarea>
+
+      <label style="margin-top:14px">Rasm (ixtiyoriy)</label>
+      <div class="dropzone" id="pushImageDropzone" onclick="document.getElementById('pushImage').click()">
+        <div id="pushImageDropzoneText">🖼️ Rasmni shu yerga tashlang yoki bosing</div>
+        <input type="file" id="pushImage" accept="image/*">
+      </div>
+
+      <label style="margin-top:14px">Link (ixtiyoriy — bosilganda qayerga o'tsin)</label>
+      <input type="text" id="pushUrl" class="send-input" placeholder="/index.html#mypet yoki https://...">
+
+      <button type="submit" class="btn-primary" style="margin-top:16px">Yuborish</button>
+      <div class="msg" id="pushFormMsg"></div>
+    </form>
   </div>
   </div>
 
@@ -570,7 +621,7 @@
           ${g.image_url ? `<img src="${g.image_url}">` : `<div class="noimg"></div>`}
           <div class="info">
             <div class="name">${g.name}</div>
-            <div class="meta">${g.price} coin &middot; ${g.quantity === null ? 'cheksiz' : g.quantity + ' dona'}</div>
+            <div class="meta">${g.price} coin &middot; ${g.quantity === null ? 'cheksiz' : g.quantity + ' dona'}${g.rarity && g.rarity !== 'common' ? ' &middot; ' + (g.rarity === 'legendary' ? '🌟 Afsonaviy' : '💎 Noyob') : ''}</div>
           </div>
           <button class="btn-secondary" onclick="editGift(${g.id})">Tahrirlash</button>
           <button class="btn-danger" onclick="deleteGift(${g.id})">O'chirish</button>
@@ -586,6 +637,7 @@
       document.getElementById('unlimited').checked = g.quantity === null;
       document.getElementById('quantity').value = g.quantity ?? '';
       document.getElementById('qtyWrap').style.display = g.quantity === null ? 'none' : 'block';
+      document.getElementById('giftRarity').value = g.rarity || 'common';
       document.getElementById('formTitle').textContent = `"${g.name}" ni tahrirlash`;
       document.getElementById('submitBtn').textContent = 'Saqlash';
       document.getElementById('cancelEdit').style.display = 'inline-block';
@@ -599,6 +651,7 @@
       document.getElementById('formTitle').textContent = "Yangi gift qo'shish";
       document.getElementById('submitBtn').textContent = 'Qo\'shish';
       document.getElementById('cancelEdit').style.display = 'none';
+      document.getElementById('giftRarity').value = 'common';
       document.getElementById('imageDropzoneText').innerHTML = '🖼️ Rasmni shu yerga tashlang yoki bosing';
     }
 
@@ -625,6 +678,7 @@
       fd.append('price', document.getElementById('price').value);
       fd.append('unlimited', document.getElementById('unlimited').checked);
       fd.append('quantity', document.getElementById('quantity').value || 0);
+      fd.append('rarity', document.getElementById('giftRarity').value);
       const imageFile = document.getElementById('image').files[0];
       if (imageFile) fd.append('image', imageFile);
 
@@ -1007,6 +1061,87 @@
     });
 
     setupDropzone('petImageDropzone', 'petImage', 'petImageDropzoneText');
+    setupDropzone('pushImageDropzone', 'pushImage', 'pushImageDropzoneText');
+
+    // ---------- Bildirishnoma (push) ----------
+
+    async function loadPushStats() {
+      const el = document.getElementById('pushStats');
+      const res = await fetch(`${API_BASE}/api/admin/push/stats`, { credentials: 'include' });
+      const data = await res.json();
+      el.innerHTML = `
+        <div class="gift-item">
+          <div class="info">
+            <div class="name">${data.devices} ta qurilma obuna bo'lgan</div>
+            <div class="meta">${data.users} ta foydalanuvchi bildirishnomalarni yoqqan</div>
+          </div>
+        </div>
+      `;
+      renderPushUserPick();
+    }
+
+    function onPushTargetChange() {
+      const target = document.getElementById('pushTarget').value;
+      document.getElementById('pushUserPickWrap').style.display = target === 'all' ? 'none' : 'block';
+    }
+
+    function renderPushUserPick() {
+      const wrap = document.getElementById('pushUserPick');
+      if (!wrap) return;
+      const target = document.getElementById('pushTarget').value;
+      const inputType = target === 'user' ? 'radio' : 'checkbox';
+      if (!users.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:13px">Foydalanuvchilar yo\'q</div>'; return; }
+      wrap.innerHTML = users.map(u => `
+        <label class="user-row" style="cursor:pointer;">
+          <input type="${inputType}" name="pushUserPick" value="${u.id}" style="margin-right:10px;">
+          <div class="u-info">
+            <div class="u-name">@${u.username}</div>
+          </div>
+        </label>
+      `).join('');
+    }
+
+    document.getElementById('pushForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('pushFormMsg');
+      msg.textContent = ''; msg.className = 'msg';
+
+      const target = document.getElementById('pushTarget').value;
+      let userIds = [];
+      if (target !== 'all') {
+        userIds = Array.from(document.querySelectorAll('input[name="pushUserPick"]:checked')).map(i => i.value);
+        if (!userIds.length) {
+          msg.textContent = "Kamida bitta foydalanuvchi tanlang";
+          msg.classList.add('error');
+          return;
+        }
+      }
+
+      const fd = new FormData();
+      fd.append('title', document.getElementById('pushTitle').value);
+      fd.append('body', document.getElementById('pushBody').value);
+      fd.append('target', target);
+      fd.append('user_ids', JSON.stringify(userIds));
+      fd.append('url', document.getElementById('pushUrl').value);
+      const imageFile = document.getElementById('pushImage').files[0];
+      if (imageFile) fd.append('image', imageFile);
+
+      const res = await fetch(`${API_BASE}/api/admin/push/send`, {
+        method: 'POST', credentials: 'include', body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        msg.textContent = data.error || 'Xatolik';
+        msg.classList.add('error');
+        return;
+      }
+      msg.textContent = `Yuborildi: ${data.sent} ta qurilmaga (${data.users} foydalanuvchi)`;
+      msg.classList.add('success');
+      document.getElementById('pushForm').reset();
+      document.getElementById('pushImageDropzoneText').innerHTML = '🖼️ Rasmni shu yerga tashlang yoki bosing';
+      onPushTargetChange();
+      loadPushStats();
+    });
 
     checkAdmin().then(async () => {
       await loadUsers();
@@ -1015,6 +1150,7 @@
       await loadTransfers();
       await loadCreditTypes();
       await loadPetTypes();
+      await loadPushStats();
       addItemRow(); // birinchi qatorni avtomatik qo'shish
     });
   </script>
