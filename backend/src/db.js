@@ -54,10 +54,44 @@ async function ensureColumn(table, column, definition) {
   }
 }
 
+async function runMigrations() {
+  const migrationsDir = path.join(__dirname, '..', 'db', 'migrations');
+  if (!fs.existsSync(migrationsDir)) return;
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version TEXT PRIMARY KEY,
+      applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
+  const files = fs.readdirSync(migrationsDir)
+    .filter(name => /^\d+.*\.sql$/i.test(name))
+    .sort();
+
+  for (const file of files) {
+    const version = file.replace(/\.sql$/i, '');
+    const applied = await client.execute({
+      sql: 'SELECT version FROM schema_migrations WHERE version = ?',
+      args: [version],
+    });
+    if (applied.rows.length) continue;
+
+    const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+    await client.executeMultiple(sql);
+    await client.execute({
+      sql: 'INSERT INTO schema_migrations (version) VALUES (?)',
+      args: [version],
+    });
+    console.log(`Migration qo'llandi: ${file}`);
+  }
+}
+
 async function initDb() {
   const schemaPath = path.join(__dirname, '..', 'db', 'schema.sql');
   const schema = fs.readFileSync(schemaPath, 'utf8');
   await client.executeMultiple(schema);
+  await runMigrations();
 
   // Eski bazalarda yo'q bo'lgan ustunlarni qo'shib qo'yamiz
   await ensureColumn('user_pets', 'name', 'TEXT');
