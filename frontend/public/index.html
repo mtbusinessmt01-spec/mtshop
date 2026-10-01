@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MTshop</title>
+<title>MTshop — Liquid Glass</title>
+<!-- MTshop Liquid Glass v2: 3-item navigation + elastic active glass indicator -->
 <style>
   :root {
     --bg: #0f1115;
@@ -407,14 +408,23 @@
     width: calc((100% - 14px - 8px) / 3);
     height: calc(100% - 14px);
     border-radius: 19px;
-    background: linear-gradient(135deg, rgba(255,255,255,.20), rgba(255,255,255,.07));
-    border: 1px solid rgba(255,255,255,.14);
-    box-shadow: inset 0 1px 1px rgba(255,255,255,.15), 0 5px 20px rgba(0,0,0,.16);
-    backdrop-filter: blur(16px) saturate(145%);
-    -webkit-backdrop-filter: blur(16px) saturate(145%);
+    background:
+      radial-gradient(circle at 28% 18%, rgba(255,255,255,.25), transparent 32%),
+      linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,.065));
+    border: 1px solid rgba(255,255,255,.17);
+    box-shadow:
+      inset 0 1px 1px rgba(255,255,255,.18),
+      inset 0 -1px 2px rgba(0,0,0,.10),
+      0 5px 20px rgba(0,0,0,.16);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
     transform: translateX(0) scaleX(1);
     transform-origin: center;
-    transition: transform 520ms cubic-bezier(.22,1,.36,1), width 520ms cubic-bezier(.22,1,.36,1), left 520ms cubic-bezier(.22,1,.36,1);
+    transition:
+      left 560ms cubic-bezier(.16,1,.3,1),
+      width 560ms cubic-bezier(.16,1,.3,1),
+      transform 560ms cubic-bezier(.16,1,.3,1),
+      border-radius 560ms cubic-bezier(.16,1,.3,1);
     will-change: transform, left, width;
     z-index: 0;
   }
@@ -425,6 +435,25 @@
     border-radius: inherit;
     background: linear-gradient(90deg, rgba(255,255,255,.08), transparent 45%, rgba(255,255,255,.08));
     filter: blur(5px);
+  }
+  nav#bottomNav .nav-liquid-indicator::after {
+    content: "";
+    position: absolute;
+    width: 42%;
+    height: 120%;
+    left: -18%;
+    top: -10%;
+    border-radius: 999px;
+    background: rgba(255,255,255,.10);
+    filter: blur(10px);
+    transform: rotate(14deg);
+    animation: liquidSheen 3.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes liquidSheen {
+    0%, 28% { left: -24%; opacity: .15; }
+    55%, 75% { left: 72%; opacity: .07; }
+    100% { left: 112%; opacity: 0; }
   }
   nav#bottomNav button {
     position: relative;
@@ -514,8 +543,8 @@
 
     <nav id="bottomNav" aria-label="Asosiy menyu">
       <div class="nav-liquid-indicator" aria-hidden="true"></div>
-      <button data-tab="shops" class="active"><span class="icon">🛍️</span><span>Shops</span></button>
-      <button data-tab="inventor"><span class="icon">🎒</span><span>Inventor</span></button>
+      <button data-tab="shops" class="active" aria-label="Shops"><span class="icon">🛍️</span><span>Shops</span></button>
+      <button data-tab="inventor" aria-label="Inventor"><span class="icon">🎒</span><span>Inventor</span></button>
       <button id="moreNavButton" type="button" aria-haspopup="dialog" aria-expanded="false"><span class="icon">•••</span><span>Yana</span></button>
     </nav>
 
@@ -1862,9 +1891,14 @@
       const distance = Math.abs(x - previousLeft);
       indicator.style.left = `${x}px`;
       indicator.style.width = `${w}px`;
-      indicator.style.transform = `translateX(0) scaleX(${Math.min(1.10, 1 + Math.min(distance / Math.max(w, 1), .18))})`;
+      const stretch = Math.min(1.22, 1 + Math.min(distance / Math.max(w, 1), .22));
+      indicator.style.transform = `translateX(0) scaleX(${stretch})`;
+      indicator.style.borderRadius = stretch > 1.08 ? '24px' : '19px';
       clearTimeout(indicator._settleTimer);
-      indicator._settleTimer = setTimeout(() => { indicator.style.transform = 'translateX(0) scaleX(1)'; }, 360);
+      indicator._settleTimer = setTimeout(() => {
+        indicator.style.transform = 'translateX(0) scaleX(1)';
+        indicator.style.borderRadius = '19px';
+      }, 430);
       indicator.dataset.left = x;
     }
 
