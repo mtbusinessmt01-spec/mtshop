@@ -317,6 +317,36 @@
   }
   .qty-btn:active { background: var(--accent); }
   .qty-value { font-size: 20px; font-weight: 800; min-width: 30px; text-align: center; }
+
+  /* ---------- Event banner va wallpaper ---------- */
+  #eventWallpaper {
+    position: fixed; inset: 0; z-index: -1; display: none;
+    background-size: cover; background-position: center; background-repeat: no-repeat;
+  }
+  body.event-live { background: transparent; }
+  body.event-live #eventWallpaper { display: block; }
+  .event-banner {
+    position: relative; border-radius: 18px; overflow: hidden; margin-bottom: 20px;
+    background: linear-gradient(135deg, var(--accent), #5847c9);
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  .event-banner img { display: block; width: 100%; aspect-ratio: 3 / 1; object-fit: cover; }
+  .event-banner .eb-noimg { aspect-ratio: 3 / 1; display: flex; align-items: center; justify-content: center; font-size: 34px; }
+  .event-banner .eb-info {
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 14px 10px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.78));
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 10px;
+  }
+  .event-banner .eb-name { font-weight: 800; font-size: 15px; }
+  .event-banner .eb-label { font-size: 11px; color: rgba(255,255,255,0.75); text-align: right; }
+  .event-banner .eb-time { font-weight: 800; font-size: 14px; color: var(--coin); text-align: right; white-space: nowrap; }
+  .event-live-badge {
+    position: absolute; top: 10px; left: 10px; background: #ff4d6d; color: #fff;
+    font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
+  }
+  .guar-btn-row { display: flex; gap: 10px; margin-top: 14px; }
+  .guar-btn-row .btn { flex: 1; }
 </style>
 </head>
 <body>
@@ -341,6 +371,8 @@
       <button data-tab="profils"><span class="icon">👤</span>Profils</button>
     </nav>
   </div>
+
+  <div id="eventWallpaper"></div>
 
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-wrap">
@@ -370,7 +402,10 @@
         const validTabs = ['shops', 'inventor', 'jonatmoq', 'mypet', 'kreditlar', 'profils'];
         const startTab = validTabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'shops';
         renderTab(startTab);
-        checkIncomingTransfers();
+        refreshEvent();
+        setInterval(refreshEvent, 30000);
+        checkGuarantorRequests().then(shown => { if (!shown) checkIncomingTransfers(); });
+        setInterval(pollGuarantorRequests, 30000);
       } catch (e) {
         window.location.href = 'login.html';
       }
@@ -395,6 +430,7 @@
     }
 
     async function renderTab(tab) {
+      if (eventTicker) { clearInterval(eventTicker); eventTicker = null; }
       document.querySelectorAll('nav button').forEach(b => {
         b.classList.toggle('active', b.dataset.tab === tab);
       });
@@ -402,6 +438,7 @@
 
       if (tab === 'shops') {
         main.innerHTML = `
+          <div id="eventBanner"></div>
           <div class="page-title">Shops</div>
           <div class="page-sub">Giftlar va case'larni sotib oling.</div>
           <div class="section-title">🎁 Giftlar</div>
@@ -409,6 +446,7 @@
           <div class="section-title" style="margin-top:24px">📦 Case'lar</div>
           <div id="shopCaseGrid" class="grid"></div>
         `;
+        renderEventBanner();
         loadShop();
         loadShopCases();
       } else if (tab === 'inventor') {
@@ -446,11 +484,16 @@
       main.innerHTML = `
         <div class="page-title">Kreditlar</div>
         <div class="page-sub">Kredit oling yoki mavjud to'lovlaringizni ko'ring.</div>
+        <div id="guarIncomingWrap"></div>
         <div class="section-title">💳 Mening kreditlarim</div>
         <div id="myCreditsList"></div>
+        <div id="myRequestsWrap"></div>
         <div class="section-title" style="margin-top:24px">🏦 Mavjud kredit turlari</div>
         <div id="creditTypesList"></div>
       `;
+      refreshMe();
+      loadGuarantorIncomingList();
+      loadMyRequests();
       loadMyCredits();
       loadCreditTypesForUser();
     }
@@ -599,32 +642,270 @@
 
         <label class="send-label">Qancha coin olmoqchisiz?</label>
         <input type="number" class="send-input" id="takeCreditAmt" min="${t.min_amount}" max="${t.max_amount}" step="0.01" placeholder="${t.min_amount} - ${t.max_amount}">
+        <label class="send-label">Kafil username</label>
+        <input type="text" class="send-input" id="takeCreditGuarantor" placeholder="Kafil bo'ladigan foydalanuvchi username" autocapitalize="none" autocomplete="off">
+        <div class="send-hint">Kredit darhol berilmaydi: kafil saytga kirib tasdiqlagandan keyingina coin hisobingizga tushadi.</div>
         <div class="msg" id="takeCreditMsg"></div>
-        <button class="btn" style="margin-top:14px" onclick="submitTakeCredit(${t.id})">Kredit olish</button>
+        <button class="btn" style="margin-top:14px" onclick="submitTakeCredit(${t.id})">Kafilga yuborish</button>
       `;
       openModal();
     }
 
     async function submitTakeCredit(typeId) {
+      if (actionInProgress) return;
       const msg = document.getElementById('takeCreditMsg');
       msg.textContent = ''; msg.className = 'msg';
       const amount = parseFloat(document.getElementById('takeCreditAmt').value);
+      const guarantor = document.getElementById('takeCreditGuarantor').value.trim();
       if (!amount) { msg.textContent = "Miqdorni kiriting"; msg.classList.add('error'); return; }
+      if (!guarantor) { msg.textContent = "Kafil username kiriting"; msg.classList.add('error'); return; }
 
-      const res = await fetch(`${API_BASE}/api/credits/take`, {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credit_type_id: typeId, amount }),
-      });
-      const data = await res.json();
-      if (!res.ok) { msg.textContent = data.error || 'Xatolik'; msg.classList.add('error'); return; }
+      actionInProgress = true;
+      try {
+        const res = await fetch(`${API_BASE}/api/credits/take`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credit_type_id: typeId, amount, guarantor_username: guarantor }),
+        });
+        const data = await res.json();
+        if (!res.ok) { msg.textContent = data.error || 'Xatolik'; msg.classList.add('error'); return; }
 
-      currentUser.coin_balance = data.coin_balance;
-      updateCoinBadge();
-      closeModal();
-      showToast("Kredit olindi! Coin hisobingizga tushdi 🪙");
-      loadMyCredits();
-      loadCreditTypesForUser();
+        closeModal();
+        showToast(`So'rov @${data.guarantor_username} ga yuborildi. Kafil tasdiqlasa kredit beriladi 🤝`);
+        loadMyRequests();
+        loadCreditTypesForUser();
+      } finally {
+        actionInProgress = false;
+      }
+    }
+
+    // ---------- Kafil (kafolat) tizimi ----------
+
+    function esc(str) {
+      return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    async function refreshMe() {
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
+        if (res.ok) { currentUser = await res.json(); updateCoinBadge(); }
+      } catch (e) {}
+    }
+
+    const guarantorShown = new Set();
+
+    async function fetchIncomingGuarantor() {
+      try {
+        const res = await fetch(`${API_BASE}/api/credits/requests/incoming`, { credentials: 'include' });
+        if (!res.ok) return [];
+        return await res.json();
+      } catch (e) { return []; }
+    }
+
+    // Sayt ochilganda: kafillik so'rovlari bo'lsa darhol oyna chiqadi. true qaytaradi, agar oyna ko'rsatilgan bo'lsa.
+    async function checkGuarantorRequests() {
+      const list = await fetchIncomingGuarantor();
+      if (!list.length) return false;
+      list.forEach(r => guarantorShown.add(r.id));
+      showGuarantorModal(list, 0);
+      return true;
+    }
+
+    // Sayt ochiq turganda yangi so'rov kelsa ham oyna chiqadi (har so'rov faqat bir marta avtomatik chiqadi)
+    async function pollGuarantorRequests() {
+      if (document.getElementById('modalOverlay').classList.contains('open')) return;
+      const list = await fetchIncomingGuarantor();
+      const fresh = list.filter(r => !guarantorShown.has(r.id));
+      if (!fresh.length) return;
+      fresh.forEach(r => guarantorShown.add(r.id));
+      showGuarantorModal(fresh, 0);
+    }
+
+    function showGuarantorModal(list, index) {
+      const r = list[index];
+      window.__guarList = list;
+      document.getElementById('modalBody').innerHTML = `
+        <div class="win-reveal">
+          <div class="win-icon">🤝</div>
+          <div class="win-title">Kafillik so'rovi</div>
+          <div class="modal-sub">@${esc(r.requester_username)} sizni kredit uchun kafil qilmoqchi.</div>
+          <div class="receipt">
+            <div class="receipt-row"><span>Kredit olayotgan</span><span>@${esc(r.requester_username)}</span></div>
+            <div class="receipt-row"><span>Kredit nomi</span><span>${esc(r.credit_name)}</span></div>
+            <div class="receipt-row"><span>Miqdori</span><span>🪙 ${r.amount}</span></div>
+            <div class="receipt-row"><span>To'lash muddati</span><span>${r.installments_weeks} hafta</span></div>
+          </div>
+          <div class="guar-btn-row">
+            <button class="btn secondary" onclick="respondGuarantor(${r.id}, false, ${index})">Rad etish</button>
+            <button class="btn" onclick="respondGuarantor(${r.id}, true, ${index})">Tasdiqlash</button>
+          </div>
+          ${list.length > 1 ? `<div class="send-hint" style="text-align:center">${index + 1} / ${list.length}</div>` : ''}
+        </div>
+      `;
+      openModal();
+    }
+
+    async function respondGuarantor(id, approve, index) {
+      if (actionInProgress) return;
+      actionInProgress = true;
+      try {
+        const res = await fetch(`${API_BASE}/api/credits/requests/${id}/respond`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ approve }),
+        });
+        const data = await res.json();
+        if (!res.ok) showToast(data.error || 'Xatolik');
+        else showToast(approve ? 'Tasdiqladingiz ✅' : 'Rad etdingiz');
+      } finally {
+        actionInProgress = false;
+      }
+      const list = window.__guarList || [];
+      if (index < list.length - 1) {
+        showGuarantorModal(list, index + 1);
+      } else {
+        closeModal();
+        if (document.getElementById('guarIncomingWrap')) loadGuarantorIncomingList();
+        checkIncomingTransfers();
+      }
+    }
+
+    // Kreditlar sahifasida: menga kelgan (javob kutayotgan) kafillik so'rovlari
+    async function loadGuarantorIncomingList() {
+      const wrap = document.getElementById('guarIncomingWrap');
+      if (!wrap) return;
+      const list = await fetchIncomingGuarantor();
+      window.__guarPageList = list;
+      if (!list.length) { wrap.innerHTML = ''; return; }
+      wrap.innerHTML = `
+        <div class="section-title">🤝 Kafillik so'rovlari</div>
+        ${list.map((r, i) => `
+          <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:10px;">
+            <div style="font-weight:700; margin-bottom:6px;">@${esc(r.requester_username)} &middot; ${esc(r.credit_name)}</div>
+            <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">🪙 ${r.amount} &middot; ${r.installments_weeks} hafta</div>
+            <button class="btn" onclick="showGuarantorModal(window.__guarPageList, ${i})">Ko'rish</button>
+          </div>
+        `).join('')}
+        <div style="height:24px"></div>
+      `;
+    }
+
+    // Kreditlar sahifasida: men yuborgan so'rovlar (kutilayotgan va rad etilganlar)
+    async function loadMyRequests() {
+      const wrap = document.getElementById('myRequestsWrap');
+      if (!wrap) return;
+      const res = await fetch(`${API_BASE}/api/credits/requests/mine`, { credentials: 'include' });
+      if (!res.ok) return;
+      const list = (await res.json()).filter(r => r.status === 'pending' || r.status === 'rejected');
+      if (!list.length) { wrap.innerHTML = ''; return; }
+      wrap.innerHTML = `
+        <div class="section-title" style="margin-top:24px">📨 Kafil so'rovlarim</div>
+        ${list.map(r => `
+          <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:10px;">
+            <div style="font-weight:700; margin-bottom:6px;">${esc(r.credit_name)} &middot; 🪙 ${r.amount}</div>
+            <div style="font-size:13px; color:var(--muted); margin-bottom:${r.status === 'pending' ? '10px' : '0'};">
+              Kafil: @${esc(r.guarantor_username)} &middot;
+              ${r.status === 'pending' ? '⏳ Javob kutilmoqda' : '❌ Rad etildi'}
+            </div>
+            ${r.status === 'pending' ? `<button class="btn secondary" onclick="cancelMyRequest(${r.id})">Bekor qilish</button>` : ''}
+          </div>
+        `).join('')}
+      `;
+    }
+
+    async function cancelMyRequest(id) {
+      if (actionInProgress) return;
+      actionInProgress = true;
+      try {
+        const res = await fetch(`${API_BASE}/api/credits/requests/${id}/cancel`, { method: 'POST', credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) showToast(data.error || 'Xatolik');
+        else showToast("So'rov bekor qilindi");
+      } finally {
+        actionInProgress = false;
+      }
+      loadMyRequests();
+    }
+
+    // ---------- Event: banner, hisoblagich va sayt foni ----------
+
+    let eventState = { event: null, offset: 0, loaded: false };
+    let eventTicker = null;
+    let lastEventRefresh = 0;
+
+    function fmtCountdown(ms) {
+      const s = Math.max(0, Math.floor(ms / 1000));
+      const days = Math.floor(s / 86400);
+      if (days >= 1) return `${days} Day`;
+      const hours = Math.floor(s / 3600);
+      if (hours >= 1) return `${hours} hour`;
+      return `${Math.floor(s / 60)} minute and ${s % 60} second`;
+    }
+
+    function eventNow() { return Date.now() + eventState.offset; }
+
+    function applyEventTheme() {
+      const ev = eventState.event;
+      const wp = document.getElementById('eventWallpaper');
+      if (ev && ev.status === 'live' && ev.wallpaper_url) {
+        wp.style.backgroundImage = `linear-gradient(rgba(15,17,21,0.55), rgba(15,17,21,0.55)), url("${ev.wallpaper_url}")`;
+        document.body.classList.add('event-live');
+      } else {
+        document.body.classList.remove('event-live');
+        wp.style.backgroundImage = '';
+      }
+    }
+
+    async function refreshEvent() {
+      lastEventRefresh = Date.now();
+      try {
+        const res = await fetch(`${API_BASE}/api/events/current`, { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const prev = eventState;
+        eventState = { event: data.event, offset: data.server_now - Date.now(), loaded: true };
+        applyEventTheme();
+        renderEventBanner();
+
+        // Event holati o'zgarsa (boshlandi / tugadi) Shop yangilanadi — yangi gift/case'lar paydo bo'ladi
+        const a = prev.event, b = data.event;
+        const changed = prev.loaded && ((a && a.id) !== (b && b.id) || (a && b && a.status !== b.status));
+        if (changed && document.getElementById('shopGrid')) { loadShop(); loadShopCases(); }
+      } catch (e) {}
+    }
+
+    function renderEventBanner() {
+      const box = document.getElementById('eventBanner');
+      if (eventTicker) { clearInterval(eventTicker); eventTicker = null; }
+      if (!box) return;
+      const ev = eventState.event;
+      if (!ev) { box.innerHTML = ''; return; }
+
+      const live = ev.status === 'live';
+      box.innerHTML = `
+        <div class="event-banner">
+          ${ev.banner_url ? `<img src="${ev.banner_url}" alt="">` : `<div class="eb-noimg">🎉</div>`}
+          ${live ? `<div class="event-live-badge">● LIVE</div>` : ''}
+          <div class="eb-info">
+            <div class="eb-name">${esc(ev.name)}</div>
+            <div>
+              <div class="eb-label">${live ? 'Tugashiga' : 'Boshlanishiga'}</div>
+              <div class="eb-time" id="ebTime"></div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const target = new Date(live ? ev.ends_at : ev.starts_at).getTime();
+      const tick = () => {
+        const el = document.getElementById('ebTime');
+        if (!el) { clearInterval(eventTicker); eventTicker = null; return; }
+        const left = target - eventNow();
+        el.textContent = fmtCountdown(left);
+        if (left <= 0 && Date.now() - lastEventRefresh > 3000) refreshEvent();
+      };
+      tick();
+      eventTicker = setInterval(tick, 1000);
     }
 
     async function renderJonatmoq(main) {

@@ -65,6 +65,11 @@ async function initDb() {
   await ensureColumn('transfers', 'seen', 'INTEGER NOT NULL DEFAULT 0');
   // Gift noyobligi: 'common' (oddiy), 'rare' (noyob), 'legendary' (afsonaviy) — noyob giftlar chiqqanda push yuboriladi
   await ensureColumn('gifts', 'rarity', "TEXT NOT NULL DEFAULT 'common'");
+  // Event'ga tegishli gift/case (NULL = oddiy, event'siz)
+  await ensureColumn('gifts', 'event_id', 'INTEGER');
+  await ensureColumn('cases', 'event_id', 'INTEGER');
+  // Kredit uchun kafil
+  await ensureColumn('user_credits', 'guarantor_id', 'INTEGER');
 
   console.log('Turso bazasi tayyor.');
 }

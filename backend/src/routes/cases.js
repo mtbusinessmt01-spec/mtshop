@@ -4,6 +4,7 @@ const { upload, fileToDataUrl } = require('../imageUpload');
 const db = require('../db');
 const push = require('../push');
 const { authMiddleware, adminMiddleware } = require('../auth');
+const { isEventItemLocked, parseEventId } = require('../eventUtil');
 
 const router = express.Router();
 
@@ -43,10 +44,13 @@ router.post('/admin/cases', authMiddleware, adminMiddleware, upload.single('imag
 
   const imageUrl = fileToDataUrl(req.file);
 
+  let eventId = await parseEventId(req.body.event_id);
+  if (eventId === undefined) eventId = null;
+
   const tx = db.transaction(async () => {
     const result = await db.prepare(
-      'INSERT INTO cases (name, image_url, price) VALUES (?, ?, ?)'
-    ).run(name, imageUrl, parseFloat(price));
+      'INSERT INTO cases (name, image_url, price, event_id) VALUES (?, ?, ?, ?)'
+    ).run(name, imageUrl, parseFloat(price), eventId);
     const caseId = result.lastInsertRowid;
 
     const insertItem = db.prepare(
@@ -80,9 +84,12 @@ router.put('/admin/cases/:id', authMiddleware, adminMiddleware, upload.single('i
   }
   const imageUrl = req.file ? fileToDataUrl(req.file) : existing.image_url;
 
+  let eventId = await parseEventId(req.body.event_id);
+  if (eventId === undefined) eventId = existing.event_id ?? null;
+
   const tx = db.transaction(async () => {
-    await db.prepare('UPDATE cases SET name = ?, price = ?, image_url = ? WHERE id = ?')
-      .run(name || existing.name, price ? parseFloat(price) : existing.price, imageUrl, id);
+    await db.prepare('UPDATE cases SET name = ?, price = ?, image_url = ?, event_id = ? WHERE id = ?')
+      .run(name || existing.name, price ? parseFloat(price) : existing.price, imageUrl, eventId, id);
 
     if (items) {
       await db.prepare('DELETE FROM case_items WHERE case_id = ?').run(id);
@@ -121,13 +128,22 @@ router.delete('/admin/cases/:id', authMiddleware, adminMiddleware, async (req, r
 // ---------- FOYDALANUVCHI: Shop, Buy, Inventory, Open ----------
 
 router.get('/cases', authMiddleware, async (req, res) => {
-  const cases = await db.prepare('SELECT * FROM cases ORDER BY price ASC').all();
+  // Event'i hali boshlanmagan case'lar Shopda ko'rinmaydi
+  const cases = await db.prepare(`
+    SELECT c.* FROM cases c
+    LEFT JOIN events e ON e.id = c.event_id
+    WHERE c.event_id IS NULL OR e.id IS NULL OR e.starts_at <= ?
+    ORDER BY c.price ASC
+  `).all(new Date().toISOString());
   res.json(await Promise.all(cases.map(c => getCaseWithItems(c.id))));
 });
 
 router.post('/cases/:id/buy', authMiddleware, async (req, res) => {
   const c = await db.prepare('SELECT * FROM cases WHERE id = ?').get(req.params.id);
   if (!c) return res.status(404).json({ error: 'Case topilmadi' });
+  if (await isEventItemLocked(c.event_id)) {
+    return res.status(400).json({ error: 'Bu case event boshlangandan keyin sotuvga chiqadi' });
+  }
 
   // Balansni tekshirish va yechish bitta atomik SQL buyrug'ida bajariladi —
   // shu bilan bir vaqtda bir nechta so'rov kelsa ham (masalan tugma tez-tez bosilsa),

@@ -124,6 +124,7 @@ router.delete('/admin/users/:id', authMiddleware, adminMiddleware, async (req, r
       DELETE FROM credit_payments WHERE user_credit_id IN (SELECT id FROM user_credits WHERE user_id = ?)
     `).run(id);
     await db.prepare('DELETE FROM user_credits WHERE user_id = ?').run(id);
+    await db.prepare('DELETE FROM credit_requests WHERE user_id = ? OR guarantor_id = ?').run(id, id);
     // Transfer tarixi saqlanadi, faqat foydalanuvchiga bog'lanish yo'qotiladi bo'lmaydi
     // (chunki from_user_id/to_user_id NOT NULL) — shuning uchun bu transferlarni o'chiramiz
     await db.prepare('DELETE FROM transfers WHERE from_user_id = ? OR to_user_id = ?').run(id, id);

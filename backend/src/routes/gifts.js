@@ -3,6 +3,7 @@ const { upload, fileToDataUrl } = require('../imageUpload');
 
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
+const { isEventItemLocked, parseEventId } = require('../eventUtil');
 
 const router = express.Router();
 
@@ -27,9 +28,12 @@ router.post('/admin/gifts', authMiddleware, adminMiddleware, upload.single('imag
   const imageUrl = fileToDataUrl(req.file);
   const qty = unlimited === 'true' || unlimited === true ? null : parseInt(quantity, 10) || 0;
 
+  let eventId = await parseEventId(req.body.event_id);
+  if (eventId === undefined) eventId = null;
+
   const result = await db.prepare(
-    'INSERT INTO gifts (name, image_url, price, quantity, rarity) VALUES (?, ?, ?, ?, ?)'
-  ).run(name, imageUrl, parseFloat(price), qty, cleanRarity(rarity));
+    'INSERT INTO gifts (name, image_url, price, quantity, rarity, event_id) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(name, imageUrl, parseFloat(price), qty, cleanRarity(rarity), eventId);
 
   res.json(await db.prepare('SELECT * FROM gifts WHERE id = ?').get(result.lastInsertRowid));
 });
@@ -46,9 +50,12 @@ router.put('/admin/gifts/:id', authMiddleware, adminMiddleware, upload.single('i
     ? null
     : (quantity !== undefined ? parseInt(quantity, 10) : gift.quantity);
 
+  let eventId = await parseEventId(req.body.event_id);
+  if (eventId === undefined) eventId = gift.event_id ?? null;
+
   await db.prepare(
-    'UPDATE gifts SET name = ?, price = ?, quantity = ?, image_url = ?, rarity = ? WHERE id = ?'
-  ).run(name || gift.name, price ? parseFloat(price) : gift.price, qty, imageUrl, cleanRarity(rarity, gift.rarity || 'common'), id);
+    'UPDATE gifts SET name = ?, price = ?, quantity = ?, image_url = ?, rarity = ?, event_id = ? WHERE id = ?'
+  ).run(name || gift.name, price ? parseFloat(price) : gift.price, qty, imageUrl, cleanRarity(rarity, gift.rarity || 'common'), eventId, id);
 
   res.json(await db.prepare('SELECT * FROM gifts WHERE id = ?').get(id));
 });
@@ -72,9 +79,14 @@ router.delete('/admin/gifts/:id', authMiddleware, adminMiddleware, async (req, r
 
 // Shop: sotib olsa bo'ladigan giftlar (soni 0 bo'lmaganlar)
 router.get('/gifts', authMiddleware, async (req, res) => {
-  const gifts = await db.prepare(
-    'SELECT * FROM gifts WHERE quantity IS NULL OR quantity > 0 ORDER BY price ASC'
-  ).all();
+  // Event'i hali boshlanmagan giftlar Shopda ko'rinmaydi
+  const gifts = await db.prepare(`
+    SELECT g.* FROM gifts g
+    LEFT JOIN events e ON e.id = g.event_id
+    WHERE (g.quantity IS NULL OR g.quantity > 0)
+      AND (g.event_id IS NULL OR e.id IS NULL OR e.starts_at <= ?)
+    ORDER BY g.price ASC
+  `).all(new Date().toISOString());
   res.json(gifts);
 });
 
@@ -82,6 +94,9 @@ router.get('/gifts', authMiddleware, async (req, res) => {
 router.post('/gifts/:id/buy', authMiddleware, async (req, res) => {
   const gift = await db.prepare('SELECT * FROM gifts WHERE id = ?').get(req.params.id);
   if (!gift) return res.status(404).json({ error: 'Gift topilmadi' });
+  if (await isEventItemLocked(gift.event_id)) {
+    return res.status(400).json({ error: 'Bu gift event boshlangandan keyin sotuvga chiqadi' });
+  }
 
   const qty = Math.max(1, parseInt(req.body?.quantity, 10) || 1);
   const totalPrice = Math.round(gift.price * qty * 100) / 100;

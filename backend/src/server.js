@@ -14,6 +14,7 @@ const transfersRouter = require('./routes/transfers');
 const creditsRouter = require('./routes/credits');
 const petsRouter = require('./routes/pets');
 const pushRouter = require('./routes/push');
+const eventsRouter = require('./routes/events');
 const push = require('./push');
 
 const app = express();
@@ -34,6 +35,7 @@ app.use('/api', transfersRouter);
 app.use('/api', creditsRouter);
 app.use('/api', petsRouter);
 app.use('/api', pushRouter);
+app.use('/api', eventsRouter);
 
 // --- AUTH ---
 
