@@ -380,17 +380,26 @@
     right: auto;
     width: min(430px, calc(100vw - 28px));
     transform: translateX(-50%);
-    height: 70px;
-    padding: 7px;
+    height: 68px;
+    padding: 5px;
     gap: 4px;
     justify-content: stretch;
     align-items: stretch;
     overflow: hidden;
     background: linear-gradient(135deg, rgba(36,39,50,.72), rgba(18,20,27,.62));
     border: 1px solid var(--glass-border);
-    border-radius: 25px;
+    border-radius: 999px;
     box-shadow: var(--glass-shadow);
     isolation: isolate;
+    z-index: 60; /* Yana oynasi ochilganda ham menyu xira bo'lib qolmasin */
+    -webkit-tap-highlight-color: transparent;
+    backdrop-filter: blur(26px) saturate(180%);
+    -webkit-backdrop-filter: blur(26px) saturate(180%);
+    animation: navRise 600ms cubic-bezier(.22,1,.36,1) both;
+  }
+  @keyframes navRise {
+    from { transform: translate(-50%, 24px); opacity: 0; }
+    to { transform: translate(-50%, 0); opacity: 1; }
   }
   nav#bottomNav::after {
     content: "";
@@ -403,11 +412,11 @@
   }
   nav#bottomNav .nav-liquid-indicator {
     position: absolute;
-    top: 7px;
-    left: 7px;
-    width: calc((100% - 14px - 8px) / 3);
-    height: calc(100% - 14px);
-    border-radius: 19px;
+    top: 5px;
+    left: 5px;
+    width: calc((100% - 10px - 8px) / 3);
+    height: calc(100% - 10px);
+    border-radius: 999px;
     background:
       radial-gradient(circle at 28% 18%, rgba(255,255,255,.25), transparent 32%),
       linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,.065));
@@ -461,16 +470,27 @@
     height: 100%;
     min-width: 0;
     padding: 6px 5px;
-    border-radius: 19px;
+    border-radius: 999px;
     color: rgba(255,255,255,.58);
     transition: color 260ms ease, transform 180ms ease;
+    -webkit-tap-highlight-color: transparent;
   }
   nav#bottomNav button:hover { color: rgba(255,255,255,.9); }
   nav#bottomNav button:active { transform: scale(.94); }
   nav#bottomNav button.active { color: #fff; }
-  nav#bottomNav button .icon { font-size: 20px; line-height: 1; }
+  nav#bottomNav.sheet-open button[data-tab].active { color: rgba(255,255,255,.58); }
+  nav#bottomNav button .icon { font-size: 20px; line-height: 1; height: 24px; width: 24px; margin: 0 auto 2px; display: grid; place-items: center; }
+  nav#bottomNav button.active .icon { animation: iconPop 520ms cubic-bezier(.34,1.56,.64,1); }
+  @keyframes iconPop {
+    0% { transform: scale(.78) translateY(3px); }
+    55% { transform: scale(1.18) translateY(-2px); }
+    100% { transform: scale(1) translateY(0); }
+  }
+  nav#bottomNav .dots-icon { width: 22px; height: 22px; display: block; }
+  nav#bottomNav .dots-icon circle { fill: currentColor; transition: transform 320ms cubic-bezier(.34,1.56,.64,1); transform-box: fill-box; transform-origin: center; }
+  nav#bottomNav button#moreNavButton[aria-expanded="true"] .dots-icon circle:nth-child(1) { transform: translateX(-1.5px) scale(1.15); }
+  nav#bottomNav button#moreNavButton[aria-expanded="true"] .dots-icon circle:nth-child(3) { transform: translateX(1.5px) scale(1.15); }
   nav#bottomNav button span:last-child { font-size: 11px; font-weight: 650; letter-spacing: .1px; }
-  nav#bottomNav button#moreNavButton .icon { font-size: 16px; letter-spacing: 2px; transform: translateY(-2px); }
 
   .more-backdrop {
     position: fixed;
@@ -526,6 +546,40 @@
     .more-item { min-height: 58px; }
   }
 
+
+  /* --- Sahifalar orasida o'tish animatsiyalari --- */
+  #main.page-fwd > * { animation: pageInFwd 460ms cubic-bezier(.22,1,.36,1) both; }
+  #main.page-back > * { animation: pageInBack 460ms cubic-bezier(.22,1,.36,1) both; }
+  #main.page-up > * { animation: pageInUp 460ms cubic-bezier(.22,1,.36,1) both; }
+  #main.page-fwd > *:nth-child(2), #main.page-back > *:nth-child(2), #main.page-up > *:nth-child(2) { animation-delay: 40ms; }
+  #main.page-fwd > *:nth-child(3), #main.page-back > *:nth-child(3), #main.page-up > *:nth-child(3) { animation-delay: 80ms; }
+  #main.page-fwd > *:nth-child(4), #main.page-back > *:nth-child(4), #main.page-up > *:nth-child(4) { animation-delay: 120ms; }
+  #main.page-fwd > *:nth-child(n+5), #main.page-back > *:nth-child(n+5), #main.page-up > *:nth-child(n+5) { animation-delay: 160ms; }
+  @keyframes pageInFwd { from { opacity: 0; transform: translateX(34px) scale(.985); filter: blur(5px); } to { opacity: 1; transform: none; filter: blur(0); } }
+  @keyframes pageInBack { from { opacity: 0; transform: translateX(-34px) scale(.985); filter: blur(5px); } to { opacity: 1; transform: none; filter: blur(0); } }
+  @keyframes pageInUp { from { opacity: 0; transform: translateY(26px) scale(.985); filter: blur(5px); } to { opacity: 1; transform: none; filter: blur(0); } }
+
+  /* Kartalar ketma-ket chiqadi */
+  .grid > .gift-card { animation: cardIn 420ms cubic-bezier(.22,1,.36,1) both; }
+  .grid > .gift-card:nth-child(2) { animation-delay: 45ms; }
+  .grid > .gift-card:nth-child(3) { animation-delay: 90ms; }
+  .grid > .gift-card:nth-child(4) { animation-delay: 135ms; }
+  .grid > .gift-card:nth-child(n+5) { animation-delay: 180ms; }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(16px) scale(.96); } to { opacity: 1; transform: none; } }
+
+  /* "Yana" oynasidagi tugmalar ketma-ket chiqadi */
+  .more-sheet.open .more-item { animation: sheetItemIn 420ms cubic-bezier(.34,1.3,.64,1) both; }
+  .more-sheet.open .more-item:nth-child(1) { animation-delay: 70ms; }
+  .more-sheet.open .more-item:nth-child(2) { animation-delay: 120ms; }
+  .more-sheet.open .more-item:nth-child(3) { animation-delay: 170ms; }
+  .more-sheet.open .more-item:nth-child(4) { animation-delay: 220ms; }
+  @keyframes sheetItemIn { from { opacity: 0; transform: translateY(14px) scale(.94); } to { opacity: 1; transform: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    #main > *, .grid > .gift-card, .more-sheet.open .more-item, nav#bottomNav, nav#bottomNav button.active .icon { animation: none !important; }
+    nav#bottomNav .nav-liquid-indicator { transition-duration: 1ms !important; }
+  }
+
 </style>
 </head>
 <body>
@@ -545,7 +599,7 @@
       <div class="nav-liquid-indicator" aria-hidden="true"></div>
       <button data-tab="shops" class="active" aria-label="Shops"><span class="icon">🛍️</span><span>Shops</span></button>
       <button data-tab="inventor" aria-label="Inventor"><span class="icon">🎒</span><span>Inventor</span></button>
-      <button id="moreNavButton" type="button" aria-haspopup="dialog" aria-expanded="false"><span class="icon">•••</span><span>Yana</span></button>
+      <button id="moreNavButton" type="button" aria-haspopup="dialog" aria-expanded="false"><span class="icon"><svg class="dots-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg></span><span>Yana</span></button>
     </nav>
 
     <div class="more-backdrop" id="moreBackdrop"></div>
@@ -2125,16 +2179,22 @@
       indicator.style.width = `${w}px`;
       const stretch = Math.min(1.22, 1 + Math.min(distance / Math.max(w, 1), .22));
       indicator.style.transform = `translateX(0) scaleX(${stretch})`;
-      indicator.style.borderRadius = stretch > 1.08 ? '24px' : '19px';
+      indicator.style.borderRadius = '999px';
       clearTimeout(indicator._settleTimer);
       indicator._settleTimer = setTimeout(() => {
         indicator.style.transform = 'translateX(0) scaleX(1)';
-        indicator.style.borderRadius = '19px';
       }, 430);
       indicator.dataset.left = x;
     }
 
+    let currentNavTab = 'shops';
+    const TAB_ORDER = { shops: 0, inventor: 1, jonatmoq: 2, mypet: 2, kreditlar: 2, profils: 2 };
+
     function setMoreOpen(open) {
+      // Oyna ochiq turganda pill "Yana" tugmasiga o'tib turadi, yopilganda joriy bo'limga qaytadi
+      updateLiquidIndicator(open ? 'jonatmoq' : currentNavTab);
+      moreNavButton.classList.toggle('active', open || moreTabs.has(currentNavTab));
+      bottomNav.classList.toggle('sheet-open', open);
       moreSheet.classList.toggle('open', open);
       moreBackdrop.classList.toggle('open', open);
       moreSheet.setAttribute('aria-hidden', String(!open));
@@ -2142,6 +2202,7 @@
     }
 
     function syncNavigation(tab) {
+      currentNavTab = tab;
       document.querySelectorAll('#bottomNav button[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
       moreNavButton.classList.toggle('active', moreTabs.has(tab));
       updateLiquidIndicator(tab);
@@ -2150,9 +2211,19 @@
     // renderTab avvalgi funksiyasi ustidan navigation indikatorini sinxronlaydi.
     const _renderTab = renderTab;
     renderTab = async function(tab) {
-      await _renderTab(tab);
-      syncNavigation(tab);
-      if (moreTabs.has(tab)) setMoreOpen(false);
+      // O'tish yo'nalishi: oldinga (o'ngdan) yoki orqaga (chapdan); bir xil guruhda esa pastdan
+      const from = TAB_ORDER[currentNavTab] ?? 0;
+      const to = TAB_ORDER[tab] ?? 0;
+      const dir = to > from ? 'page-fwd' : (to < from ? 'page-back' : 'page-up');
+      const mainEl = document.getElementById('main');
+      const pending = _renderTab(tab);        // kontent shu zahoti almashadi
+      mainEl.classList.remove('page-fwd', 'page-back', 'page-up');
+      void mainEl.offsetWidth;                // animatsiyani qayta boshlash uchun
+      mainEl.classList.add(dir);
+      mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+      syncNavigation(tab);                    // pill darhol suriladi, kontent yuklanishini kutmaydi
+      setMoreOpen(false);                     // Yana oynasi ochiq bo'lsa, yopiladi
+      await pending;
     };
 
     bottomNav.querySelectorAll('button[data-tab]').forEach(btn => {
