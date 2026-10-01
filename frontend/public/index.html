@@ -347,6 +347,156 @@
   }
   .guar-btn-row { display: flex; gap: 10px; margin-top: 14px; }
   .guar-btn-row .btn { flex: 1; }
+
+  /* --- Liquid Glass navigation redesign --- */
+  :root {
+    --glass-bg: rgba(255,255,255,0.075);
+    --glass-border: rgba(255,255,255,0.13);
+    --glass-highlight: rgba(255,255,255,0.16);
+    --glass-shadow: 0 18px 45px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: -25%;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 18% 18%, rgba(108,92,231,.16), transparent 28%),
+      radial-gradient(circle at 82% 72%, rgba(162,155,254,.10), transparent 30%),
+      radial-gradient(circle at 50% 100%, rgba(77,120,255,.08), transparent 28%);
+    filter: blur(30px);
+    animation: ambientFloat 12s ease-in-out infinite alternate;
+  }
+  @keyframes ambientFloat {
+    from { transform: translate3d(-1%, -1%, 0) scale(1); }
+    to { transform: translate3d(1%, 1%, 0) scale(1.04); }
+  }
+  nav#bottomNav {
+    position: fixed;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    left: 50%;
+    right: auto;
+    width: min(430px, calc(100vw - 28px));
+    transform: translateX(-50%);
+    height: 70px;
+    padding: 7px;
+    gap: 4px;
+    justify-content: stretch;
+    align-items: stretch;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(36,39,50,.72), rgba(18,20,27,.62));
+    border: 1px solid var(--glass-border);
+    border-radius: 25px;
+    box-shadow: var(--glass-shadow);
+    isolation: isolate;
+  }
+  nav#bottomNav::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(120deg, rgba(255,255,255,.10), transparent 35%, rgba(255,255,255,.035));
+    z-index: -1;
+  }
+  nav#bottomNav .nav-liquid-indicator {
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    width: calc((100% - 14px - 8px) / 3);
+    height: calc(100% - 14px);
+    border-radius: 19px;
+    background: linear-gradient(135deg, rgba(255,255,255,.20), rgba(255,255,255,.07));
+    border: 1px solid rgba(255,255,255,.14);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,.15), 0 5px 20px rgba(0,0,0,.16);
+    backdrop-filter: blur(16px) saturate(145%);
+    -webkit-backdrop-filter: blur(16px) saturate(145%);
+    transform: translateX(0) scaleX(1);
+    transform-origin: center;
+    transition: transform 520ms cubic-bezier(.22,1,.36,1), width 520ms cubic-bezier(.22,1,.36,1), left 520ms cubic-bezier(.22,1,.36,1);
+    will-change: transform, left, width;
+    z-index: 0;
+  }
+  nav#bottomNav .nav-liquid-indicator::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(255,255,255,.08), transparent 45%, rgba(255,255,255,.08));
+    filter: blur(5px);
+  }
+  nav#bottomNav button {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    min-width: 0;
+    padding: 6px 5px;
+    border-radius: 19px;
+    color: rgba(255,255,255,.58);
+    transition: color 260ms ease, transform 180ms ease;
+  }
+  nav#bottomNav button:hover { color: rgba(255,255,255,.9); }
+  nav#bottomNav button:active { transform: scale(.94); }
+  nav#bottomNav button.active { color: #fff; }
+  nav#bottomNav button .icon { font-size: 20px; line-height: 1; }
+  nav#bottomNav button span:last-child { font-size: 11px; font-weight: 650; letter-spacing: .1px; }
+  nav#bottomNav button#moreNavButton .icon { font-size: 16px; letter-spacing: 2px; transform: translateY(-2px); }
+
+  .more-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(0,0,0,.36);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 300ms ease;
+  }
+  .more-backdrop.open { opacity: 1; pointer-events: auto; }
+  .more-sheet {
+    position: fixed;
+    z-index: 50;
+    left: 50%;
+    bottom: calc(94px + env(safe-area-inset-bottom));
+    width: min(430px, calc(100vw - 28px));
+    transform: translate(-50%, 22px) scale(.97);
+    transform-origin: bottom center;
+    opacity: 0;
+    pointer-events: none;
+    padding: 10px 14px 14px;
+    border: 1px solid var(--glass-border);
+    border-radius: 27px;
+    background: linear-gradient(145deg, rgba(38,41,52,.86), rgba(17,19,26,.82));
+    box-shadow: 0 22px 70px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.10);
+    backdrop-filter: blur(30px) saturate(155%);
+    -webkit-backdrop-filter: blur(30px) saturate(155%);
+    transition: transform 360ms cubic-bezier(.22,1,.36,1), opacity 240ms ease;
+  }
+  .more-sheet.open { transform: translate(-50%, 0) scale(1); opacity: 1; pointer-events: auto; }
+  .sheet-handle { width: 38px; height: 4px; border-radius: 99px; background: rgba(255,255,255,.25); margin: 1px auto 12px; }
+  .sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px 13px; }
+  .sheet-title { font-size: 18px; font-weight: 800; }
+  .sheet-subtitle { margin-top: 3px; color: var(--muted); font-size: 12px; }
+  .sheet-close { width: 32px; height: 32px; border: 1px solid rgba(255,255,255,.08); border-radius: 50%; background: rgba(255,255,255,.07); color: #fff; cursor: pointer; }
+  .more-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .more-item {
+    display: flex; align-items: center; gap: 10px; text-align: left; min-height: 66px; padding: 11px;
+    border: 1px solid rgba(255,255,255,.08); border-radius: 17px; color: #fff; cursor: pointer;
+    background: rgba(255,255,255,.055); box-shadow: inset 0 1px 0 rgba(255,255,255,.045);
+    transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+  }
+  .more-item:hover { transform: translateY(-2px); background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.14); }
+  .more-item:active { transform: scale(.97); }
+  .more-icon { width: 38px; height: 38px; display: grid; place-items: center; flex: 0 0 38px; border-radius: 13px; background: rgba(255,255,255,.09); font-size: 20px; }
+  .more-item b { display: block; font-size: 13px; }
+  .more-item small { display: block; color: var(--muted); font-size: 10px; line-height: 1.25; margin-top: 3px; }
+  @media (max-width: 360px) {
+    .more-grid { grid-template-columns: 1fr; }
+    .more-item { min-height: 58px; }
+  }
+
 </style>
 </head>
 <body>
@@ -362,14 +512,30 @@
       <!-- tab content shu yerga chiqadi -->
     </main>
 
-    <nav>
-      <button data-tab="shops" class="active"><span class="icon">🛍️</span>Shops</button>
-      <button data-tab="inventor"><span class="icon">🎒</span>Inventor</button>
-      <button data-tab="jonatmoq"><span class="icon">📤</span>Jo'natmoq</button>
-      <button data-tab="mypet"><span class="icon">🐾</span>MyPet</button>
-      <button data-tab="kreditlar"><span class="icon">💳</span>Kreditlar</button>
-      <button data-tab="profils"><span class="icon">👤</span>Profils</button>
+    <nav id="bottomNav" aria-label="Asosiy menyu">
+      <div class="nav-liquid-indicator" aria-hidden="true"></div>
+      <button data-tab="shops" class="active"><span class="icon">🛍️</span><span>Shops</span></button>
+      <button data-tab="inventor"><span class="icon">🎒</span><span>Inventor</span></button>
+      <button id="moreNavButton" type="button" aria-haspopup="dialog" aria-expanded="false"><span class="icon">•••</span><span>Yana</span></button>
     </nav>
+
+    <div class="more-backdrop" id="moreBackdrop"></div>
+    <section class="more-sheet" id="moreSheet" role="dialog" aria-modal="true" aria-labelledby="moreSheetTitle" aria-hidden="true">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div>
+          <div class="sheet-title" id="moreSheetTitle">Yana</div>
+          <div class="sheet-subtitle">Qo‘shimcha bo‘limlar</div>
+        </div>
+        <button class="sheet-close" id="closeMoreButton" type="button" aria-label="Yopish">✕</button>
+      </div>
+      <div class="more-grid">
+        <button class="more-item" data-tab="jonatmoq"><span class="more-icon">📤</span><span><b>Jo‘natmoq</b><small>Gift yoki case yuborish</small></span></button>
+        <button class="more-item" data-tab="mypet"><span class="more-icon">🐾</span><span><b>MyPet</b><small>Petingizni boshqaring</small></span></button>
+        <button class="more-item" data-tab="kreditlar"><span class="more-icon">💳</span><span><b>Kreditlar</b><small>Kredit va kafil so‘rovlari</small></span></button>
+        <button class="more-item" data-tab="profils"><span class="more-icon">👤</span><span><b>Profils</b><small>Profil va hisob</small></span></button>
+      </div>
+    </section>
   </div>
 
   <div id="eventWallpaper"></div>
@@ -1675,9 +1841,71 @@
       loadInventory();
     }
 
-    document.querySelectorAll('nav button').forEach(btn => {
+    const bottomNav = document.getElementById('bottomNav');
+    const moreNavButton = document.getElementById('moreNavButton');
+    const moreSheet = document.getElementById('moreSheet');
+    const moreBackdrop = document.getElementById('moreBackdrop');
+    const closeMoreButton = document.getElementById('closeMoreButton');
+    const moreTabs = new Set(['jonatmoq', 'mypet', 'kreditlar', 'profils']);
+
+    function updateLiquidIndicator(tab) {
+      const indicator = bottomNav?.querySelector('.nav-liquid-indicator');
+      if (!indicator) return;
+      const buttons = [...bottomNav.querySelectorAll('button[data-tab]')];
+      const target = moreTabs.has(tab) ? moreNavButton : buttons.find(b => b.dataset.tab === tab) || buttons[0];
+      if (!target) return;
+      const navRect = bottomNav.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const x = targetRect.left - navRect.left;
+      const w = targetRect.width;
+      const previousLeft = parseFloat(indicator.dataset.left || x);
+      const distance = Math.abs(x - previousLeft);
+      indicator.style.left = `${x}px`;
+      indicator.style.width = `${w}px`;
+      indicator.style.transform = `translateX(0) scaleX(${Math.min(1.10, 1 + Math.min(distance / Math.max(w, 1), .18))})`;
+      clearTimeout(indicator._settleTimer);
+      indicator._settleTimer = setTimeout(() => { indicator.style.transform = 'translateX(0) scaleX(1)'; }, 360);
+      indicator.dataset.left = x;
+    }
+
+    function setMoreOpen(open) {
+      moreSheet.classList.toggle('open', open);
+      moreBackdrop.classList.toggle('open', open);
+      moreSheet.setAttribute('aria-hidden', String(!open));
+      moreNavButton.setAttribute('aria-expanded', String(open));
+    }
+
+    function syncNavigation(tab) {
+      document.querySelectorAll('#bottomNav button[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+      moreNavButton.classList.toggle('active', moreTabs.has(tab));
+      updateLiquidIndicator(tab);
+    }
+
+    // renderTab avvalgi funksiyasi ustidan navigation indikatorini sinxronlaydi.
+    const _renderTab = renderTab;
+    renderTab = async function(tab) {
+      await _renderTab(tab);
+      syncNavigation(tab);
+      if (moreTabs.has(tab)) setMoreOpen(false);
+    };
+
+    bottomNav.querySelectorAll('button[data-tab]').forEach(btn => {
       btn.addEventListener('click', () => renderTab(btn.dataset.tab));
     });
+    moreNavButton.addEventListener('click', () => setMoreOpen(!moreSheet.classList.contains('open')));
+    closeMoreButton.addEventListener('click', () => setMoreOpen(false));
+    moreBackdrop.addEventListener('click', () => setMoreOpen(false));
+    moreSheet.querySelectorAll('.more-item').forEach(btn => {
+      btn.addEventListener('click', () => renderTab(btn.dataset.tab));
+    });
+    window.addEventListener('resize', () => {
+      const active = document.querySelector('#bottomNav button.active')?.dataset.tab || 'shops';
+      updateLiquidIndicator(active);
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') setMoreOpen(false); });
+
+    // Dastlabki indikator joylashuvi.
+    requestAnimationFrame(() => updateLiquidIndicator(location.hash.slice(1) || 'shops'));
 
     let shopCasesCache = {};
 
