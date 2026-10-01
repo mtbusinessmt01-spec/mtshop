@@ -2,11 +2,11 @@ const express = require('express');
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
 const push = require('../push');
+const guarantor = require('../guarantor');
+const { applyOverdueFines } = guarantor; // jarima mexanizmi guarantor.js da (kafil bilan birga ishlaydi)
 
 const router = express.Router();
 
-const FINE_RATE = 0.12; // kredit summasining 12%
-const MAX_FINES = 3;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 // ---------- ADMIN: Kredit turlari CRUD ----------
@@ -49,44 +49,6 @@ router.delete('/admin/credit-types/:id', authMiddleware, adminMiddleware, async 
   await db.prepare('DELETE FROM credit_types WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
 });
-
-// ---------- Jarima mexanizmi ----------
-// Har chaqirilganda foydalanuvchining faol kreditlarini tekshirib,
-// muddati o'tgan to'lovlar uchun 12% jarima qo'shadi va 3 martadan keyin bloklaydi.
-async function applyOverdueFines(userId) {
-  const activeCredits = await db.prepare(
-    "SELECT * FROM user_credits WHERE user_id = ? AND status = 'active'"
-  ).all(userId);
-
-  const now = Date.now();
-
-  for (const credit of activeCredits) {
-    let next = new Date(credit.next_payment_at).getTime();
-    let fineCount = credit.fine_count;
-    let remaining = credit.remaining_amount;
-    let changed = false;
-
-    while (now > next && fineCount < MAX_FINES && remaining > 0) {
-      const fine = Math.round(credit.principal_amount * FINE_RATE * 100) / 100;
-      remaining += fine;
-      fineCount += 1;
-      next += WEEK_MS;
-      changed = true;
-    }
-
-    if (changed) {
-      const newStatus = fineCount >= MAX_FINES ? 'defaulted' : 'active';
-      await db.prepare(`
-        UPDATE user_credits SET remaining_amount = ?, fine_count = ?, next_payment_at = ?, status = ?
-        WHERE id = ?
-      `).run(remaining, fineCount, new Date(next).toISOString(), newStatus, credit.id);
-
-      if (fineCount >= MAX_FINES) {
-        await db.prepare('UPDATE users SET is_blocked = 1 WHERE id = ?').run(userId);
-      }
-    }
-  }
-}
 
 // ---------- FOYDALANUVCHI ----------
 
@@ -321,6 +283,83 @@ router.post('/credits/:id/pay', authMiddleware, async (req, res) => {
     remaining_amount: newRemaining,
     status: newStatus,
   });
+});
+
+
+// ---------- KAFIL JAVOBGARLIGI ----------
+
+// Kafil uchun: qarzdor to'lamagan (2 sutka ichida eslatish kerak) va kafildan yechilgan holatlar
+router.get('/credits/guarantor/overdues', authMiddleware, async (req, res) => {
+  await guarantor.maybeRunChecks();
+  const base = `
+    SELECT o.id, o.week_payment, o.penalty_amount, o.charged_amount, o.due_at, o.deadline_at, o.reminded_at,
+           u.username AS borrower_username, ct.name AS credit_name
+    FROM guarantor_overdues o
+    JOIN users u ON u.id = o.borrower_id
+    JOIN user_credits uc ON uc.id = o.user_credit_id
+    JOIN credit_types ct ON ct.id = uc.credit_type_id
+  `;
+  const waiting = await db.prepare(
+    base + " WHERE o.guarantor_id = ? AND o.status = 'waiting' ORDER BY o.deadline_at ASC"
+  ).all(req.user.id);
+  const charged = await db.prepare(
+    base + " WHERE o.guarantor_id = ? AND o.status = 'charged' AND o.guarantor_seen = 0 ORDER BY o.resolved_at ASC"
+  ).all(req.user.id);
+  res.json({ waiting, charged, server_now: Date.now() });
+});
+
+// Kafil: qarzdorga to'lash haqida xabar beradi (push + saytga kirganda oyna)
+router.post('/credits/guarantor/overdues/:id/remind', authMiddleware, async (req, res) => {
+  const o = await db.prepare('SELECT * FROM guarantor_overdues WHERE id = ? AND guarantor_id = ?').get(req.params.id, req.user.id);
+  if (!o) return res.status(404).json({ error: 'Topilmadi' });
+  if (o.status !== 'waiting' || Date.now() >= push.parseDate(o.deadline_at)) {
+    return res.status(400).json({ error: "Muddat tugagan yoki qarzdor allaqachon to'lagan" });
+  }
+  if (o.reminded_at) {
+    const sinceMs = Date.now() - push.parseDate(o.reminded_at);
+    if (sinceMs < guarantor.REMIND_COOLDOWN_MS) {
+      const minLeft = Math.ceil((guarantor.REMIND_COOLDOWN_MS - sinceMs) / 60000);
+      return res.status(400).json({ error: `Yaqinda xabar yuborgansiz. ${minLeft} daqiqadan keyin qayta yuborishingiz mumkin.` });
+    }
+  }
+
+  await db.prepare('UPDATE guarantor_overdues SET reminded_at = ?, borrower_seen = 0 WHERE id = ?')
+    .run(new Date().toISOString(), o.id);
+
+  push.notifyUser(o.borrower_id, {
+    title: '⏰ Kafilingiz eslatdi',
+    body: `@${req.user.username} sizga kredit to'lovini to'lashni eslatdi (${o.week_payment} coin). To'lamasangiz, kafilingiz jarimaga tortiladi.`,
+    url: '/index.html#kreditlar',
+    tag: `guarantor-remind-${o.id}`,
+  });
+
+  res.json({ ok: true });
+});
+
+// Kafil "hisobingizdan yechildi" xabarini ko'rdi
+router.post('/credits/guarantor/charged-seen', authMiddleware, async (req, res) => {
+  await db.prepare("UPDATE guarantor_overdues SET guarantor_seen = 1 WHERE guarantor_id = ? AND status = 'charged'").run(req.user.id);
+  res.json({ ok: true });
+});
+
+// Qarzdor uchun: kafil yuborgan eslatmalar (hali ko'rilmaganlari)
+router.get('/credits/borrower/reminders', authMiddleware, async (req, res) => {
+  const rows = await db.prepare(`
+    SELECT o.id, o.week_payment, o.reminded_at, o.deadline_at,
+           g.username AS guarantor_username, ct.name AS credit_name
+    FROM guarantor_overdues o
+    JOIN users g ON g.id = o.guarantor_id
+    JOIN user_credits uc ON uc.id = o.user_credit_id
+    JOIN credit_types ct ON ct.id = uc.credit_type_id
+    WHERE o.borrower_id = ? AND o.status = 'waiting' AND o.reminded_at IS NOT NULL AND o.borrower_seen = 0
+    ORDER BY o.reminded_at ASC
+  `).all(req.user.id);
+  res.json(rows);
+});
+
+router.post('/credits/borrower/reminders/seen', authMiddleware, async (req, res) => {
+  await db.prepare("UPDATE guarantor_overdues SET borrower_seen = 1 WHERE borrower_id = ? AND status = 'waiting'").run(req.user.id);
+  res.json({ ok: true });
 });
 
 module.exports = router;

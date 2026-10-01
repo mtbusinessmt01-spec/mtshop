@@ -120,6 +120,7 @@ router.delete('/admin/users/:id', authMiddleware, adminMiddleware, async (req, r
     await db.prepare('DELETE FROM user_pets WHERE user_id = ?').run(id);
     await db.prepare('DELETE FROM push_subscriptions WHERE user_id = ?').run(id);
     await db.prepare('DELETE FROM notification_log WHERE user_id = ?').run(id);
+    await db.prepare('DELETE FROM guarantor_overdues WHERE borrower_id = ? OR guarantor_id = ?').run(id, id);
     await db.prepare(`
       DELETE FROM credit_payments WHERE user_credit_id IN (SELECT id FROM user_credits WHERE user_id = ?)
     `).run(id);

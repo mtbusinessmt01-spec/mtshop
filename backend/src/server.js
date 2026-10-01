@@ -16,6 +16,7 @@ const petsRouter = require('./routes/pets');
 const pushRouter = require('./routes/push');
 const eventsRouter = require('./routes/events');
 const push = require('./push');
+const guarantor = require('./guarantor');
 
 const app = express();
 app.use(express.json());
@@ -110,6 +111,7 @@ db.initDb()
       console.log(`MTshop backend http://localhost:${PORT} da ishlamoqda`);
     });
     push.startScheduler();
+    guarantor.startScheduler();
   })
   .catch((e) => {
     console.error('Bazani ishga tushirishda xato:', e);
