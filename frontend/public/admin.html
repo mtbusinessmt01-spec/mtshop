@@ -131,6 +131,7 @@
     <button class="admin-nav-btn" data-section="pets" onclick="switchAdminSection('pets')">🐾 Pet</button>
     <button class="admin-nav-btn" data-section="events" onclick="switchAdminSection('events')">🎉 Event</button>
     <button class="admin-nav-btn" data-section="push" onclick="switchAdminSection('push')">🔔 Bildirishnoma</button>
+    <button class="admin-nav-btn" data-section="versions" onclick="switchAdminSection('versions')">🆕 Versiya</button>
   </div>
 
   <div class="admin-section" data-section="users">
@@ -432,6 +433,40 @@
       <button type="submit" class="btn-primary" style="margin-top:16px">Yuborish</button>
       <div class="msg" id="pushFormMsg"></div>
     </form>
+  </div>
+  </div>
+
+  <div class="admin-section" data-section="versions" style="display:none">
+  <div class="card">
+    <h2>Versiyalar statistikasi</h2>
+    <div class="gift-list" id="versionStats">Yuklanmoqda...</div>
+  </div>
+
+  <div class="card">
+    <h2 id="versionFormTitle">Yangi versiya qo'shish</h2>
+    <div class="msg" style="margin:0 0 10px;">ℹ️ Avval V<b>X.Y</b> kodini serverga deploy qiling: <b>frontend/versions/X.Y/index.html</b>. Bu yerda faqat versiyani <b>yoqasiz</b> (kod yuklanmaydi). Yangi versiya <b>draft</b> bo'lib boshlanadi — faqat adminlarga ko'rinadi.</div>
+    <form id="versionForm">
+      <input type="hidden" id="versionEditId">
+      <label>Versiya raqami</label>
+      <input type="text" id="versionNumber" placeholder="1.3" maxlength="10" required>
+
+      <label>Nomi (ixtiyoriy)</label>
+      <input type="text" id="versionTitle" maxlength="80" placeholder="Yangi dizayn">
+
+      <label>Nima o'zgardi (changelog)</label>
+      <textarea id="versionChangelog" class="send-input" rows="4" maxlength="2000" style="resize:vertical" placeholder="- Yangi menyu&#10;- Tezroq yuklanish"></textarea>
+
+      <div class="row">
+        <button type="submit" class="btn-primary" id="versionSubmitBtn">Qo'shish</button>
+        <button type="button" class="btn-secondary" id="versionCancelEdit" style="display:none" onclick="resetVersionForm()">Bekor qilish</button>
+      </div>
+      <div class="msg" id="versionFormMsg"></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Versiyalar</h2>
+    <div class="gift-list" id="versionList">Yuklanmoqda...</div>
   </div>
   </div>
 
@@ -1354,6 +1389,172 @@
       await loadEvents();
     });
 
+
+    // ---------- VERSION MANAGEMENT ----------
+    // Admin kodni yuklamaydi: kod serverga deploy qilinadi, bu yerda versiya faqat yoqiladi/o'chiriladi.
+
+    let versionData = { base: '1.2', base_count: 0, total_users: 0, versions: [] };
+    let testerOpenId = null;
+
+    function escHtml(t) {
+      return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    async function loadVersions() {
+      const res = await fetch(`${API_BASE}/api/admin/versions`, { credentials: 'include' });
+      if (!res.ok) return;
+      versionData = await res.json();
+      renderVersionStats();
+      renderVersionList();
+    }
+
+    function renderVersionStats() {
+      const el = document.getElementById('versionStats');
+      const d = versionData;
+      const rows = [`<div class="meta">V${escHtml(d.base)} (asosiy): <b>${d.base_count}</b> ta foydalanuvchi</div>`]
+        .concat(d.versions.map(v => `<div class="meta">V${escHtml(v.version)}: <b>${v.user_count}</b> ta foydalanuvchi</div>`));
+      rows.push(`<div class="meta" style="margin-top:6px;">Jami: <b>${d.total_users}</b></div>`);
+      el.innerHTML = rows.join('');
+    }
+
+    const VERSION_STATUS_LABEL = { draft: '🔒 draft (faqat adminlar)', beta: '🧪 beta (tanlanganlar)', public: '🌍 public (hamma)' };
+
+    function renderVersionList() {
+      const el = document.getElementById('versionList');
+      if (!versionData.versions.length) {
+        el.innerHTML = '<div style="color:var(--muted);font-size:13px">Hali yangi versiya yo\'q</div>';
+        return;
+      }
+      el.innerHTML = versionData.versions.map(v => `
+        <div class="gift-item" style="flex-wrap:wrap;">
+          <div class="info" style="min-width:200px;">
+            <div class="name">V${escHtml(v.version)}${v.title ? ' — ' + escHtml(v.title) : ''}</div>
+            <div class="meta">${VERSION_STATUS_LABEL[v.status]} · 👥 ${v.user_count}</div>
+            ${v.changelog ? `<div class="meta" style="white-space:pre-line;">${escHtml(v.changelog)}</div>` : ''}
+            ${v.has_files ? '' : `<div class="meta" style="color:var(--danger);">⚠️ frontend/versions/${escHtml(v.version)}/index.html serverda topilmadi — beta/public qilib bo'lmaydi</div>`}
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <select class="send-input" style="width:auto;margin:0;" onchange="setVersionStatus(${v.id}, this.value)">
+              <option value="draft" ${v.status === 'draft' ? 'selected' : ''}>draft</option>
+              <option value="beta" ${v.status === 'beta' ? 'selected' : ''}>beta</option>
+              <option value="public" ${v.status === 'public' ? 'selected' : ''}>public</option>
+            </select>
+            <button class="btn-secondary" onclick="toggleTesters(${v.id})">Testerlar (${v.tester_ids.length})</button>
+            <button class="btn-secondary" onclick="editVersion(${v.id})">Tahrirlash</button>
+            <button class="btn-danger" onclick="deleteVersion(${v.id})">O'chirish</button>
+          </div>
+          ${testerOpenId === v.id ? `
+            <div style="flex-basis:100%;margin-top:10px;">
+              <div class="meta" style="margin-bottom:6px;">Beta bosqichida faqat shu foydalanuvchilarga ochiq (adminlar doim ko'radi):</div>
+              <div style="max-height:220px;overflow-y:auto;">
+                ${users.filter(u => !u.is_admin).map(u => `
+                  <label class="user-row" style="cursor:pointer;">
+                    <input type="checkbox" name="testerPick" value="${u.id}" ${v.tester_ids.includes(u.id) ? 'checked' : ''} style="margin-right:10px;">
+                    <div class="u-info"><div class="u-name">@${escHtml(u.username)}</div></div>
+                  </label>`).join('') || '<div class="meta">Foydalanuvchilar yo\'q</div>'}
+              </div>
+              <button class="btn-primary" style="margin-top:10px;" onclick="saveTesters(${v.id})">Testerlarni saqlash</button>
+            </div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    async function setVersionStatus(id, status) {
+      const v = versionData.versions.find(x => x.id === id);
+      if (status === 'public' && !confirm(`V${v.version} hamma foydalanuvchiga ochiladi va hammaga bildirishnoma ketadi. Davom etasizmi?`)) {
+        return loadVersions();
+      }
+      if (status === 'draft' && v.user_count > 0 && !confirm(`V${v.version} dagi ${v.user_count} ta foydalanuvchi avtomatik V${versionData.base} ga qaytariladi (adminlar qoladi). Davom etasizmi?`)) {
+        return loadVersions();
+      }
+      const res = await fetch(`${API_BASE}/api/admin/versions/${id}`, {
+        method: 'PUT', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json();
+      if (!res.ok) showAdminToast(data.error || 'Xatolik');
+      else showAdminToast('Holat o\'zgartirildi');
+      loadVersions();
+    }
+
+    function toggleTesters(id) {
+      testerOpenId = testerOpenId === id ? null : id;
+      renderVersionList();
+    }
+
+    async function saveTesters(id) {
+      const ids = Array.from(document.querySelectorAll('input[name="testerPick"]:checked')).map(i => Number(i.value));
+      const res = await fetch(`${API_BASE}/api/admin/versions/${id}/testers`, {
+        method: 'PUT', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_ids: ids }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showAdminToast(data.error || 'Xatolik'); return; }
+      showAdminToast('Testerlar saqlandi');
+      testerOpenId = null;
+      loadVersions();
+    }
+
+    function editVersion(id) {
+      const v = versionData.versions.find(x => x.id === id);
+      document.getElementById('versionEditId').value = v.id;
+      document.getElementById('versionNumber').value = v.version;
+      document.getElementById('versionNumber').disabled = true; // raqamni o'zgartirib bo'lmaydi
+      document.getElementById('versionTitle').value = v.title;
+      document.getElementById('versionChangelog').value = v.changelog;
+      document.getElementById('versionFormTitle').textContent = `V${v.version} ni tahrirlash`;
+      document.getElementById('versionSubmitBtn').textContent = 'Saqlash';
+      document.getElementById('versionCancelEdit').style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetVersionForm() {
+      document.getElementById('versionForm').reset();
+      document.getElementById('versionEditId').value = '';
+      document.getElementById('versionNumber').disabled = false;
+      document.getElementById('versionFormTitle').textContent = "Yangi versiya qo'shish";
+      document.getElementById('versionSubmitBtn').textContent = "Qo'shish";
+      document.getElementById('versionCancelEdit').style.display = 'none';
+    }
+
+    async function deleteVersion(id) {
+      const v = versionData.versions.find(x => x.id === id);
+      if (!confirm(`V${v.version} ro'yxatdan o'chiriladi, undagi ${v.user_count} ta foydalanuvchi V${versionData.base} ga qaytariladi. (Server fayllari o'chmaydi.) Davom etasizmi?`)) return;
+      const res = await fetch(`${API_BASE}/api/admin/versions/${id}`, { method: 'DELETE', credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) { showAdminToast(data.error || 'Xatolik'); return; }
+      showAdminToast("Versiya o'chirildi");
+      loadVersions();
+    }
+
+    document.getElementById('versionForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('versionFormMsg');
+      msg.textContent = ''; msg.className = 'msg';
+
+      const editId = document.getElementById('versionEditId').value;
+      const payload = {
+        title: document.getElementById('versionTitle').value,
+        changelog: document.getElementById('versionChangelog').value,
+      };
+      if (!editId) payload.version = document.getElementById('versionNumber').value.trim();
+
+      const res = await fetch(editId ? `${API_BASE}/api/admin/versions/${editId}` : `${API_BASE}/api/admin/versions`, {
+        method: editId ? 'PUT' : 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) { msg.textContent = data.error || 'Xatolik'; msg.classList.add('error'); return; }
+
+      msg.textContent = editId ? 'Saqlandi!' : "Versiya qo'shildi (draft). Endi holatini o'zgartiring.";
+      msg.classList.add('success');
+      resetVersionForm();
+      loadVersions();
+    });
+
     checkAdmin().then(async () => {
       await loadUsers();
       await loadEvents();
@@ -1363,6 +1564,7 @@
       await loadCreditTypes();
       await loadPetTypes();
       await loadPushStats();
+      await loadVersions();
       addItemRow(); // birinchi qatorni avtomatik qo'shish
     });
   </script>

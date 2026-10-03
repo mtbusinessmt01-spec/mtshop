@@ -104,6 +104,8 @@ async function initDb() {
   await ensureColumn('cases', 'event_id', 'INTEGER');
   // Kredit uchun kafil
   await ensureColumn('user_credits', 'guarantor_id', 'INTEGER');
+  // Foydalanuvchi qaysi sayt versiyasidan foydalanayotgani (asosiy versiya — 1.2)
+  await ensureColumn('users', 'app_version', "TEXT NOT NULL DEFAULT '1.2'");
 
   console.log('Turso bazasi tayyor.');
 }

@@ -15,6 +15,8 @@ const creditsRouter = require('./routes/credits');
 const petsRouter = require('./routes/pets');
 const pushRouter = require('./routes/push');
 const eventsRouter = require('./routes/events');
+const versionsRouter = require('./routes/versions');
+const { pageMiddleware } = require('./versions');
 const push = require('./push');
 const guarantor = require('./guarantor');
 
@@ -27,6 +29,8 @@ app.use(cors({ origin: true, credentials: true }));
 // beriladi — shunda ikkalasi bitta manzilda bo'lib, brauzer cookie'ni
 // "cross-site" deb hisoblamaydi (mobil Safari'dagi bloklash muammosi yo'qoladi).
 const frontendDir = path.join(__dirname, '..', '..', 'frontend', 'public');
+// Foydalanuvchi versiyasiga mos index.html (static'dan OLDIN turishi shart)
+app.use(pageMiddleware);
 app.use(express.static(frontendDir));
 
 app.use('/api', giftsRouter);
@@ -37,6 +41,7 @@ app.use('/api', creditsRouter);
 app.use('/api', petsRouter);
 app.use('/api', pushRouter);
 app.use('/api', eventsRouter);
+app.use('/api', versionsRouter);
 
 // --- AUTH ---
 
