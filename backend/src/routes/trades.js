@@ -42,6 +42,14 @@ router.get('/trades/history', authMiddleware, h(async (req, res) => {
   res.json(await trades.history(req.user.id, req.query.limit));
 }));
 
+router.delete('/trades/history', authMiddleware, h(async (req, res) => {
+  res.json(await trades.clearHistory(req.user.id));
+}));
+
+router.delete('/trades/:id/history', authMiddleware, h(async (req, res) => {
+  res.json(await trades.deleteFromHistory(req.user.id, req.params.id));
+}));
+
 router.post('/trades/notifications/seen', authMiddleware, h(async (req, res) => {
   const ids = req.body && req.body.all ? 'all' : (req.body && req.body.ids);
   await trades.markNotificationsSeen(req.user.id, ids);

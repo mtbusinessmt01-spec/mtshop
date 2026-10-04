@@ -9,6 +9,7 @@
 //
 // Oxirgi test bloklangan foydalanuvchi trade'ini scheduler bekor qilishini kutadi (~31 soniya).
 // MTshop Trade tizimi — xavfsizlik va to'g'rilik testlari (haqiqiy HTTP server + mahalliy SQLite)
+// MTshop Trade tizimi — xavfsizlik va to'g'rilik testlari (haqiqiy HTTP server + mahalliy SQLite)
 const { createClient } = require('@libsql/client');
 const B = process.env.TRADE_TEST_URL || 'http://localhost:4222';
 const raw = createClient({ url: process.env.TRADE_TEST_DB || 'file:/tmp/trade-test.db' });
@@ -474,6 +475,49 @@ const tradeRow = async id => (await q('SELECT * FROM trades WHERE id=?', [id]))[
     ]);
     check('Bir giftni 2 kishiga parallel yuborish -> faqat bittasi o\'tdi', snd.filter(r => r.s === 200).length === 1, snd.map(r => r.s));
     check('  ... transfer tarixida ham bitta yozuv', (await q("SELECT COUNT(*) AS c FROM transfers WHERE gift_id=? AND item_type='gift' AND trade_id IS NULL AND from_user_id=?", [g3.gift_id, uid.ali]))[0].c >= 1);
+  }
+
+  // ============ Tarixni o'chirish ============
+  results.push('Tarixni o\'chirish (faqat o\'z ko\'rinishidan)');
+  {
+    const before = (await C.ali.get('/api/trades/history')).d;
+    check('Boshida Ali tarixida COMPLETED trade bor', before.some(x => x.id === t2));
+    const del = await C.ali.del(`/api/trades/${t2}/history`);
+    check('Ali tugagan trade\'ni tarixdan o\'chirdi', del.s === 200, del);
+    const aliH = (await C.ali.get('/api/trades/history')).d;
+    check('Ali tarixida endi ko\'rinmaydi', !aliH.some(x => x.id === t2));
+    const sarH = (await C.sardor.get('/api/trades/history')).d;
+    check('Sardor tarixida hali ham bor (sherikka ta\'sir qilmaydi)', sarH.some(x => x.id === t2));
+    const adm = await admin.get(`/api/admin/trades?q=${t2}`);
+    check('Admin audit tarixida saqlanib qoldi', adm.d.some(x => x.id === t2));
+    const aliView = await C.ali.get(`/api/trades/${t2}`);
+    check('Ali o\'chirgan trade ochilmaydi (404)', aliView.s === 404, aliView);
+    const sarView = await C.sardor.get(`/api/trades/${t2}`);
+    check('Sardor trade\'ni hamon ochadi', sarView.s === 200);
+    const row = await tradeRow(t2);
+    check('Trade bazada o\'chmagan, gift/coin yozuvlari saqlangan', row && row.status === 'COMPLETED' && (await q('SELECT COUNT(*) AS c FROM transfers WHERE trade_id=?', [t2]))[0].c === 5);
+    const stranger = await C.zarina.del(`/api/trades/${t2}/history`);
+    check('Begona foydalanuvchi o\'chira olmaydi (403)', stranger.s === 403);
+    // faol trade o'chirilmaydi
+    const ta = await startTrade('ali', 'sardor');
+    const act = await C.ali.del(`/api/trades/${ta}/history`);
+    check('ACTIVE trade tarixdan o\'chirilmaydi (409)', act.s === 409 && act.d.code === 'NOT_FINISHED', act);
+    await clearCooldown('hasan', 'zarina');
+    const pend = await C.zarina.post('/api/trades/request', { username: 'hasan' });
+    const pdel = await C.zarina.del(`/api/trades/${pend.d.id}/history`);
+    check('PENDING request tarixdan o\'chirilmaydi (409)', pdel.s === 409);
+    await C.zarina.post(`/api/trades/${pend.d.id}/cancel`);
+    await cleanup(ta);
+    // hammasini tozalash: ACTIVE qolsin
+    const tb = await startTrade('ali', 'sardor');
+    const clr = await C.ali.del('/api/trades/history');
+    check('Barcha tarixni tozalash ishladi', clr.s === 200 && clr.d.count >= 1, clr);
+    const after = (await C.ali.get('/api/trades/history')).d;
+    check('  ... tarixda faqat faol trade qoldi (qolganlari o\'chdi)', after.length === 1 && after[0].id === tb && after[0].status === 'ACTIVE', after);
+    check('  ... faol trade saqlanib qoldi', (await tradeRow(tb)).status === 'ACTIVE');
+    const sum = await C.ali.get('/api/trades/summary');
+    check('  ... faol trade summary\'da ko\'rinadi', sum.d.active && sum.d.active.id === tb);
+    await cleanup(tb);
   }
 
   // ============ Admin ============

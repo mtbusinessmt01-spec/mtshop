@@ -161,6 +161,9 @@ async function initDb() {
   await ensureColumn('user_gifts', 'trade_id', 'INTEGER');
   await ensureColumn('users', 'last_trade_request_at', 'TEXT');
   await ensureColumn('transfers', 'trade_id', 'INTEGER');
+  // Foydalanuvchi o'z Trade tarixini ko'rinishdan o'chirishi (sherik va admin audit tarixi saqlanadi)
+  await ensureColumn('trades', 'a_hidden', 'INTEGER NOT NULL DEFAULT 0');
+  await ensureColumn('trades', 'b_hidden', 'INTEGER NOT NULL DEFAULT 0');
   await client.execute('CREATE INDEX IF NOT EXISTS idx_user_gifts_trade ON user_gifts(trade_id)');
   // Foydalanuvchi qaysi sayt versiyasidan foydalanayotgani (asosiy versiya — 1.2)
   await ensureColumn('users', 'app_version', "TEXT NOT NULL DEFAULT '1.2'");

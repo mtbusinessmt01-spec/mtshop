@@ -656,6 +656,7 @@ async function viewTrade(userId, tradeId, afterMsgId) {
   if (!t) throw new TradeError(404, 'Trade topilmadi');
   const side = sideOf(t, userId);
   if (!side) throw new TradeError(403, 'Access denied');   // boshqa user Trade ID orqali kira olmaydi
+  if (t[side + '_hidden']) throw new TradeError(404, "Trade topilmadi (tarixdan o'chirilgan)");
   const oside = side === 'a' ? 'b' : 'a';
 
   const [ua, ub] = await Promise.all([
@@ -770,7 +771,7 @@ async function history(userId, limit) {
     SELECT t.id, t.status, t.user_a_id, t.user_b_id, t.a_coin, t.b_coin, t.created_at, t.completed_at,
            ua.username AS a_name, ub.username AS b_name
     FROM trades t JOIN users ua ON ua.id = t.user_a_id JOIN users ub ON ub.id = t.user_b_id
-    WHERE (t.user_a_id = ? OR t.user_b_id = ?) AND t.status != 'PENDING'
+    WHERE ((t.user_a_id = ? AND t.a_hidden = 0) OR (t.user_b_id = ? AND t.b_hidden = 0)) AND t.status != 'PENDING'
     ORDER BY t.id DESC LIMIT ?
   `).all(userId, userId, lim);
   if (!rows.length) return [];
@@ -785,6 +786,32 @@ async function history(userId, limit) {
       my_coin: iAmA ? r.a_coin : r.b_coin, their_coin: iAmA ? r.b_coin : r.a_coin,
       my_gifts: mine, their_gifts: theirs, created_at: r.created_at, completed_at: r.completed_at,
     };
+  });
+}
+
+// ---------- Tarixni o'chirish (faqat o'zining ko'rinishidan) ----------
+// Trade yozuvi bazada qoladi: sherik tarixi va admin audit loglari saqlanadi. Faol (PENDING/ACTIVE) trade o'chirilmaydi.
+const FINISHED = ['REJECTED', 'CANCELLED', 'EXPIRED', 'COMPLETED', 'FAILED'];
+
+async function deleteFromHistory(userId, tradeId) {
+  return tradeTx(async (tx) => {
+    const { t, side } = await loadForUser(tx, tradeId, userId);
+    if (!FINISHED.includes(t.status)) {
+      throw new TradeError(409, "Faol Trade'ni tarixdan o'chirib bo'lmaydi. Avval uni yakunlang yoki bekor qiling.", { code: 'NOT_FINISHED' });
+    }
+    await tx.prepare(`UPDATE trades SET ${side}_hidden = 1 WHERE id = ?`).run(t.id);
+    await log(tx, t.id, userId, 'history_hidden', null);
+    return { ok: true };
+  });
+}
+
+async function clearHistory(userId) {
+  return tradeTx(async (tx) => {
+    const marks = FINISHED.map(() => '?').join(',');
+    const a = await tx.prepare(`UPDATE trades SET a_hidden = 1 WHERE user_a_id = ? AND a_hidden = 0 AND status IN (${marks})`).run(userId, ...FINISHED);
+    const b = await tx.prepare(`UPDATE trades SET b_hidden = 1 WHERE user_b_id = ? AND b_hidden = 0 AND status IN (${marks})`).run(userId, ...FINISHED);
+    await log(tx, null, userId, 'history_cleared', `count=${a.changes + b.changes}`);
+    return { ok: true, count: a.changes + b.changes };
   });
 }
 
@@ -908,6 +935,6 @@ module.exports = {
   TradeError, STATUSES,
   createRequest, acceptRequest, declineRequest, cancelTrade,
   addGift, removeGift, setCoin, lockOffer, unlockOffer, confirmTrade,
-  postMessage, viewTrade, availableGifts, summary, markNotificationsSeen, history,
+  postMessage, viewTrade, availableGifts, summary, markNotificationsSeen, history, deleteFromHistory, clearHistory,
   adminList, adminDetail, adminOpenChat, purgeUserTrades, sweepExpired, startScheduler,
 };

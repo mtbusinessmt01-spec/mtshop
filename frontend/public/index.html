@@ -199,7 +199,18 @@
   .tr-send .send-input { flex: 1; min-width: 0; }
   .tr-send .btn { width: auto; padding: 0 16px; }
   .tr-offer-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,0.05); margin-bottom: 6px; font-size: 13px; }
-  .tr-offer-row img, .tr-offer-row .tr-gi { width: 34px; height: 34px; border-radius: 9px; object-fit: cover; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.06); }
+  /* Gift rasmi HAR DOIM qat'iy o'lchamda (telefonda katta bo'lib ketmasligi uchun) */
+  .tr-thumb { width: 38px; height: 38px; min-width: 38px; border-radius: 10px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.06); font-size: 20px; line-height: 1; }
+  .tr-thumb img { width: 100%; height: 100%; max-width: 100%; object-fit: cover; display: block; margin: 0; border-radius: 0; }
+  .tr-pick-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,0.05); margin-bottom: 6px; cursor: pointer; font-size: 13px; }
+  .tr-pick-row:active { transform: scale(.985); background: rgba(255,255,255,0.09); }
+  .tr-pick-row .tr-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tr-pick-row .tr-add { color: var(--accent-2); font-weight: 700; font-size: 12px; flex-shrink: 0; }
+  .tr-pick-list { max-height: 44vh; overflow-y: auto; -webkit-overflow-scrolling: touch; margin: 10px 0 4px; }
+  .tr-choice { display: flex; gap: 10px; margin-top: 18px; }
+  .tr-choice .btn { flex: 1; padding: 14px 8px; font-size: 15px; }
+  .tr-del { background: none; border: none; color: #ff8b8b; font-size: 16px; padding: 6px 8px; cursor: pointer; flex-shrink: 0; }
+  .tr-linkbtn { background: none; border: none; color: var(--muted); font-size: 12px; text-decoration: underline; cursor: pointer; padding: 4px 0; }
   .tr-offer-row .tr-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tr-offer-row .tr-x { background: none; border: none; color: #ff8b8b; font-size: 16px; cursor: pointer; padding: 4px 8px; }
   .tr-offer-row.missing { opacity: .55; border: 1px dashed #ff8b8b; }
@@ -2135,8 +2146,8 @@
     }
 
     function tradeGiftThumb(giftId) {
-      if (!giftId) return `<div class="tr-gi">🎁</div>`;
-      return `<img src="${API_BASE}/api/gift-image/${Number(giftId)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;tr-gi&quot;>🎁</div>'">`;
+      if (!giftId) return `<span class="tr-thumb">🎁</span>`;
+      return `<span class="tr-thumb"><img src="${API_BASE}/api/gift-image/${Number(giftId)}" alt="" loading="lazy" onerror="this.parentNode.textContent='🎁'"></span>`;
     }
 
     // ---------- Global: request banner + bildirishnomalar ----------
@@ -2327,14 +2338,32 @@
       box.innerHTML = r.data.map(t => {
         const mine = [...t.my_gifts, ...(t.my_coin ? [`${t.my_coin} coin`] : [])].join(', ') || '—';
         const theirs = [...t.their_gifts, ...(t.their_coin ? [`${t.their_coin} coin`] : [])].join(', ') || '—';
+        const canDelete = t.status !== 'ACTIVE';
         return `<div class="tr-hist" onclick="openTradeRoom(${t.id}, true)">
           <div class="tr-h-main">
             <div><b>Trade #${t.id}</b> · @${esc(t.with)}</div>
             <div class="tr-h-sub">${esc(mine)} ⇄ ${esc(theirs)}</div>
           </div>
           <span class="tr-badge ${esc(t.status)}">${TRADE_STATUS_UZ[t.status] || esc(t.status)}</span>
+          ${canDelete ? `<button class="tr-del" aria-label="Tarixdan o'chirish" onclick="event.stopPropagation(); tradeDeleteHistory(${t.id})">🗑</button>` : ''}
         </div>`;
-      }).join('');
+      }).join('') + `<div style="text-align:center; margin-top:6px"><button class="tr-linkbtn" onclick="tradeClearHistory()">Barcha tarixni tozalash</button></div>`;
+    }
+
+    async function tradeDeleteHistory(id, fromRoom) {
+      if (!confirm("Bu Trade tarixdan o'chirilsinmi? (Faqat sizning tarixingizdan o'chadi, sherikda qoladi.)")) return;
+      const r = await tradeApi('DELETE', `/${Number(id)}/history`);
+      if (!r.ok) { showToast(r.data.error || 'Xatolik'); return; }
+      showToast("Tarixdan o'chirildi");
+      if (fromRoom) renderTab('trade'); else loadTradeHistory();
+    }
+
+    async function tradeClearHistory() {
+      if (!confirm("Barcha tugagan Trade'lar tarixingizdan o'chirilsinmi? (Faol Trade'lar o'chmaydi.)")) return;
+      const r = await tradeApi('DELETE', '/history');
+      if (!r.ok) { showToast(r.data.error || 'Xatolik'); return; }
+      showToast(r.data.count ? `${r.data.count} ta Trade tarixdan o'chirildi` : "O'chiriladigan Trade yo'q");
+      loadTradeHistory();
     }
 
     // ---------- Trade xonasi ----------
@@ -2448,7 +2477,7 @@
             </div>`).join('')
         : '';
       const coin = side.coin > 0
-        ? `<div class="tr-offer-row"><div class="tr-gi">💰</div><div class="tr-name">${side.coin} coin</div></div>` : '';
+        ? `<div class="tr-offer-row"><span class="tr-thumb">💰</span><div class="tr-name">${side.coin} coin</div></div>` : '';
       return (gifts || coin) ? gifts + coin : `<div class="tr-empty">Hali hech narsa taklif qilinmagan</div>`;
     }
 
@@ -2502,6 +2531,9 @@
         </div>
         <div class="send-hint" style="margin:8px 2px 0">${!(my.locked && their.locked) ? 'Confirm uchun ikkala tomon ham offerni Lock qilishi kerak.' : ''}</div>`;
       }
+      if (!active && t.status !== 'PENDING') {
+        actions = `<div class="tr-btns"><button class="btn secondary" onclick="tradeDeleteHistory(${t.id}, true)">🗑 Tarixdan o'chirish</button></div>`;
+      }
       document.getElementById('trActions').innerHTML = actions;
     }
 
@@ -2522,33 +2554,63 @@
     const tradeUnlock = () => tradeAction('POST', '/unlock', {}, null);
     const tradeRemoveGift = (ugId) => tradeAction('DELETE', `/offer/gift/${Number(ugId)}`, undefined, null);
 
-    async function openOfferPicker() {
+    // 1-qadam: "Qaysi birini tanlaysiz?" — pastda ikkita tugma: Gift, Coin
+    function openOfferPicker() {
+      if (!tradeRoom || !tradeRoom.data) return;
+      const d = tradeRoom.data;
+      const left = d.limits.max_gifts - d.my.gifts.length;
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">Qaysi birini tanlaysiz?</div>
+        <div class="modal-sub">Offeringizga nima qo'shmoqchisiz?</div>
+        <div class="send-hint">🎁 Gift: yana ${Math.max(left, 0)} ta (maks. ${d.limits.max_gifts}) &middot; 💰 Coin: hozir ${d.my.coin}</div>
+        <div class="tr-choice">
+          <button class="btn" id="trPickGift" ${left <= 0 ? 'disabled' : ''}>🎁 Gift</button>
+          <button class="btn" id="trPickCoin">💰 Coin</button>
+        </div>
+        <button class="btn-back" onclick="closeModal()">Yopish</button>
+      `;
+      openModal();
+      document.getElementById('trPickGift').addEventListener('click', openOfferGiftList);
+      document.getElementById('trPickCoin').addEventListener('click', openOfferCoin);
+    }
+
+    // 2a-qadam: gift ro'yxati (ixcham qatorlar, kichik rasm)
+    async function openOfferGiftList() {
       if (!tradeRoom || !tradeRoom.data) return;
       const d = tradeRoom.data;
       document.getElementById('modalBody').innerHTML = `<div class="modal-title">Yuklanmoqda...</div>`;
-      openModal();
-      await refreshMe();
       const r = await tradeApi('GET', '/available-gifts');
-      if (!r.ok) { document.getElementById('modalBody').innerHTML = `<div class="modal-title">Xatolik</div><div class="modal-sub">${esc(r.data.error || '')}</div>`; return; }
+      if (!r.ok) { document.getElementById('modalBody').innerHTML = `<div class="modal-title">Xatolik</div><div class="modal-sub">${esc(r.data.error || '')}</div><button class="btn-back" onclick="openOfferPicker()">&larr; Orqaga</button>`; return; }
       const left = d.limits.max_gifts - d.my.gifts.length;
       const rows = r.data.length
         ? r.data.map(g => `
-            <div class="case-item-row" style="cursor:pointer" onclick="tradeAddGift(${g.user_gift_id})">
+            <div class="tr-pick-row" onclick="tradeAddGift(${g.user_gift_id})">
               ${tradeGiftThumb(g.gift_id)}
-              <div class="ci-name">${esc(g.name)}</div>
-              <div class="ci-chance">+ Qo'shish</div>
+              <div class="tr-name">${esc(g.name)}</div>
+              <div class="tr-add">+ Qo'shish</div>
             </div>`).join('')
         : `<div class="modal-sub">Offerga qo'sha oladigan bo'sh gift yo'q.</div>`;
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">🎁 Gift tanlang</div>
+        <div class="modal-sub" style="margin-bottom:0">Yana ${Math.max(left, 0)} ta qo'sha olasiz.</div>
+        <div class="tr-pick-list">${rows}</div>
+        <button class="btn-back" onclick="openOfferPicker()">&larr; Orqaga</button>
+      `;
+    }
+
+    // 2b-qadam: coin
+    async function openOfferCoin() {
+      if (!tradeRoom || !tradeRoom.data) return;
+      const d = tradeRoom.data;
+      await refreshMe();
       const maxCoin = Math.min(d.limits.max_coin, Math.floor(currentUser.coin_balance) + d.my.coin);
       document.getElementById('modalBody').innerHTML = `
-        <div class="modal-title">+ Add Offer</div>
-        <div class="modal-sub">Gift: yana ${left} ta qo'sha olasiz (maksimum ${d.limits.max_gifts}).</div>
-        <div style="max-height:36vh; overflow-y:auto; margin-bottom:14px">${rows}</div>
-        <label class="send-label">💰 Coin (0 - ${maxCoin})</label>
+        <div class="modal-title">💰 Coin</div>
+        <label class="send-label">Miqdor (0 - ${maxCoin})</label>
         <input type="number" class="send-input" id="trCoinInput" min="0" max="${maxCoin}" step="1" inputmode="numeric" value="${d.my.coin}">
         <div class="send-hint">Offerdagi coin Trade tugaguncha balansingizdan vaqtincha ushlab turiladi. Bekor bo'lsa qaytadi.</div>
-        <button class="btn" style="margin-top:12px" id="trCoinSave">Coinni saqlash</button>
-        <button class="btn-back" onclick="closeModal()">Yopish</button>
+        <button class="btn" style="margin-top:12px" id="trCoinSave">Saqlash</button>
+        <button class="btn-back" onclick="openOfferPicker()">&larr; Orqaga</button>
       `;
       document.getElementById('trCoinSave').addEventListener('click', async () => {
         const raw = document.getElementById('trCoinInput').value.trim();
@@ -2559,8 +2621,8 @@
     }
 
     async function tradeAddGift(ugId) {
-      const rr = await tradeAction('POST', '/offer/gift', { user_gift_id: ugId }, 'Gift qo\'shildi');
-      if (rr && rr.ok) openOfferPicker(); else if (rr) closeModal();
+      const rr = await tradeAction('POST', '/offer/gift', { user_gift_id: ugId }, "Gift qo'shildi");
+      if (rr && rr.ok) openOfferGiftList(); else if (rr) openOfferPicker();
     }
 
     function openTradeConfirm() {
