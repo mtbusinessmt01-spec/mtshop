@@ -76,15 +76,23 @@ router.post('/transfers/gift', authMiddleware, async (req, res) => {
 
   const item = await db.prepare('SELECT * FROM user_gifts WHERE id = ? AND user_id = ?').get(inventory_id, req.user.id);
   if (!item) return res.status(404).json({ error: 'Gift inventaringizda topilmadi' });
+  if (item.trade_id) return res.status(409).json({ error: "Bu gift Trade'da band — yuborib bo'lmaydi" });
 
-  const tx = db.transaction(async () => {
-    await db.prepare('UPDATE user_gifts SET user_id = ? WHERE id = ?').run(toUser.id, item.id);
-    await db.prepare(`
-      INSERT INTO transfers (from_user_id, to_user_id, item_type, gift_id, is_anonymous)
-      VALUES (?, ?, 'gift', ?, ?)
-    `).run(req.user.id, toUser.id, item.gift_id, is_anonymous ? 1 : 0);
-  });
-  await tx();
+  // Haqiqiy tranzaksiya + shartli UPDATE: gift hali egasida va Trade'da band bo'lmasagina ko'chadi
+  try {
+    await db.withTx(async (tx) => {
+      const mv = await tx.prepare('UPDATE user_gifts SET user_id = ? WHERE id = ? AND user_id = ? AND trade_id IS NULL')
+        .run(toUser.id, item.id, req.user.id);
+      if (!mv.changes) throw new Error('GIFT_UNAVAILABLE');
+      await tx.prepare(`
+        INSERT INTO transfers (from_user_id, to_user_id, item_type, gift_id, is_anonymous)
+        VALUES (?, ?, 'gift', ?, ?)
+      `).run(req.user.id, toUser.id, item.gift_id, is_anonymous ? 1 : 0);
+    });
+  } catch (e) {
+    if (e.message === 'GIFT_UNAVAILABLE') return res.status(409).json({ error: "Bu giftni yuborib bo'lmaydi (Trade'da band yoki allaqachon ko'chgan)" });
+    throw e;
+  }
 
   const g = await db.prepare('SELECT name FROM gifts WHERE id = ?').get(item.gift_id);
   notifyTransfer(req.user.username, toUser.id, is_anonymous, `🎁 ${g ? g.name : 'gift'}`);

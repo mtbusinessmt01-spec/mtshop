@@ -132,6 +132,7 @@
     <button class="admin-nav-btn" data-section="events" onclick="switchAdminSection('events')">🎉 Event</button>
     <button class="admin-nav-btn" data-section="push" onclick="switchAdminSection('push')">🔔 Bildirishnoma</button>
     <button class="admin-nav-btn" data-section="versions" onclick="switchAdminSection('versions')">🆕 Versiya</button>
+    <button class="admin-nav-btn" data-section="trades" onclick="switchAdminSection('trades')">🔄 Trade</button>
   </div>
 
   <div class="admin-section" data-section="users">
@@ -468,6 +469,34 @@
     <h2>Versiyalar</h2>
     <div class="gift-list" id="versionList">Yuklanmoqda...</div>
   </div>
+  </div>
+
+  <div class="admin-section" data-section="trades" style="display:none">
+  <div class="card">
+    <h2>Trade tarixi</h2>
+    <div class="msg" style="margin:0 0 10px;">ℹ️ Admin Trade'larni faqat <b>ko'radi</b>. Offer, status, gift yoki coinni o'zgartira olmaydi. Chatni ochish audit logga yoziladi.</div>
+    <label>Trade ID yoki username</label>
+    <input type="text" id="trQ" placeholder="1842 yoki ali" maxlength="64">
+    <label>Status</label>
+    <select id="trStatusFilter" class="send-input">
+      <option value="">Hammasi</option>
+      <option>PENDING</option><option>ACTIVE</option><option>COMPLETED</option>
+      <option>CANCELLED</option><option>REJECTED</option><option>EXPIRED</option><option>FAILED</option>
+    </select>
+    <label>Sanadan</label>
+    <input type="date" id="trFrom">
+    <label>Sanagacha</label>
+    <input type="date" id="trTo">
+    <div class="row"><button class="btn-primary" onclick="loadAdminTrades()">Qidirish</button>
+    <button class="btn-secondary" onclick="resetTradeFilters()">Tozalash</button></div>
+  </div>
+
+  <div class="card">
+    <h2>Natijalar</h2>
+    <div class="gift-list" id="adminTradeList">Yuklanmoqda...</div>
+  </div>
+
+  <div class="card" id="adminTradeDetail" style="display:none"></div>
   </div>
 
   <script src="config.js"></script>
@@ -1555,6 +1584,85 @@
       loadVersions();
     });
 
+
+    // ---------- ADMIN: TRADE (faqat ko'rish) ----------
+    const TRADE_UZ = { PENDING: '⏳ PENDING', ACTIVE: '🟢 ACTIVE', COMPLETED: '✅ COMPLETED', CANCELLED: '❌ CANCELLED', REJECTED: '❌ REJECTED', EXPIRED: '⌛ EXPIRED', FAILED: '⚠️ FAILED' };
+
+    function fmtDT(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
+
+    async function loadAdminTrades() {
+      const el = document.getElementById('adminTradeList');
+      el.textContent = 'Yuklanmoqda...';
+      const qs = new URLSearchParams();
+      const q = document.getElementById('trQ').value.trim();
+      const st = document.getElementById('trStatusFilter').value;
+      const f = document.getElementById('trFrom').value;
+      const t = document.getElementById('trTo').value;
+      if (q) qs.set('q', q); if (st) qs.set('status', st); if (f) qs.set('from', f); if (t) qs.set('to', t);
+      const res = await fetch(`${API_BASE}/api/admin/trades?${qs}`, { credentials: 'include' });
+      const rows = await res.json();
+      if (!res.ok) { el.textContent = rows.error || 'Xatolik'; return; }
+      if (!rows.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Trade topilmadi</div>'; return; }
+      el.innerHTML = rows.map(r => `
+        <div class="gift-item" style="cursor:pointer" onclick="openAdminTrade(${r.id})">
+          <div class="info">
+            <div class="name">Trade #${r.id} · @${escHtml(r.a_name)} ↔ @${escHtml(r.b_name)}</div>
+            <div class="meta">${TRADE_UZ[r.status] || escHtml(r.status)} · ${escHtml(fmtDT(r.created_at))} · 💰 ${r.a_coin} ⇄ ${r.b_coin}</div>
+          </div>
+        </div>`).join('');
+    }
+
+    function resetTradeFilters() {
+      ['trQ', 'trFrom', 'trTo'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('trStatusFilter').value = '';
+      loadAdminTrades();
+    }
+
+    async function openAdminTrade(id) {
+      const box = document.getElementById('adminTradeDetail');
+      box.style.display = 'block';
+      box.textContent = 'Yuklanmoqda...';
+      const res = await fetch(`${API_BASE}/api/admin/trades/${id}`, { credentials: 'include' });
+      const d = await res.json();
+      if (!res.ok) { box.textContent = d.error || 'Xatolik'; return; }
+      const t = d.trade;
+      const items = (uid) => d.items.filter(i => i.user_id === uid).map(i => `🎁 ${escHtml(i.gift_name)}`).join(', ') || '—';
+      box.innerHTML = `
+        <h2>Trade #${t.id} — ${TRADE_UZ[t.status] || escHtml(t.status)}</h2>
+        <div class="meta">@${escHtml(t.a_name)} ↔ @${escHtml(t.b_name)}</div>
+        <div class="meta" style="margin-top:8px"><b>@${escHtml(t.a_name)} offeri:</b> ${items(t.user_a_id)} · 💰 ${t.a_coin}</div>
+        <div class="meta"><b>@${escHtml(t.b_name)} offeri:</b> ${items(t.user_b_id)} · 💰 ${t.b_coin}</div>
+        <div class="meta" style="margin-top:8px">
+          created: ${escHtml(fmtDT(t.created_at))}<br>
+          accepted: ${escHtml(fmtDT(t.accepted_at))}<br>
+          completed: ${escHtml(fmtDT(t.completed_at))}<br>
+          cancelled: ${escHtml(fmtDT(t.cancelled_at))}<br>
+          expired: ${escHtml(fmtDT(t.expired_at))}
+          ${t.status_reason ? `<br>sabab: ${escHtml(t.status_reason)}` : ''}
+        </div>
+        <h2 style="margin-top:16px">Audit log</h2>
+        <div class="gift-list">
+          ${d.logs.map(l => `<div class="meta">${escHtml(fmtDT(l.created_at))} · <b>${escHtml(l.action)}</b>${l.username ? ' · @' + escHtml(l.username) : ''}${l.details ? ' · ' + escHtml(l.details) : ''}</div>`).join('') || '—'}
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn-secondary" onclick="openAdminTradeChat(${t.id})">💬 Chatni ochish (audit logga yoziladi)</button>
+        </div>
+        <div id="adminTradeChat"></div>
+      `;
+      box.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function openAdminTradeChat(id) {
+      if (!confirm("Trade chatini moderatsiya uchun ochasiz. Bu amal audit logga yoziladi. Davom etasizmi?")) return;
+      const el = document.getElementById('adminTradeChat');
+      const res = await fetch(`${API_BASE}/api/admin/trades/${id}/chat`, { credentials: 'include' });
+      const msgs = await res.json();
+      if (!res.ok) { el.textContent = msgs.error || 'Xatolik'; return; }
+      el.innerHTML = '<div class="gift-list" style="margin-top:10px">' +
+        (msgs.map(m => `<div class="meta"><b>@${escHtml(m.username)}</b> (${escHtml(fmtDT(m.created_at))}): ${escHtml(m.body)}</div>`).join('') || '<div class="meta">Xabar yo\'q</div>') + '</div>';
+      openAdminTrade(id);   // yangi audit yozuvi ko'rinishi uchun yangilaymiz
+    }
+
     checkAdmin().then(async () => {
       await loadUsers();
       await loadEvents();
@@ -1565,6 +1673,7 @@
       await loadPetTypes();
       await loadPushStats();
       await loadVersions();
+      loadAdminTrades();
       addItemRow(); // birinchi qatorni avtomatik qo'shish
     });
   </script>

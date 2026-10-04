@@ -182,6 +182,51 @@
     from { transform: translate(-50%, -12px); opacity: 0; }
     to { transform: translate(-50%, 0); opacity: 1; }
   }
+
+  /* ---- Gift Trade ---- */
+  .tr-card { background: var(--glass-bg, rgba(255,255,255,0.075)); border: 1px solid var(--glass-border, rgba(255,255,255,0.13)); border-radius: 18px; padding: 14px; margin-bottom: 14px; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: var(--glass-shadow, none); }
+  .tr-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+  .tr-vs { color: var(--accent-2); font-weight: 700; font-size: 14px; margin-bottom: 14px; word-break: break-all; }
+  .tr-badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: rgba(162,155,254,0.18); color: var(--accent-2); white-space: nowrap; }
+  .tr-badge.COMPLETED { background: rgba(107,203,119,0.18); color: #6bcb77; }
+  .tr-badge.CANCELLED, .tr-badge.REJECTED, .tr-badge.FAILED, .tr-badge.EXPIRED { background: rgba(255,107,107,0.16); color: #ff8b8b; }
+  .tr-chat { height: 190px; overflow-y: auto; background: rgba(0,0,0,0.22); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 6px; -webkit-overflow-scrolling: touch; }
+  .tr-msg { font-size: 13px; line-height: 1.35; word-break: break-word; overflow-wrap: anywhere; }
+  .tr-msg b { color: var(--accent-2); }
+  .tr-msg.me b { color: var(--coin); }
+  .tr-msg-empty { color: var(--muted); font-size: 12px; text-align: center; margin: auto; }
+  .tr-send { display: flex; gap: 8px; margin-top: 8px; }
+  .tr-send .send-input { flex: 1; min-width: 0; }
+  .tr-send .btn { width: auto; padding: 0 16px; }
+  .tr-offer-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,0.05); margin-bottom: 6px; font-size: 13px; }
+  .tr-offer-row img, .tr-offer-row .tr-gi { width: 34px; height: 34px; border-radius: 9px; object-fit: cover; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.06); }
+  .tr-offer-row .tr-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tr-offer-row .tr-x { background: none; border: none; color: #ff8b8b; font-size: 16px; cursor: pointer; padding: 4px 8px; }
+  .tr-offer-row.missing { opacity: .55; border: 1px dashed #ff8b8b; }
+  .tr-empty { color: var(--muted); font-size: 12px; padding: 6px 2px 10px; }
+  .tr-lock { font-size: 12px; font-weight: 700; margin-top: 8px; }
+  .tr-lock.on { color: #6bcb77; }
+  .tr-lock.off { color: var(--muted); }
+  .tr-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .tr-btns .btn { flex: 1 1 140px; width: auto; padding: 11px; }
+  .btn.danger { background: linear-gradient(135deg, #e25563, #b83245); }
+  .btn.good { background: linear-gradient(135deg, #3fbf6a, #2a9150); }
+  .tr-result { border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; font-size: 14px; font-weight: 700; text-align: center; }
+  .tr-result.ok { background: rgba(107,203,119,0.15); color: #6bcb77; }
+  .tr-result.bad { background: rgba(255,107,107,0.14); color: #ff8b8b; }
+  .tr-hist { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 14px; background: rgba(255,255,255,0.05); margin-bottom: 8px; cursor: pointer; font-size: 13px; }
+  .tr-hist:active { transform: scale(.985); }
+  .tr-hist .tr-h-main { flex: 1; min-width: 0; }
+  .tr-hist .tr-h-sub { color: var(--muted); font-size: 11px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #tradeBanner { position: fixed; left: 12px; right: 12px; top: calc(64px + env(safe-area-inset-top)); z-index: 70; max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+  #tradeBanner .tb { pointer-events: auto; background: rgba(30,33,44,0.88); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); border: 1px solid rgba(162,155,254,0.35); border-radius: 16px; padding: 11px 13px; box-shadow: 0 12px 30px rgba(0,0,0,0.45); animation: tbIn 360ms cubic-bezier(.22,1,.36,1) both; }
+  #tradeBanner .tb-t { font-size: 13px; font-weight: 700; word-break: break-word; }
+  #tradeBanner .tb-s { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  #tradeBanner .tb-b { display: flex; gap: 8px; margin-top: 9px; }
+  #tradeBanner .tb-b .btn { padding: 9px; }
+  @keyframes tbIn { from { opacity: 0; transform: translateY(-10px) scale(.97); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { #tradeBanner .tb { animation: none; } }
+  @media (max-width: 420px) { .tr-chat { height: 170px; } .tr-btns .btn { flex-basis: 100%; } }
   /* ---- Versiya yuklab olish (Profils) ---- */
   .ver-bar { height: 10px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; margin: 14px 0 8px; }
   .ver-bar > div { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
@@ -577,6 +622,7 @@
   .more-sheet.open .more-item:nth-child(2) { animation-delay: 120ms; }
   .more-sheet.open .more-item:nth-child(3) { animation-delay: 170ms; }
   .more-sheet.open .more-item:nth-child(4) { animation-delay: 220ms; }
+  .more-sheet.open .more-item:nth-child(5) { animation-delay: 270ms; }
   @keyframes sheetItemIn { from { opacity: 0; transform: translateY(14px) scale(.94); } to { opacity: 1; transform: none; } }
 
   @media (prefers-reduced-motion: reduce) {
@@ -620,6 +666,7 @@
         <button class="more-item" data-tab="jonatmoq"><span class="more-icon">📤</span><span><b>Jo‘natmoq</b><small>Gift yoki case yuborish</small></span></button>
         <button class="more-item" data-tab="mypet"><span class="more-icon">🐾</span><span><b>MyPet</b><small>Petingizni boshqaring</small></span></button>
         <button class="more-item" data-tab="kreditlar"><span class="more-icon">💳</span><span><b>Kreditlar</b><small>Kredit va kafil so‘rovlari</small></span></button>
+        <button class="more-item" data-tab="trade"><span class="more-icon">🔄</span><span><b>Trade</b><small>Do‘st bilan gift almashish</small></span></button>
         <button class="more-item" data-tab="profils"><span class="more-icon">👤</span><span><b>Profils</b><small>Profil va hisob</small></span></button>
       </div>
     </section>
@@ -652,7 +699,7 @@
         updateCoinBadge();
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('app').style.display = 'flex';
-        const validTabs = ['shops', 'inventor', 'jonatmoq', 'mypet', 'kreditlar', 'profils'];
+        const validTabs = ['shops', 'inventor', 'jonatmoq', 'mypet', 'kreditlar', 'trade', 'profils'];
         const startTab = validTabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'shops';
         renderTab(startTab);
         refreshEvent();
@@ -661,6 +708,7 @@
         noticeSteps = [checkGuarantorRequests, checkGuarantorOverdues, checkGuarantorCharged, checkBorrowerReminders, checkIncomingTransfers];
         nextNotice();
         setInterval(pollGuarantorRequests, 30000);
+        startTradePolling();
       } catch (e) {
         window.location.href = 'login.html';
       }
@@ -686,6 +734,9 @@
 
     async function renderTab(tab) {
       if (eventTicker) { clearInterval(eventTicker); eventTicker = null; }
+      stopTradeRoom();
+      tradeCurrentTab = tab;
+      renderTradeBanner();
       document.querySelectorAll('nav button').forEach(b => {
         b.classList.toggle('active', b.dataset.tab === tab);
       });
@@ -721,6 +772,8 @@
         renderKreditlar(main);
       } else if (tab === 'mypet') {
         renderMyPet(main);
+      } else if (tab === 'trade') {
+        renderTradeHome(main);
       } else if (tab === 'profils') {
         renderProfil(main);
       }
@@ -1436,7 +1489,7 @@
         fetch(`${API_BASE}/api/inventory/gifts`, { credentials: 'include' }),
         fetch(`${API_BASE}/api/inventory/cases`, { credentials: 'include' }),
       ]);
-      const myGifts = await giftsRes.json();
+      const myGifts = (await giftsRes.json()).filter(g => !g.trade_id);   // Trade'da band giftlar yuborilmaydi
       const myCases = await casesRes.json();
 
       const giftSelect = document.getElementById('sendGiftSelect');
@@ -1686,7 +1739,7 @@
       document.getElementById('modalBody').innerHTML = `<div class="modal-title">Yuklanmoqda...</div>`;
       openModal();
       const res = await fetch(`${API_BASE}/api/inventory/gifts`, { credentials: 'include' });
-      const myGifts = await res.json();
+      const myGifts = (await res.json()).filter(g => !g.trade_id);   // Trade'da band giftlar yedirilmaydi
 
       // Bir xil giftlarni guruhlaymiz (masalan 6 ta Ayiqcha)
       const grouped = {};
@@ -2042,6 +2095,502 @@
       }
     }
 
+    // =====================================================================
+    // GIFT TRADE
+    // Hamma qoidalar (vaqt, cooldown, lock, tekshiruv) serverda. Bu yerda faqat ko'rsatish va tugmalar.
+    // Foydalanuvchi matnlari (username, chat, gift nomi) HECH QACHON xom HTML sifatida qo'yilmaydi:
+    // esc() yoki textContent ishlatiladi.
+    // =====================================================================
+    let tradeOffset = 0;               // server vaqti - brauzer vaqti (faqat countdown ko'rsatish uchun)
+    let tradeSummary = null;
+    let tradeCurrentTab = 'shops';
+    let tradePollTimer = null;
+    let tradeTickTimer = null;
+    let tradeBannerKey = '';
+    let tradeBusy = false;
+    let tradeRoom = null;              // { id, lastMsgId, timer, key, readonly }
+
+    const TRADE_STATUS_UZ = {
+      PENDING: '⏳ Kutilmoqda', ACTIVE: '🟢 Faol', REJECTED: '❌ Rad etilgan', CANCELLED: '❌ Bekor qilingan',
+      EXPIRED: '⌛ Muddati tugagan', COMPLETED: '✅ Yakunlangan', FAILED: '⚠️ Bajarilmadi',
+    };
+
+    async function tradeApi(method, path, body) {
+      const opts = { method, credentials: 'include' };
+      if (body !== undefined) { opts.headers = { 'Content-Type': 'application/json' }; opts.body = JSON.stringify(body); }
+      try {
+        const res = await fetch(`${API_BASE}/api/trades${path}`, opts);
+        let data = {};
+        try { data = await res.json(); } catch (e) {}
+        return { ok: res.ok, status: res.status, data };
+      } catch (e) {
+        return { ok: false, status: 0, data: { error: "Tarmoq xatosi. Qayta urinib ko'ring." } };
+      }
+    }
+
+    const tradeNow = () => Date.now() + tradeOffset;
+    function fmtCountdown(ms) {
+      const sec = Math.max(0, Math.ceil(ms / 1000));
+      return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+    }
+
+    function tradeGiftThumb(giftId) {
+      if (!giftId) return `<div class="tr-gi">🎁</div>`;
+      return `<img src="${API_BASE}/api/gift-image/${Number(giftId)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;tr-gi&quot;>🎁</div>'">`;
+    }
+
+    // ---------- Global: request banner + bildirishnomalar ----------
+
+    function startTradePolling() {
+      if (tradePollTimer) return;
+      pollTrades();
+      tradePollTimer = setInterval(pollTrades, 7000);
+      tradeTickTimer = setInterval(tradeTick, 1000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) pollTrades(); });
+    }
+
+    async function pollTrades() {
+      const r = await tradeApi('GET', '/summary');
+      if (!r.ok) return;
+      const s = r.data;
+      tradeOffset = s.server_now - Date.now();
+      const hadActive = tradeSummary && tradeSummary.active ? tradeSummary.active.id : null;
+      tradeSummary = s;
+      renderTradeBanner();
+
+      if (s.notifications && s.notifications.length) {
+        s.notifications.forEach((n, i) => setTimeout(() => showToast(n.text), i * 2400));
+        tradeApi('POST', '/notifications/seen', { ids: s.notifications.map(n => n.id) });
+        if (s.notifications.some(n => ['completed', 'failed', 'cancelled'].includes(n.type))) refreshMe();
+      }
+      if (hadActive && !s.active) refreshMe();
+      if (tradeCurrentTab === 'trade' && !tradeRoom) updateTradeHomeLive();
+    }
+
+    function tradeTick() {
+      const now = tradeNow();
+      document.querySelectorAll('[data-exp]').forEach(el => {
+        const left = new Date(el.dataset.exp).getTime() - now;
+        el.textContent = fmtCountdown(left);
+        if (left <= 0 && !el.dataset.done) { el.dataset.done = '1'; pollTrades(); }
+      });
+      document.querySelectorAll('[data-cd]').forEach(el => {
+        const left = Number(el.dataset.cd) - now;
+        el.textContent = fmtCountdown(left);
+        if (left <= 0 && !el.dataset.done) { el.dataset.done = '1'; pollTrades(); }
+      });
+    }
+
+    function renderTradeBanner() {
+      let box = document.getElementById('tradeBanner');
+      if (!box) { box = document.createElement('div'); box.id = 'tradeBanner'; document.body.appendChild(box); }
+      const s = tradeSummary;
+      if (!s || document.getElementById('app').style.display === 'none') { box.innerHTML = ''; return; }
+
+      const inRoomOfActive = tradeRoom && s.active && tradeRoom.id === s.active.id;
+      const parts = [];
+      (s.incoming || []).forEach(t => {
+        parts.push(`
+          <div class="tb">
+            <div class="tb-t">🔄 @${esc(t.from_username)} siz bilan Trade boshlamoqchi.</div>
+            <div class="tb-s">Muddati: <span data-exp="${esc(t.expires_at)}"></span></div>
+            <div class="tb-b">
+              <button class="btn good" onclick="tradeAccept(${t.id})">Qabul qilish</button>
+              <button class="btn secondary" onclick="tradeReject(${t.id})">Rad etish</button>
+            </div>
+          </div>`);
+      });
+      if (s.outgoing) {
+        parts.push(`
+          <div class="tb">
+            <div class="tb-t">⏳ @${esc(s.outgoing.to_username)} javobini kutyapmiz</div>
+            <div class="tb-s">Request muddati: <span data-exp="${esc(s.outgoing.expires_at)}"></span></div>
+            <div class="tb-b"><button class="btn secondary" onclick="tradeCancelRequest(${s.outgoing.id})">Requestni bekor qilish</button></div>
+          </div>`);
+      }
+      if (s.active && !inRoomOfActive) {
+        parts.push(`
+          <div class="tb">
+            <div class="tb-t">🔄 Trade #${s.active.id} davom etmoqda — @${esc(s.active.with)}</div>
+            <div class="tb-b"><button class="btn" onclick="openTradeRoom(${s.active.id})">Trade'ni ochish</button></div>
+          </div>`);
+      }
+      const html = parts.join('');
+      const key = html;
+      if (key !== tradeBannerKey) { tradeBannerKey = key; box.innerHTML = html; tradeTick(); }
+    }
+
+    async function tradeAccept(id) {
+      if (tradeBusy) return; tradeBusy = true;
+      const r = await tradeApi('POST', `/${id}/accept`);
+      tradeBusy = false;
+      if (!r.ok) { showToast(r.data.error || 'Xatolik'); pollTrades(); return; }
+      showToast('Trade boshlandi!');
+      await pollTrades();
+      openTradeRoom(id);
+    }
+
+    async function tradeReject(id) {
+      if (tradeBusy) return; tradeBusy = true;
+      const r = await tradeApi('POST', `/${id}/reject`);
+      tradeBusy = false;
+      showToast(r.ok ? 'Request rad etildi' : (r.data.error || 'Xatolik'));
+      pollTrades();
+    }
+
+    async function tradeCancelRequest(id) {
+      if (tradeBusy) return; tradeBusy = true;
+      const r = await tradeApi('POST', `/${id}/cancel`);
+      tradeBusy = false;
+      showToast(r.ok ? 'Request bekor qilindi' : (r.data.error || 'Xatolik'));
+      pollTrades();
+    }
+
+    // ---------- Request yuborish ----------
+
+    function confirmTradeRequest(username) {
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">🔄 Trade Request</div>
+        <div class="modal-sub">@${esc(username)} bilan Trade boshlashni xohlaysizmi?</div>
+        <div class="modal-sub" style="font-size:12px">Request 5 daqiqa amal qiladi. Yangi request 20 daqiqada faqat bir marta yuboriladi.</div>
+        <button class="btn" id="trSendReqBtn" data-u="${esc(username)}">Send Request</button>
+        <button class="btn-back" onclick="closeModal()">Bekor qilish</button>
+        <div class="msg" id="trReqMsg"></div>
+      `;
+      openModal();
+      document.getElementById('trSendReqBtn').addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        if (btn.disabled) return;
+        btn.disabled = true;
+        const r = await tradeApi('POST', '/request', { username: btn.dataset.u });
+        if (!r.ok) {
+          const m = document.getElementById('trReqMsg');
+          m.textContent = r.data.error || 'Xatolik'; m.className = 'msg error';
+          btn.disabled = false;
+          return;
+        }
+        closeModal();
+        showToast(`Request @${btn.dataset.u} ga yuborildi`);
+        pollTrades();
+        if (tradeCurrentTab === 'trade' && !tradeRoom) renderTradeHome(document.getElementById('main'));
+      });
+    }
+
+    // ---------- Trade sahifasi (Yana > Trade) ----------
+
+    async function renderTradeHome(main) {
+      main.innerHTML = `
+        <div class="page-title">Trade</div>
+        <div class="page-sub">Do'stingiz bilan gift va coin almashing. Xavfsiz va ikki tomonlama tasdiqlanadi.</div>
+        <div id="trHomeLive"></div>
+        <div class="tr-card">
+          <div class="section-title">🔄 Yangi Trade</div>
+          <input type="text" class="send-input" id="trNewUser" placeholder="Foydalanuvchi username" autocapitalize="none" autocomplete="off" maxlength="64">
+          <button class="btn" style="margin-top:10px" onclick="startTradeFromHome()">Trade boshlash</button>
+        </div>
+        <div class="section-title" style="margin-top:6px">🕘 Trade tarixi</div>
+        <div id="trHistory"><div class="empty-msg">Yuklanmoqda...</div></div>
+      `;
+      await pollTrades();
+      updateTradeHomeLive();
+      loadTradeHistory();
+    }
+
+    function startTradeFromHome() {
+      const u = document.getElementById('trNewUser').value.trim().replace(/^@/, '');
+      if (!u) { showToast('Username kiriting'); return; }
+      confirmTradeRequest(u);
+    }
+
+    function updateTradeHomeLive() {
+      const el = document.getElementById('trHomeLive');
+      if (!el || !tradeSummary) return;
+      const s = tradeSummary;
+      let html = '';
+      if (s.active) {
+        html += `<div class="tr-card"><div class="section-title">🟢 Faol Trade</div>
+          <div class="modal-sub" style="margin-bottom:10px">Trade #${s.active.id} — @${esc(s.active.with)}</div>
+          <button class="btn" onclick="openTradeRoom(${s.active.id})">Ochish</button></div>`;
+      }
+      if (s.cooldown_until && s.cooldown_until > tradeNow()) {
+        html += `<div class="tr-card"><div class="modal-sub" style="margin:0">⏳ Yangi request yuborish uchun: <b data-cd="${s.cooldown_until}"></b></div></div>`;
+      }
+      if (el.dataset.k !== html) { el.dataset.k = html; el.innerHTML = html; tradeTick(); }
+    }
+
+    async function loadTradeHistory() {
+      const box = document.getElementById('trHistory');
+      const r = await tradeApi('GET', '/history');
+      if (!box) return;
+      if (!r.ok) { box.innerHTML = `<div class="empty-msg">${esc(r.data.error || 'Xatolik')}</div>`; return; }
+      if (!r.data.length) { box.innerHTML = '<div class="empty-msg">Hozircha Trade yo\'q</div>'; return; }
+      box.innerHTML = r.data.map(t => {
+        const mine = [...t.my_gifts, ...(t.my_coin ? [`${t.my_coin} coin`] : [])].join(', ') || '—';
+        const theirs = [...t.their_gifts, ...(t.their_coin ? [`${t.their_coin} coin`] : [])].join(', ') || '—';
+        return `<div class="tr-hist" onclick="openTradeRoom(${t.id}, true)">
+          <div class="tr-h-main">
+            <div><b>Trade #${t.id}</b> · @${esc(t.with)}</div>
+            <div class="tr-h-sub">${esc(mine)} ⇄ ${esc(theirs)}</div>
+          </div>
+          <span class="tr-badge ${esc(t.status)}">${TRADE_STATUS_UZ[t.status] || esc(t.status)}</span>
+        </div>`;
+      }).join('');
+    }
+
+    // ---------- Trade xonasi ----------
+
+    function stopTradeRoom() {
+      if (tradeRoom && tradeRoom.timer) clearInterval(tradeRoom.timer);
+      tradeRoom = null;
+    }
+
+    async function openTradeRoom(id, readonly) {
+      closeModal();
+      stopTradeRoom();
+      tradeCurrentTab = 'trade';
+      document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === 'trade'));
+      const main = document.getElementById('main');
+      main.innerHTML = `
+        <button class="btn-back" onclick="renderTab('trade')">&larr; Trade bo'limi</button>
+        <div class="tr-head">
+          <div class="page-title" id="trTitle" style="margin:0">🔄 Trade #${Number(id)}</div>
+          <span class="tr-badge" id="trStatus"></span>
+        </div>
+        <div class="tr-vs" id="trVs"></div>
+        <div id="trResult"></div>
+
+        <div class="tr-card">
+          <div class="section-title">💬 Trade Chat</div>
+          <div class="tr-chat" id="trChat"><div class="tr-msg-empty" id="trChatEmpty">Hali xabar yo'q</div></div>
+          <div class="tr-send" id="trSendRow">
+            <input type="text" class="send-input" id="trMsgInput" maxlength="500" placeholder="Xabar yozing..." autocomplete="off">
+            <button class="btn" id="trMsgBtn">Yuborish</button>
+          </div>
+        </div>
+
+        <div class="tr-card" id="trMine"></div>
+        <div class="tr-card" id="trTheirs"></div>
+        <div id="trActions"></div>
+      `;
+      tradeRoom = { id: Number(id), lastMsgId: 0, timer: null, key: '', readonly: !!readonly, data: null };
+      document.getElementById('trMsgBtn').addEventListener('click', sendTradeMessage);
+      document.getElementById('trMsgInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendTradeMessage(); });
+      renderTradeBanner();
+      const ok = await refreshTradeRoom();
+      if (!ok) return;
+      if (tradeRoom && !tradeRoom.readonly && tradeRoom.data && tradeRoom.data.trade.status === 'ACTIVE') {
+        tradeRoom.timer = setInterval(refreshTradeRoom, 2500);
+      }
+    }
+
+    async function refreshTradeRoom() {
+      const room = tradeRoom;
+      if (!room) return false;
+      const r = await tradeApi('GET', `/${room.id}?after=${room.lastMsgId}`);
+      if (tradeRoom !== room) return false;
+      if (!r.ok) {
+        if (r.status === 403 || r.status === 404) {
+          stopTradeRoom();
+          document.getElementById('main').innerHTML = `<div class="empty-msg">${esc(r.data.error || 'Trade topilmadi')}</div><button class="btn secondary" onclick="renderTab('trade')">Orqaga</button>`;
+        }
+        return false;
+      }
+      const d = r.data;
+      tradeOffset = d.server_now - Date.now();
+      room.data = d;
+      appendTradeMessages(d);
+      renderTradeRoom(d);
+      if (d.trade.status !== 'ACTIVE' && room.timer) { clearInterval(room.timer); room.timer = null; refreshMe(); pollTrades(); }
+      return true;
+    }
+
+    function appendTradeMessages(d) {
+      const chat = document.getElementById('trChat');
+      if (!chat || !d.messages.length) return;
+      const nearBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 60;
+      const empty = document.getElementById('trChatEmpty');
+      if (empty) empty.remove();
+      d.messages.forEach(m => {
+        const row = document.createElement('div');
+        row.className = 'tr-msg' + (m.user_id === d.me.id ? ' me' : '');
+        const b = document.createElement('b');
+        b.textContent = '@' + m.username + ': ';
+        const t = document.createElement('span');
+        t.textContent = m.body;                  // textContent: HTML/JS injection mumkin emas
+        row.appendChild(b); row.appendChild(t);
+        chat.appendChild(row);
+        tradeRoom.lastMsgId = Math.max(tradeRoom.lastMsgId, m.id);
+      });
+      if (nearBottom || d.messages.some(m => m.user_id === d.me.id)) chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function sendTradeMessage() {
+      const input = document.getElementById('trMsgInput');
+      const btn = document.getElementById('trMsgBtn');
+      if (!input || !tradeRoom || btn.disabled) return;
+      const text = input.value.trim();
+      if (!text) return;
+      btn.disabled = true;
+      const r = await tradeApi('POST', `/${tradeRoom.id}/messages`, { text });
+      btn.disabled = false;
+      if (!r.ok) { showToast(r.data.error || 'Xatolik'); return; }
+      input.value = '';
+      refreshTradeRoom();
+    }
+
+    function tradeOfferHtml(side, canEdit) {
+      const gifts = side.gifts.length
+        ? side.gifts.map(g => `
+            <div class="tr-offer-row ${g.missing ? 'missing' : ''}">
+              ${tradeGiftThumb(g.gift_id)}
+              <div class="tr-name">${esc(g.name)}${g.missing ? ' (mavjud emas)' : ''}</div>
+              ${canEdit ? `<button class="tr-x" aria-label="Olib tashlash" onclick="tradeRemoveGift(${g.user_gift_id})">✕</button>` : ''}
+            </div>`).join('')
+        : '';
+      const coin = side.coin > 0
+        ? `<div class="tr-offer-row"><div class="tr-gi">💰</div><div class="tr-name">${side.coin} coin</div></div>` : '';
+      return (gifts || coin) ? gifts + coin : `<div class="tr-empty">Hali hech narsa taklif qilinmagan</div>`;
+    }
+
+    function renderTradeRoom(d) {
+      const t = d.trade;
+      document.getElementById('trStatus').textContent = TRADE_STATUS_UZ[t.status] || t.status;
+      document.getElementById('trStatus').className = 'tr-badge ' + t.status;
+      document.getElementById('trVs').textContent = `@${d.me.username} ↔ @${d.other.username}`;
+
+      const active = t.status === 'ACTIVE';
+      const result = document.getElementById('trResult');
+      const resMap = {
+        COMPLETED: ['ok', `🎉 Trade #${t.id} muvaffaqiyatli yakunlandi.`],
+        CANCELLED: ['bad', "Trade bekor qilindi. Gift va coinlar egalariga qaytarildi."],
+        FAILED: ['bad', "Trade bajarilmadi. Gift va coinlar egalariga qaytarildi."],
+        REJECTED: ['bad', 'Trade rad etilgan.'],
+        EXPIRED: ['bad', 'Trade Request muddati tugagan.'],
+      };
+      result.innerHTML = resMap[t.status] ? `<div class="tr-result ${resMap[t.status][0]}">${resMap[t.status][1]}</div>` : '';
+
+      document.getElementById('trSendRow').style.display = active ? 'flex' : 'none';
+
+      // Offer / tugmalar faqat o'zgarganda qayta chiziladi (kiritish maydonlari fokusini yo'qotmaslik uchun)
+      const key = JSON.stringify([t.status, d.my, d.their, d.can]);
+      if (key === tradeRoom.key) return;
+      tradeRoom.key = key;
+
+      const my = d.my, their = d.their;
+      document.getElementById('trMine').innerHTML = `
+        <div class="section-title">🎁 Sizning offeringiz</div>
+        ${tradeOfferHtml(my, d.can.edit)}
+        <div class="tr-lock ${my.locked ? 'on' : 'off'}">${my.locked ? '🔒 Locked' : '✏️ Tahrirlanmoqda'}${my.confirmed ? ' · ✅ Tasdiqlagansiz' : ''}</div>
+        ${active ? `<div class="tr-btns">
+          ${d.can.edit ? `<button class="btn secondary" onclick="openOfferPicker()">+ Add Offer</button>` : ''}
+          ${d.can.lock ? `<button class="btn" onclick="tradeLock()">🔒 Lock Offer</button>` : ''}
+          ${d.can.unlock ? `<button class="btn secondary" onclick="tradeUnlock()">🔓 Unlock &amp; Edit</button>` : ''}
+        </div>` : ''}
+      `;
+      document.getElementById('trTheirs').innerHTML = `
+        <div class="section-title">🎁 @${esc(d.other.username)} offeri</div>
+        ${tradeOfferHtml(their, false)}
+        <div class="tr-lock ${their.locked ? 'on' : 'off'}">${their.locked ? '🔒 Locked' : '✏️ Tahrirlanmoqda'}${their.confirmed ? ' · ✅ Tasdiqlagan' : ''}</div>
+      `;
+
+      let actions = '';
+      if (active) {
+        const waiting = my.confirmed && !their.confirmed;
+        actions = `<div class="tr-btns">
+          <button class="btn good" id="trConfirmBtn" ${d.can.confirm ? '' : 'disabled'} onclick="openTradeConfirm()">${waiting ? '⏳ Sherik tasdiqlashini kutyapmiz' : 'Confirm Trade'}</button>
+          <button class="btn danger" onclick="tradeCancelActive()">Cancel Trade</button>
+        </div>
+        <div class="send-hint" style="margin:8px 2px 0">${!(my.locked && their.locked) ? 'Confirm uchun ikkala tomon ham offerni Lock qilishi kerak.' : ''}</div>`;
+      }
+      document.getElementById('trActions').innerHTML = actions;
+    }
+
+    // ---------- Offer amallari ----------
+
+    async function tradeAction(method, path, body, okMsg) {
+      if (!tradeRoom || tradeBusy) return null;
+      tradeBusy = true;
+      const r = await tradeApi(method, `/${tradeRoom.id}${path}`, body);
+      tradeBusy = false;
+      if (!r.ok) showToast(r.data.error || 'Xatolik');
+      else if (okMsg) showToast(okMsg);
+      await refreshTradeRoom();
+      return r;
+    }
+
+    const tradeLock = () => tradeAction('POST', '/lock', {}, null);
+    const tradeUnlock = () => tradeAction('POST', '/unlock', {}, null);
+    const tradeRemoveGift = (ugId) => tradeAction('DELETE', `/offer/gift/${Number(ugId)}`, undefined, null);
+
+    async function openOfferPicker() {
+      if (!tradeRoom || !tradeRoom.data) return;
+      const d = tradeRoom.data;
+      document.getElementById('modalBody').innerHTML = `<div class="modal-title">Yuklanmoqda...</div>`;
+      openModal();
+      await refreshMe();
+      const r = await tradeApi('GET', '/available-gifts');
+      if (!r.ok) { document.getElementById('modalBody').innerHTML = `<div class="modal-title">Xatolik</div><div class="modal-sub">${esc(r.data.error || '')}</div>`; return; }
+      const left = d.limits.max_gifts - d.my.gifts.length;
+      const rows = r.data.length
+        ? r.data.map(g => `
+            <div class="case-item-row" style="cursor:pointer" onclick="tradeAddGift(${g.user_gift_id})">
+              ${tradeGiftThumb(g.gift_id)}
+              <div class="ci-name">${esc(g.name)}</div>
+              <div class="ci-chance">+ Qo'shish</div>
+            </div>`).join('')
+        : `<div class="modal-sub">Offerga qo'sha oladigan bo'sh gift yo'q.</div>`;
+      const maxCoin = Math.min(d.limits.max_coin, Math.floor(currentUser.coin_balance) + d.my.coin);
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">+ Add Offer</div>
+        <div class="modal-sub">Gift: yana ${left} ta qo'sha olasiz (maksimum ${d.limits.max_gifts}).</div>
+        <div style="max-height:36vh; overflow-y:auto; margin-bottom:14px">${rows}</div>
+        <label class="send-label">💰 Coin (0 - ${maxCoin})</label>
+        <input type="number" class="send-input" id="trCoinInput" min="0" max="${maxCoin}" step="1" inputmode="numeric" value="${d.my.coin}">
+        <div class="send-hint">Offerdagi coin Trade tugaguncha balansingizdan vaqtincha ushlab turiladi. Bekor bo'lsa qaytadi.</div>
+        <button class="btn" style="margin-top:12px" id="trCoinSave">Coinni saqlash</button>
+        <button class="btn-back" onclick="closeModal()">Yopish</button>
+      `;
+      document.getElementById('trCoinSave').addEventListener('click', async () => {
+        const raw = document.getElementById('trCoinInput').value.trim();
+        if (!/^\d{1,7}$/.test(raw)) { showToast("Coin butun son bo'lishi kerak"); return; }
+        const rr = await tradeAction('PUT', '/offer/coin', { amount: Number(raw) }, 'Coin saqlandi');
+        if (rr && rr.ok) { await refreshMe(); closeModal(); }
+      });
+    }
+
+    async function tradeAddGift(ugId) {
+      const rr = await tradeAction('POST', '/offer/gift', { user_gift_id: ugId }, 'Gift qo\'shildi');
+      if (rr && rr.ok) openOfferPicker(); else if (rr) closeModal();
+    }
+
+    function openTradeConfirm() {
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">⚠️ Trade'ni yakunlashni tasdiqlaysizmi?</div>
+        <div class="modal-sub">Trade yakunlangandan keyin gift va coinlar almashadi va amalni avtomatik ortga qaytarib bo'lmaydi.</div>
+        <button class="btn good" id="trDoConfirm">Confirm Trade</button>
+        <button class="btn secondary" style="margin-top:8px" onclick="closeModal()">Cancel</button>
+      `;
+      openModal();
+      document.getElementById('trDoConfirm').addEventListener('click', async (e) => {
+        const b = e.currentTarget;
+        if (b.disabled) return;
+        b.disabled = true;                      // double-click himoyasi (server ham idempotent)
+        const rr = await tradeAction('POST', '/confirm', {}, null);
+        closeModal();
+        if (rr && rr.ok) {
+          if (rr.data.status === 'COMPLETED') { showToast('🎉 Trade muvaffaqiyatli yakunlandi!'); refreshMe(); }
+          else showToast('Tasdiqladingiz. Sherik tasdiqlashini kutamiz.');
+        }
+      });
+    }
+
+    async function tradeCancelActive() {
+      if (!confirm("Trade'ni bekor qilasizmi? Gift va coinlar egalariga qaytariladi.")) return;
+      const rr = await tradeAction('POST', '/cancel', {}, 'Trade bekor qilindi');
+      if (rr && rr.ok) { refreshMe(); pollTrades(); }
+    }
+
+
     async function runUserSearch(q) {
       const el = document.getElementById('userSearchResults');
       el.innerHTML = '<div class="empty-msg">Qidirilmoqda...</div>';
@@ -2099,6 +2648,7 @@
 
       document.getElementById('modalBody').innerHTML = `
         <div class="modal-title">@${data.username}${statusImg}</div>
+        ${data.username !== currentUser.username ? `<button class="btn" style="margin-top:10px" data-u="${esc(data.username)}" onclick="confirmTradeRequest(this.dataset.u)">🔄 Trade boshlash</button>` : ''}
         <div class="modal-sub" style="margin-top:14px">🎁 Giftlari</div>
         ${giftsHtml}
         <div class="modal-sub" style="margin-top:14px">📦 Case'lari</div>
@@ -2225,7 +2775,9 @@
           ${giftImg({ image_url: it.image_url, name: it.name })}
           <div class="gift-name">${it.name}</div>
           <div class="gift-price">🪙 ${Math.round(it.current_price * 0.8 * 100) / 100} (sotish narxi)</div>
-          <button class="btn secondary" onclick="sellGift(${it.inventory_id})">Sotish</button>
+          ${it.trade_id
+            ? `<button class="btn secondary" disabled>🔒 Trade'da band</button>`
+            : `<button class="btn secondary" onclick="sellGift(${it.inventory_id})">Sotish</button>`}
         </div>
       `).join('');
     }
@@ -2251,7 +2803,7 @@
     const moreSheet = document.getElementById('moreSheet');
     const moreBackdrop = document.getElementById('moreBackdrop');
     const closeMoreButton = document.getElementById('closeMoreButton');
-    const moreTabs = new Set(['jonatmoq', 'mypet', 'kreditlar', 'profils']);
+    const moreTabs = new Set(['jonatmoq', 'mypet', 'kreditlar', 'trade', 'profils']);
 
     function updateLiquidIndicator(tab) {
       const indicator = bottomNav?.querySelector('.nav-liquid-indicator');
@@ -2278,7 +2830,7 @@
     }
 
     let currentNavTab = 'shops';
-    const TAB_ORDER = { shops: 0, inventor: 1, jonatmoq: 2, mypet: 2, kreditlar: 2, profils: 2 };
+    const TAB_ORDER = { shops: 0, inventor: 1, jonatmoq: 2, mypet: 2, kreditlar: 2, trade: 2, profils: 2 };
 
     function setMoreOpen(open) {
       // Oyna ochiq turganda pill "Yana" tugmasiga o'tib turadi, yopilganda joriy bo'limga qaytadi

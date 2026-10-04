@@ -4,6 +4,7 @@ const { upload, fileToDataUrl } = require('../imageUpload');
 
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
+const trades = require('../trades');
 
 const router = express.Router();
 
@@ -113,6 +114,9 @@ router.delete('/admin/users/:id', authMiddleware, adminMiddleware, async (req, r
   }
   const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(id);
   if (!user) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
+
+  // Avval Trade'lar: ACTIVE bo'lsa bekor qilinib sherikka gift/coin qaytariladi
+  await trades.purgeUserTrades(parseInt(id, 10));
 
   const tx = db.transaction(async () => {
     await db.prepare('DELETE FROM user_gifts WHERE user_id = ?').run(id);

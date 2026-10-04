@@ -16,6 +16,8 @@ const petsRouter = require('./routes/pets');
 const pushRouter = require('./routes/push');
 const eventsRouter = require('./routes/events');
 const versionsRouter = require('./routes/versions');
+const tradesRouter = require('./routes/trades');
+const trades = require('./trades');
 const { pageMiddleware } = require('./versions');
 const push = require('./push');
 const guarantor = require('./guarantor');
@@ -42,6 +44,7 @@ app.use('/api', petsRouter);
 app.use('/api', pushRouter);
 app.use('/api', eventsRouter);
 app.use('/api', versionsRouter);
+app.use('/api', tradesRouter);
 
 // --- AUTH ---
 
@@ -117,6 +120,7 @@ db.initDb()
     });
     push.startScheduler();
     guarantor.startScheduler();
+    trades.startScheduler();
   })
   .catch((e) => {
     console.error('Bazani ishga tushirishda xato:', e);

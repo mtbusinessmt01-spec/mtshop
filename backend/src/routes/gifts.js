@@ -136,7 +136,7 @@ router.post('/gifts/:id/buy', authMiddleware, async (req, res) => {
 // Inventar: mening giftlarim
 router.get('/inventory/gifts', authMiddleware, async (req, res) => {
   const items = await db.prepare(`
-    SELECT ug.id as inventory_id, ug.bought_price, ug.acquired_at,
+    SELECT ug.id as inventory_id, ug.bought_price, ug.acquired_at, ug.trade_id,
            g.id as gift_id, g.name, g.image_url, g.price as current_price
     FROM user_gifts ug
     JOIN gifts g ON g.id = ug.gift_id
@@ -155,15 +155,22 @@ router.post('/inventory/gifts/:inventoryId/sell', authMiddleware, async (req, re
   `).get(req.params.inventoryId, req.user.id);
 
   if (!item) return res.status(404).json({ error: 'Topilmadi' });
+  if (item.trade_id) return res.status(409).json({ error: "Bu gift Trade'da band — sotib bo'lmaydi" });
 
   const sellPrice = Math.round(item.current_price * 0.8 * 100) / 100;
 
-  const tx = db.transaction(async () => {
-    await db.prepare('DELETE FROM user_gifts WHERE id = ?').run(item.id);
-    await db.prepare('UPDATE users SET coin_balance = coin_balance + ? WHERE id = ?')
-      .run(sellPrice, req.user.id);
-  });
-  await tx();
+  // Haqiqiy tranzaksiya: gift faqat egasida va Trade'da band bo'lmasa o'chiriladi; faqat shunda coin beriladi
+  // (parallel ikki marta sotish yoki sotish + Trade poygasi mumkin emas)
+  try {
+    await db.withTx(async (tx) => {
+      const del = await tx.prepare('DELETE FROM user_gifts WHERE id = ? AND user_id = ? AND trade_id IS NULL').run(item.id, req.user.id);
+      if (!del.changes) throw new Error('GIFT_UNAVAILABLE');
+      await tx.prepare('UPDATE users SET coin_balance = coin_balance + ? WHERE id = ?').run(sellPrice, req.user.id);
+    });
+  } catch (e) {
+    if (e.message === 'GIFT_UNAVAILABLE') return res.status(409).json({ error: "Bu giftni sotib bo'lmaydi (allaqachon sotilgan yoki Trade'da band)" });
+    throw e;
+  }
 
   const updatedUser = await db.prepare('SELECT coin_balance FROM users WHERE id = ?').get(req.user.id);
   res.json({ ok: true, sold_for: sellPrice, coin_balance: updatedUser.coin_balance });

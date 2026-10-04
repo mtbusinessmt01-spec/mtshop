@@ -46,6 +46,59 @@ function transaction(fn) {
   };
 }
 
+// ---------- HAQIQIY tranzaksiya ----------
+// Eslatma: yuqoridagi transaction() atomik EMAS (faqat fn ni chaqiradi). Pul/gift o'tkazadigan
+// joylar uchun withTx() ishlating: BEGIN IMMEDIATE ... COMMIT, xatoda ROLLBACK.
+// Yozuvchi tranzaksiyalar baza darajasida ketma-ket bajariladi (race condition yo'q).
+function txPrepare(tx, sql) {
+  return {
+    async get(...args) {
+      const res = await tx.execute({ sql, args });
+      if (!res.rows.length) return undefined;
+      return toObj(res.columns, res.rows[0]);
+    },
+    async all(...args) {
+      const res = await tx.execute({ sql, args });
+      return res.rows.map(r => toObj(res.columns, r));
+    },
+    async run(...args) {
+      const res = await tx.execute({ sql, args });
+      return { lastInsertRowid: Number(res.lastInsertRowid || 0), changes: res.rowsAffected };
+    },
+  };
+}
+
+function isBusyError(e) {
+  return /SQLITE_BUSY|database is locked|BUSY/i.test((e && e.message) || '');
+}
+
+// fn(tx) ichida: tx.prepare(sql).get/all/run — hammasi bitta tranzaksiyada.
+// fn xato tashlasa — butun tranzaksiya ROLLBACK qilinadi va xato qayta tashlanadi.
+async function withTx(fn) {
+  for (let attempt = 0; attempt < 40; attempt++) {
+    let tx;
+    try {
+      tx = await client.transaction('write');
+    } catch (e) {
+      if (isBusyError(e)) { await new Promise(r => setTimeout(r, 15 * (attempt + 1))); continue; }
+      throw e;
+    }
+    try {
+      const api = { prepare: (sql) => txPrepare(tx, sql) };
+      const result = await fn(api);
+      await tx.commit();
+      return result;
+    } catch (e) {
+      try { await tx.rollback(); } catch (_) {}
+      if (isBusyError(e)) { await new Promise(r => setTimeout(r, 15 * (attempt + 1))); continue; }
+      throw e;
+    } finally {
+      try { tx.close(); } catch (_) {}
+    }
+  }
+  throw new Error('Baza band, keyinroq urinib ko\'ring');
+}
+
 async function ensureColumn(table, column, definition) {
   const res = await client.execute(`PRAGMA table_info(${table})`);
   const cols = res.rows.map(r => r[1]); // 'name' ustuni PRAGMA table_info'da index 1
@@ -104,10 +157,15 @@ async function initDb() {
   await ensureColumn('cases', 'event_id', 'INTEGER');
   // Kredit uchun kafil
   await ensureColumn('user_credits', 'guarantor_id', 'INTEGER');
+  // Trade tizimi: gift qaysi trade'da band ekani, oxirgi request vaqti (20 daqiqalik cooldown), tarix bog'lanishi
+  await ensureColumn('user_gifts', 'trade_id', 'INTEGER');
+  await ensureColumn('users', 'last_trade_request_at', 'TEXT');
+  await ensureColumn('transfers', 'trade_id', 'INTEGER');
+  await client.execute('CREATE INDEX IF NOT EXISTS idx_user_gifts_trade ON user_gifts(trade_id)');
   // Foydalanuvchi qaysi sayt versiyasidan foydalanayotgani (asosiy versiya — 1.2)
   await ensureColumn('users', 'app_version', "TEXT NOT NULL DEFAULT '1.2'");
 
   console.log('Turso bazasi tayyor.');
 }
 
-module.exports = { prepare, transaction, initDb, client };
+module.exports = { prepare, transaction, withTx, initDb, client };

@@ -221,7 +221,7 @@ router.post('/pets/:id/feed', authMiddleware, async (req, res) => {
   if (pet.status === 'dead') return res.status(400).json({ error: 'Bu pet o\'lgan' });
 
   const giftRows = await db.prepare(
-    'SELECT * FROM user_gifts WHERE user_id = ? AND gift_id = ? ORDER BY id LIMIT ?'
+    'SELECT * FROM user_gifts WHERE user_id = ? AND gift_id = ? AND trade_id IS NULL ORDER BY id LIMIT ?'
   ).all(req.user.id, gift_id, qty);
   if (giftRows.length < qty) {
     return res.status(400).json({ error: `Sizda faqat ${giftRows.length} dona shu gift bor` });
@@ -245,14 +245,21 @@ router.post('/pets/:id/feed', authMiddleware, async (req, res) => {
   const newStatus = satisfiesHunger ? 'healthy' : pet.status;
   const newLastFed = satisfiesHunger ? nowIso : pet.last_fed_at;
 
-  const tx = db.transaction(async () => {
-    const del = db.prepare('DELETE FROM user_gifts WHERE id = ?');
-    for (const g of giftRows) await del.run(g.id);
-    await db.prepare(`
-      UPDATE user_pets SET xp = ?, level = ?, status = ?, last_fed_at = ? WHERE id = ?
-    `).run(newXp, newLevel, newStatus, newLastFed, pet.id);
-  });
-  await tx();
+  // Haqiqiy tranzaksiya: giftlar faqat egasida va Trade'da band bo'lmasa sarflanadi
+  try {
+    await db.withTx(async (tx) => {
+      for (const g of giftRows) {
+        const d = await tx.prepare('DELETE FROM user_gifts WHERE id = ? AND user_id = ? AND trade_id IS NULL').run(g.id, req.user.id);
+        if (!d.changes) throw new Error('GIFT_UNAVAILABLE');
+      }
+      await tx.prepare(`
+        UPDATE user_pets SET xp = ?, level = ?, status = ?, last_fed_at = ? WHERE id = ?
+      `).run(newXp, newLevel, newStatus, newLastFed, pet.id);
+    });
+  } catch (e) {
+    if (e.message === 'GIFT_UNAVAILABLE') return res.status(409).json({ error: "Giftlar band yoki allaqachon ishlatilgan. Qayta urinib ko'ring." });
+    throw e;
+  }
 
   res.json({
     ok: true,
