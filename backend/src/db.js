@@ -162,6 +162,8 @@ async function initDb() {
   await ensureColumn('users', 'last_trade_request_at', 'TEXT');
   await ensureColumn('transfers', 'trade_id', 'INTEGER');
   // Foydalanuvchi o'z Trade tarixini ko'rinishdan o'chirishi (sherik va admin audit tarixi saqlanadi)
+  // Emoji status: username yonidagi gift rasmi (narxi 200 coindan yuqori gift)
+  await ensureColumn('users', 'emoji_gift_id', 'INTEGER');
   await ensureColumn('trades', 'a_hidden', 'INTEGER NOT NULL DEFAULT 0');
   await ensureColumn('trades', 'b_hidden', 'INTEGER NOT NULL DEFAULT 0');
   await client.execute('CREATE INDEX IF NOT EXISTS idx_user_gifts_trade ON user_gifts(trade_id)');

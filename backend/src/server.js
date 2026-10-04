@@ -17,6 +17,8 @@ const pushRouter = require('./routes/push');
 const eventsRouter = require('./routes/events');
 const versionsRouter = require('./routes/versions');
 const tradesRouter = require('./routes/trades');
+const profileRouter = require('./routes/profile');
+const profileSvc = require('./profile');
 const trades = require('./trades');
 const { pageMiddleware } = require('./versions');
 const push = require('./push');
@@ -45,6 +47,7 @@ app.use('/api', pushRouter);
 app.use('/api', eventsRouter);
 app.use('/api', versionsRouter);
 app.use('/api', tradesRouter);
+app.use('/api', profileRouter);
 
 // --- AUTH ---
 
@@ -94,7 +97,8 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
       'SELECT id, username, coin_balance, is_admin, status_image_url, created_at FROM users WHERE id = ?'
     ).get(req.user.id);
     if (!user) return res.status(404).json({ error: 'Topilmadi' });
-    res.json(user);
+    const emoji = await profileSvc.emojiFor(user.id);   // egalik va narx qayta tekshiriladi
+    res.json({ ...user, emoji_gift_id: emoji ? emoji.gift_id : null });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server xatosi' });

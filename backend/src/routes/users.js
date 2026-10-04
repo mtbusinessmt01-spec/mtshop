@@ -5,6 +5,7 @@ const { upload, fileToDataUrl } = require('../imageUpload');
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
 const trades = require('../trades');
+const profileSvc = require('../profile');
 
 const router = express.Router();
 
@@ -119,6 +120,7 @@ router.delete('/admin/users/:id', authMiddleware, adminMiddleware, async (req, r
   await trades.purgeUserTrades(parseInt(id, 10));
 
   const tx = db.transaction(async () => {
+    await db.prepare('DELETE FROM profile_pins WHERE user_id = ?').run(id);
     await db.prepare('DELETE FROM user_gifts WHERE user_id = ?').run(id);
     await db.prepare('DELETE FROM user_cases WHERE user_id = ?').run(id);
     await db.prepare('DELETE FROM user_pets WHERE user_id = ?').run(id);
@@ -149,7 +151,8 @@ router.get('/users/search', authMiddleware, async (req, res) => {
   const rows = await db.prepare(
     'SELECT id, username, status_image_url FROM users WHERE username LIKE ? ORDER BY username ASC LIMIT 20'
   ).all(`%${q}%`);
-  res.json(rows);
+  const emojis = await profileSvc.emojiMap(rows.map(r => r.id));
+  res.json(rows.map(r => ({ ...r, emoji_gift_id: emojis.has(r.id) ? emojis.get(r.id).gift_id : null })));
 });
 
 // Ochiq profil: username, status, giftlari, case'lari (pet mavjudligi, lekin tafsilotsiz)
@@ -177,7 +180,10 @@ router.get('/users/:username/profile', authMiddleware, async (req, res) => {
   const petCountRow = await db.prepare('SELECT COUNT(*) as c FROM user_pets WHERE user_id = ?').get(user.id);
   const pets = Array(petCountRow.c).fill({});
 
-  res.json({ ...user, gifts, cases, pets });
+  const emoji = await profileSvc.emojiFor(user.id);
+  const pins = (await profileSvc.pinsFor(user.id)).map(p => ({ gift_id: p.gift_id, name: p.name }));
+
+  res.json({ ...user, gifts, cases, pets, emoji, pins });
 });
 
 module.exports = router;

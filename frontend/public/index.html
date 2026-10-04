@@ -238,6 +238,19 @@
   @keyframes tbIn { from { opacity: 0; transform: translateY(-10px) scale(.97); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) { #tradeBanner .tb { animation: none; } }
   @media (max-width: 420px) { .tr-chat { height: 170px; } .tr-btns .btn { flex-basis: 100%; } }
+
+  /* ---- Emoji status va qadalgan giftlar ---- */
+  .emo-st { display: inline-flex; width: 20px; height: 20px; min-width: 20px; border-radius: 6px; overflow: hidden; vertical-align: middle; margin-left: 6px; background: rgba(255,255,255,0.08); }
+  .emo-st img { width: 100%; height: 100%; max-width: 100%; object-fit: cover; display: block; margin: 0; }
+  .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+  .pin-tile { background: rgba(255,255,255,0.06); border-radius: 12px; padding: 10px 4px 8px; text-align: center; font-size: 11px; line-height: 1.25; min-width: 0; }
+  .pin-tile .tr-thumb { width: 44px; height: 44px; min-width: 44px; margin: 0 auto 6px; }
+  .pin-tile .pin-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
+  .pe-menu { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .pe-menu .btn { text-align: left; padding: 14px 16px; }
+  .pe-cur { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.06); margin-top: 12px; font-size: 13px; }
+  .pe-cur .tr-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tr-pick-row .tr-price { color: var(--coin); font-size: 11px; flex-shrink: 0; }
   /* ---- Versiya yuklab olish (Profils) ---- */
   .ver-bar { height: 10px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; margin: 14px 0 8px; }
   .ver-bar > div { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
@@ -1990,11 +2003,12 @@
         : '';
       main.innerHTML = `
         <div class="page-title">Profils</div>
-        <div class="page-sub">@${currentUser.username}${statusImg}</div>
+        <div class="page-sub">@${currentUser.username}${statusImg}${emojiBadge(currentUser.emoji_gift_id)}</div>
         <div class="gift-card" style="text-align:left; padding:20px;">
           <div style="margin-bottom:8px;"><b>Username:</b> ${currentUser.username}</div>
           <div style="margin-bottom:8px;"><b>Coin balans:</b> ${currentUser.coin_balance} 🪙</div>
         </div>
+        <button class="btn" style="margin-top:14px;" onclick="openProfileEdit()">✏️ Profile edit</button>
         ${currentUser.is_admin ? `<a href="admin.html" class="admin-link">⚙️ Admin panel</a>` : ''}
         <button class="btn secondary" style="margin-top:14px;" onclick="logout()">Hisobdan chiqish</button>
 
@@ -2150,6 +2164,155 @@
       return `<span class="tr-thumb"><img src="${API_BASE}/api/gift-image/${Number(giftId)}" alt="" loading="lazy" onerror="this.parentNode.textContent='🎁'"></span>`;
     }
 
+
+    // =====================================================================
+    // EMOJI STATUS va QADALGAN GIFTLAR (Profils > Profile edit)
+    // =====================================================================
+    function emojiBadge(giftId) {
+      const id = Number(giftId);
+      if (!id) return '';
+      return `<span class="emo-st"><img src="${API_BASE}/api/gift-image/${id}" alt="" loading="lazy" onerror="this.parentNode.remove()"></span>`;
+    }
+
+    async function profileApi(method, path, body) {
+      const opts = { method, credentials: 'include' };
+      if (body !== undefined) { opts.headers = { 'Content-Type': 'application/json' }; opts.body = JSON.stringify(body); }
+      try {
+        const res = await fetch(`${API_BASE}/api/profile${path}`, opts);
+        let data = {};
+        try { data = await res.json(); } catch (e) {}
+        return { ok: res.ok, status: res.status, data };
+      } catch (e) {
+        return { ok: false, status: 0, data: { error: "Tarmoq xatosi. Qayta urinib ko'ring." } };
+      }
+    }
+
+    // Profile edit: menyu
+    function openProfileEdit() {
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">✏️ Profile edit</div>
+        <div class="modal-sub">Profilingizni giftlar bilan bezang.</div>
+        <div class="pe-menu">
+          <button class="btn" id="peEmoji">😀 Add emoji status</button>
+          <button class="btn" id="pePin">Gift 📌</button>
+        </div>
+        <button class="btn-back" onclick="closeModal()">Yopish</button>
+      `;
+      openModal();
+      document.getElementById('peEmoji').addEventListener('click', openEmojiStatus);
+      document.getElementById('pePin').addEventListener('click', openPinGifts);
+    }
+
+    function profileEditError(r) {
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">Xatolik</div><div class="modal-sub">${esc(r.data.error || '')}</div>
+        <button class="btn-back" onclick="openProfileEdit()">&larr; Orqaga</button>`;
+    }
+
+    // Emoji status
+    async function openEmojiStatus() {
+      document.getElementById('modalBody').innerHTML = `<div class="modal-title">Yuklanmoqda...</div>`;
+      const r = await profileApi('GET', '/edit');
+      if (!r.ok) return profileEditError(r);
+      const d = r.data;
+      const cur = d.emoji
+        ? `<div class="pe-cur">${tradeGiftThumb(d.emoji.gift_id)}<div class="tr-name">Joriy: ${esc(d.emoji.name)}</div>
+             <button class="tr-del" aria-label="Olib tashlash" id="peEmojiClear">✕</button></div>` : '';
+      const rows = d.emoji_options.length
+        ? d.emoji_options.map(g => `
+            <div class="tr-pick-row" data-gid="${Number(g.gift_id)}">
+              ${tradeGiftThumb(g.gift_id)}
+              <div class="tr-name">${esc(g.name)}</div>
+              <div class="tr-price">🪙 ${esc(g.price)}</div>
+              <div class="tr-add">Tanlash</div>
+            </div>`).join('')
+        : `<div class="modal-sub">Sizda narxi ${d.limits.emoji_min_price} coin va undan yuqori gift yo'q.</div>`;
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">😀 Emoji status</div>
+        <div class="modal-sub" style="margin-bottom:0">Username yonida ko'rinadigan gift rasmi. Narxi ${d.limits.emoji_min_price} coin va undan yuqori giftlar tanlanadi.</div>
+        ${cur}
+        <div class="tr-pick-list">${rows}</div>
+        <button class="btn-back" onclick="openProfileEdit()">&larr; Orqaga</button>
+      `;
+      document.querySelectorAll('#modalBody .tr-pick-row[data-gid]').forEach(el => {
+        el.addEventListener('click', async () => {
+          const rr = await profileApi('PUT', '/emoji-status', { gift_id: Number(el.dataset.gid) });
+          if (!rr.ok) { showToast(rr.data.error || 'Xatolik'); return; }
+          showToast('Emoji status qo\'yildi');
+          await refreshMe();
+          if (tradeCurrentTab === 'profils') renderProfil(document.getElementById('main'));
+          openEmojiStatus();
+        });
+      });
+      const clr = document.getElementById('peEmojiClear');
+      if (clr) clr.addEventListener('click', async () => {
+        const rr = await profileApi('DELETE', '/emoji-status');
+        if (!rr.ok) { showToast(rr.data.error || 'Xatolik'); return; }
+        showToast('Emoji status olib tashlandi');
+        await refreshMe();
+        if (tradeCurrentTab === 'profils') renderProfil(document.getElementById('main'));
+        openEmojiStatus();
+      });
+    }
+
+    // Qadalgan giftlar
+    async function openPinGifts() {
+      document.getElementById('modalBody').innerHTML = `<div class="modal-title">Yuklanmoqda...</div>`;
+      const r = await profileApi('GET', '/edit');
+      if (!r.ok) return profileEditError(r);
+      const d = r.data;
+      const full = d.pins.length >= d.limits.pin_max;
+      const pinned = d.pins.length
+        ? d.pins.map(p => `
+            <div class="tr-pick-row" style="cursor:default">
+              ${tradeGiftThumb(p.gift_id)}
+              <div class="tr-name">${esc(p.name)}</div>
+              <button class="tr-del" aria-label="Olib tashlash" data-ug="${Number(p.user_gift_id)}">✕</button>
+            </div>`).join('')
+        : `<div class="modal-sub">Hali gift qadalmagan.</div>`;
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">Gift 📌</div>
+        <div class="modal-sub" style="margin-bottom:0">Profilingizda hamma ko'radigan giftlar (${d.pins.length}/${d.limits.pin_max}). Narxi ${d.limits.pin_min_price} coin va undan yuqori giftlar qadaladi.</div>
+        <div class="tr-pick-list">${pinned}</div>
+        <button class="btn" id="pePinAdd" ${full ? 'disabled' : ''}>📌 Gift qadash</button>
+        <button class="btn-back" onclick="openProfileEdit()">&larr; Orqaga</button>
+      `;
+      document.getElementById('pePinAdd').addEventListener('click', () => openPinPicker(d));
+      document.querySelectorAll('#modalBody .tr-del[data-ug]').forEach(b => {
+        b.addEventListener('click', async () => {
+          const rr = await profileApi('DELETE', `/pins/${Number(b.dataset.ug)}`);
+          if (!rr.ok) { showToast(rr.data.error || 'Xatolik'); return; }
+          showToast('Qadash olib tashlandi');
+          openPinGifts();
+        });
+      });
+    }
+
+    function openPinPicker(d) {
+      const rows = d.pin_options.length
+        ? d.pin_options.map(g => `
+            <div class="tr-pick-row" data-ug="${Number(g.user_gift_id)}">
+              ${tradeGiftThumb(g.gift_id)}
+              <div class="tr-name">${esc(g.name)}</div>
+              <div class="tr-price">🪙 ${esc(g.price)}</div>
+              <div class="tr-add">📌 Qadash</div>
+            </div>`).join('')
+        : `<div class="modal-sub">Qadash uchun narxi ${d.limits.pin_min_price} coin va undan yuqori bo'sh gift yo'q.</div>`;
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">📌 Gift tanlang</div>
+        <div class="tr-pick-list">${rows}</div>
+        <button class="btn-back" onclick="openPinGifts()">&larr; Orqaga</button>
+      `;
+      document.querySelectorAll('#modalBody .tr-pick-row[data-ug]').forEach(el => {
+        el.addEventListener('click', async () => {
+          const rr = await profileApi('POST', '/pins', { user_gift_id: Number(el.dataset.ug) });
+          if (!rr.ok) { showToast(rr.data.error || 'Xatolik'); return; }
+          showToast('Gift profilga qadaldi 📌');
+          openPinGifts();
+        });
+      });
+    }
+
     // ---------- Global: request banner + bildirishnomalar ----------
 
     function startTradePolling() {
@@ -2203,7 +2366,7 @@
       (s.incoming || []).forEach(t => {
         parts.push(`
           <div class="tb">
-            <div class="tb-t">🔄 @${esc(t.from_username)} siz bilan Trade boshlamoqchi.</div>
+            <div class="tb-t">🔄 @${esc(t.from_username)}${emojiBadge(t.emoji_gift_id)} siz bilan Trade boshlamoqchi.</div>
             <div class="tb-s">Muddati: <span data-exp="${esc(t.expires_at)}"></span></div>
             <div class="tb-b">
               <button class="btn good" onclick="tradeAccept(${t.id})">Qabul qilish</button>
@@ -2214,7 +2377,7 @@
       if (s.outgoing) {
         parts.push(`
           <div class="tb">
-            <div class="tb-t">⏳ @${esc(s.outgoing.to_username)} javobini kutyapmiz</div>
+            <div class="tb-t">⏳ @${esc(s.outgoing.to_username)}${emojiBadge(s.outgoing.emoji_gift_id)} javobini kutyapmiz</div>
             <div class="tb-s">Request muddati: <span data-exp="${esc(s.outgoing.expires_at)}"></span></div>
             <div class="tb-b"><button class="btn secondary" onclick="tradeCancelRequest(${s.outgoing.id})">Requestni bekor qilish</button></div>
           </div>`);
@@ -2222,7 +2385,7 @@
       if (s.active && !inRoomOfActive) {
         parts.push(`
           <div class="tb">
-            <div class="tb-t">🔄 Trade #${s.active.id} davom etmoqda — @${esc(s.active.with)}</div>
+            <div class="tb-t">🔄 Trade #${s.active.id} davom etmoqda — @${esc(s.active.with)}${emojiBadge(s.active.emoji_gift_id)}</div>
             <div class="tb-b"><button class="btn" onclick="openTradeRoom(${s.active.id})">Trade'ni ochish</button></div>
           </div>`);
       }
@@ -2320,7 +2483,7 @@
       let html = '';
       if (s.active) {
         html += `<div class="tr-card"><div class="section-title">🟢 Faol Trade</div>
-          <div class="modal-sub" style="margin-bottom:10px">Trade #${s.active.id} — @${esc(s.active.with)}</div>
+          <div class="modal-sub" style="margin-bottom:10px">Trade #${s.active.id} — @${esc(s.active.with)}${emojiBadge(s.active.emoji_gift_id)}</div>
           <button class="btn" onclick="openTradeRoom(${s.active.id})">Ochish</button></div>`;
       }
       if (s.cooldown_until && s.cooldown_until > tradeNow()) {
@@ -2485,7 +2648,9 @@
       const t = d.trade;
       document.getElementById('trStatus').textContent = TRADE_STATUS_UZ[t.status] || t.status;
       document.getElementById('trStatus').className = 'tr-badge ' + t.status;
-      document.getElementById('trVs').textContent = `@${d.me.username} ↔ @${d.other.username}`;
+      const vsEl = document.getElementById('trVs');
+      const vsHtml = `@${esc(d.me.username)}${emojiBadge(d.me.emoji_gift_id)} ↔ @${esc(d.other.username)}${emojiBadge(d.other.emoji_gift_id)}`;
+      if (vsEl.dataset.k !== vsHtml) { vsEl.dataset.k = vsHtml; vsEl.innerHTML = vsHtml; }   // faqat o'zgarsa (rasm qayta yuklanmasin)
 
       const active = t.status === 'ACTIVE';
       const result = document.getElementById('trResult');
@@ -2666,7 +2831,7 @@
         return `
           <div class="case-item-row" style="cursor:pointer" onclick="openUserProfile('${u.username}')">
             ${img}
-            <div class="ci-name">@${u.username}</div>
+            <div class="ci-name">@${u.username}${emojiBadge(u.emoji_gift_id)}</div>
           </div>`;
       }).join('');
     }
@@ -2684,6 +2849,12 @@
 
       const statusImg = data.status_image_url
         ? `<img src="${data.status_image_url}" style="width:24px;height:24px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-left:6px;">`
+        : '';
+
+      const pinsHtml = (data.pins && data.pins.length)
+        ? `<div class="modal-sub" style="margin-top:14px">📌 Qadalgan giftlar</div>
+           <div class="pin-grid">${data.pins.map(p => `
+             <div class="pin-tile">${tradeGiftThumb(p.gift_id)}<div class="pin-name">${esc(p.name)}</div></div>`).join('')}</div>`
         : '';
 
       const giftsHtml = data.gifts.length
@@ -2709,8 +2880,9 @@
         : `<div class="modal-sub">Pet'lari yo'q</div>`;
 
       document.getElementById('modalBody').innerHTML = `
-        <div class="modal-title">@${data.username}${statusImg}</div>
+        <div class="modal-title">@${esc(data.username)}${statusImg}${emojiBadge(data.emoji && data.emoji.gift_id)}</div>
         ${data.username !== currentUser.username ? `<button class="btn" style="margin-top:10px" data-u="${esc(data.username)}" onclick="confirmTradeRequest(this.dataset.u)">🔄 Trade boshlash</button>` : ''}
+        ${pinsHtml}
         <div class="modal-sub" style="margin-top:14px">🎁 Giftlari</div>
         ${giftsHtml}
         <div class="modal-sub" style="margin-top:14px">📦 Case'lari</div>

@@ -11,6 +11,7 @@
 
 const db = require('./db');
 const push = require('./push');
+const profile = require('./profile');
 
 const REQUEST_TTL_MS = 5 * 60 * 1000;     // request 5 daqiqa amal qiladi
 const COOLDOWN_MS = 20 * 60 * 1000;       // 20 daqiqada faqat 1 ta request
@@ -665,6 +666,7 @@ async function viewTrade(userId, tradeId, afterMsgId) {
   ]);
   const me = side === 'a' ? ua : ub;
   const other = side === 'a' ? ub : ua;
+  const emo = await profile.emojiMap([me.id, other.id]);   // emoji status (egalik va narx tekshirilgan)
 
   const items = await db.prepare(`
     SELECT ti.user_id, ti.user_gift_id, ti.gift_id, ti.gift_name,
@@ -693,8 +695,8 @@ async function viewTrade(userId, tradeId, afterMsgId) {
       completed_at: t.completed_at, cancelled_at: t.cancelled_at, rejected_at: t.rejected_at,
       expired_at: t.expired_at, failed_at: t.failed_at,
     },
-    me: { id: me.id, username: me.username },
-    other: { id: other.id, username: other.username },
+    me: { id: me.id, username: me.username, emoji_gift_id: emo.has(me.id) ? emo.get(me.id).gift_id : null },
+    other: { id: other.id, username: other.username, emoji_gift_id: emo.has(other.id) ? emo.get(other.id).gift_id : null },
     my: { coin: t[side + '_coin'], locked: !!t[side + '_locked'], confirmed: !!t[side + '_confirmed'], gifts: shape(me.id) },
     their: { coin: t[oside + '_coin'], locked: !!t[oside + '_locked'], confirmed: !!t[oside + '_confirmed'], gifts: shape(other.id) },
     can: statusFlags(t, side),
@@ -719,13 +721,13 @@ async function summary(userId) {
   const now = new Date(nowMs).toISOString();
 
   const incoming = await db.prepare(`
-    SELECT t.id, t.expires_at, t.created_at, u.username AS from_username
+    SELECT t.id, t.expires_at, t.created_at, t.user_a_id AS from_id, u.username AS from_username
     FROM trades t JOIN users u ON u.id = t.user_a_id
     WHERE t.user_b_id = ? AND t.status = 'PENDING' AND t.expires_at > ? ORDER BY t.id DESC LIMIT 10
   `).all(userId, now);
 
   const outgoing = await db.prepare(`
-    SELECT t.id, t.expires_at, t.created_at, u.username AS to_username
+    SELECT t.id, t.expires_at, t.created_at, t.user_b_id AS to_id, u.username AS to_username
     FROM trades t JOIN users u ON u.id = t.user_b_id
     WHERE t.user_a_id = ? AND t.status = 'PENDING' AND t.expires_at > ? ORDER BY t.id DESC LIMIT 1
   `).all(userId, now);
@@ -737,8 +739,17 @@ async function summary(userId) {
   if (act) {
     const oid = act.user_a_id === userId ? act.user_b_id : act.user_a_id;
     const ou = await db.prepare('SELECT username FROM users WHERE id = ?').get(oid);
-    active = { id: act.id, with: ou ? ou.username : '?' };
+    active = { id: act.id, with: ou ? ou.username : '?', with_id: oid };
   }
+
+  // Banner va ro'yxatlarda username yonida emoji status ko'rsatish uchun
+  const emo = await profile.emojiMap([
+    ...incoming.map(t => t.from_id), ...outgoing.map(t => t.to_id), active ? active.with_id : 0,
+  ]);
+  const emojiOf = (id) => (emo.has(id) ? emo.get(id).gift_id : null);
+  incoming.forEach(t => { t.emoji_gift_id = emojiOf(t.from_id); });
+  outgoing.forEach(t => { t.emoji_gift_id = emojiOf(t.to_id); });
+  if (active) active.emoji_gift_id = emojiOf(active.with_id);
 
   const notifications = await db.prepare(
     'SELECT id, trade_id, type, text, created_at FROM trade_notifications WHERE user_id = ? AND seen = 0 ORDER BY id ASC LIMIT 20'
