@@ -108,7 +108,11 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
 });
 
 // --- Health check ---
-app.get('/api/health', (req, res) => res.json({ ok: true }));
+// commit: Render qaysi commitni ishga tushirganini ko'rsatadi (deploy tekshirish uchun)
+app.get('/api/health', (req, res) => res.json({
+  ok: true,
+  commit: (process.env.RENDER_GIT_COMMIT || 'local').slice(0, 7),
+}));
 
 // Har qanday kutilmagan xato uchun umumiy ushlagich (async route'lar ichida throw bo'lsa)
 app.use((err, req, res, next) => {
