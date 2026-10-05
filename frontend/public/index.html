@@ -1749,6 +1749,7 @@
         ${p.status !== 'dead' ? `<button class="btn" style="margin-top:14px" onclick="openFeedModal(${p.id})">🍖 Ovqatlantirish</button>` : ''}
         ${p.status === 'sick' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="curePet(${p.id})">💊 Davolash (${p.heal_cost} coin)</button>` : ''}
         ${p.status === 'dead' ? `<button class="btn" style="margin-top:14px" onclick="revivePet(${p.id})">✨ Tiriltirish (${p.revive_cost} coin)</button>` : ''}
+        ${p.status === 'dead' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="discardPet(${p.id})">🗑 Tiriltirmasdan o'chirish</button>` : ''}
         ${p.status !== 'dead' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="sellPet(${p.id})">💰 Saytga sotish (${p.sell_price} coin)</button>` : ''}
       `;
       openModal();
@@ -1876,6 +1877,17 @@
       updateCoinBadge();
       closeModal();
       showToast('Pet tirildi! ✨');
+      loadMyPets();
+    }
+
+    async function discardPet(petId) {
+      const p = myPetsCache.find(x => x.id === petId);
+      if (!p || !confirm(`${p.name || p.pet_name} butunlay o'chiriladi va uni qayta tiriltirib bo'lmaydi. Davom etasizmi?`)) return;
+      const res = await fetch(`${API_BASE}/api/pets/${petId}/discard`, { method: 'POST', credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
+      closeModal();
+      showToast("Pet o'chirildi");
       loadMyPets();
     }
 

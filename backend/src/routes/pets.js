@@ -397,4 +397,21 @@ router.post('/pets/:id/sell', authMiddleware, async (req, res) => {
   res.json({ ok: true, sold_for: price, coin_balance: updatedUser.coin_balance });
 });
 
+// O'lgan petni tiriltirmasdan butunlay o'chirish (faqat o'lgan pet; tirik petni sotish kerak)
+router.post('/pets/:id/discard', authMiddleware, async (req, res) => {
+  let pet = await db.prepare('SELECT * FROM user_pets WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+  if (!pet) return res.status(404).json({ error: 'Pet topilmadi' });
+  const petType = await db.prepare('SELECT * FROM pet_types WHERE id = ?').get(pet.pet_type_id);
+
+  pet = await refreshPet(pet, petType || {});
+  if (!pet) return res.status(404).json({ error: "Pet topilmadi (tiriltirish muddati o'tib, allaqachon o'chirilgan)" });
+  if (pet.status !== 'dead') {
+    return res.status(400).json({ error: "Faqat o'lgan petni o'chirish mumkin. Tirik petni saytga sotishingiz mumkin." });
+  }
+
+  const d = await db.prepare("DELETE FROM user_pets WHERE id = ? AND user_id = ? AND status = 'dead'").run(pet.id, req.user.id);
+  if (!d.changes) return res.status(409).json({ error: 'Pet allaqachon o\'chirilgan yoki tiriltirilgan' });
+  res.json({ ok: true });
+});
+
 module.exports = router;
