@@ -1690,6 +1690,7 @@
     function petStatusBadge(status) {
       if (status === 'dead') return `<span style="color:#ff6b6b;font-weight:700">💀 O'lgan</span>`;
       if (status === 'sick') return `<span style="color:#ffd166;font-weight:700">🤒 Kasal</span>`;
+      if (status === 'hungry') return `<span style="color:#ff9f43;font-weight:700">🍖 Och</span>`;
       return `<span style="color:#6bcB77;font-weight:700">💚 Sog'lom</span>`;
     }
 
@@ -1709,7 +1710,7 @@
             ${p.pet_image_url ? `<img src="${p.pet_image_url}" style="width:48px;height:48px;border-radius:12px;object-fit:cover;">` : `<div class="noimg" style="width:48px;height:48px;border-radius:12px;background:#2a2f3d;"></div>`}
             <div>
               <div style="font-weight:700;">${p.name || p.pet_name} <span style="color:var(--muted);font-weight:400;font-size:12px;">LV ${p.level}</span></div>
-              <div style="font-size:12px;">${petStatusBadge(p.status)}</div>
+              <div style="font-size:12px;">${petStatusBadge(p.stage || p.status)}</div>
             </div>
           </div>
           <button class="btn" onclick="openPetStats(${p.id})">📊 Statistika</button>
@@ -1721,11 +1722,13 @@
       const p = myPetsCache.find(x => x.id === petId);
       if (!p) return;
 
-      const hungerInfo = p.status === 'dead'
-        ? `Pet o'lgan`
-        : p.status === 'sick'
+      const hungerInfo = p.stage === 'dead'
+        ? `O'lgan — ${p.revive_hours_left} soat ichida tiriltirish mumkin`
+        : p.stage === 'sick'
           ? `Kasal — ${p.hours_until_death} soatdan keyin o'lishi mumkin`
-          : `${p.hours_until_sick} soatdan keyin ochqaydi (kasal bo'ladi)`;
+          : p.stage === 'hungry'
+            ? `Och (daromad 50%) — ${p.hours_until_sick} soatdan keyin kasal bo'ladi`
+            : `${p.hours_until_hungry} soatdan keyin ochqaydi`;
 
       document.getElementById('modalBody').innerHTML = `
         <div class="modal-title" style="display:flex; align-items:center; gap:8px;">
@@ -1734,15 +1737,19 @@
         </div>
         <div class="modal-sub">Turi: ${p.pet_name}</div>
 
-        <div class="case-item-row"><div class="ci-name">Sog'lomlik darajasi</div><div class="ci-chance">${petStatusBadge(p.status)}</div></div>
+        <div class="case-item-row"><div class="ci-name">Sog'lomlik darajasi</div><div class="ci-chance">${petStatusBadge(p.stage || p.status)}</div></div>
         <div class="case-item-row"><div class="ci-name">Holat</div><div class="ci-chance" style="font-size:12px;">${hungerInfo}</div></div>
         <div class="case-item-row"><div class="ci-name">Daraja (LV)</div><div class="ci-chance">LV ${p.level}</div></div>
         <div class="case-item-row"><div class="ci-name">XP</div><div class="ci-chance">${Math.round(p.xp*100)/100} / ${p.xp_per_level}</div></div>
         <div class="case-item-row"><div class="ci-name">Keyingi LV (${p.level + 1})</div><div class="ci-chance" style="font-size:12px;">To'yish uchun ${p.next_level_required_feed_xp} XP kifoya</div></div>
-        <div class="case-item-row"><div class="ci-name">Daromad</div><div class="ci-chance">🪙 ${p.coin_per_3h} / 3soat</div></div>
+        <div class="case-item-row"><div class="ci-name">Daromad</div><div class="ci-chance">🪙 ${p.income_now} / 3soat</div></div>
+        <div class="case-item-row"><div class="ci-name">LV bonusi</div><div class="ci-chance" style="font-size:12px;">+${p.level_bonus_percent}%${p.level_bonus_percent >= 80 ? ` (maksimum — LV ${p.bonus_cap_level} dan keyin sotish narxi oshadi)` : ''}</div></div>
+        ${p.status !== 'dead' ? `<div class="case-item-row"><div class="ci-name">Saytga sotish narxi</div><div class="ci-chance">🪙 ${p.sell_price}</div></div>` : ''}
 
         ${p.status !== 'dead' ? `<button class="btn" style="margin-top:14px" onclick="openFeedModal(${p.id})">🍖 Ovqatlantirish</button>` : ''}
-        ${p.status === 'sick' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="curePet(${p.id})">💊 Davolash (25 coin)</button>` : ''}
+        ${p.status === 'sick' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="curePet(${p.id})">💊 Davolash (${p.heal_cost} coin)</button>` : ''}
+        ${p.status === 'dead' ? `<button class="btn" style="margin-top:14px" onclick="revivePet(${p.id})">✨ Tiriltirish (${p.revive_cost} coin)</button>` : ''}
+        ${p.status !== 'dead' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="sellPet(${p.id})">💰 Saytga sotish (${p.sell_price} coin)</button>` : ''}
       `;
       openModal();
     }
@@ -1842,7 +1849,7 @@
       closeModal();
       const msg = data.leveled_up
         ? `🎉 Level oshdi! Endi LV ${data.new_level}`
-        : (data.satisfied_hunger ? "Pet to'ydi! 🍖" : "XP qo'shildi, lekin to'liq to'ymadi");
+        : (data.satisfied_hunger ? "Pet to'ydi! 🍖" : `Ochlik ${data.hunger_restored_percent}% ga tiklandi 🍖`);
       showToast(msg);
       loadMyPets();
       loadInventory();
@@ -1856,6 +1863,32 @@
       updateCoinBadge();
       closeModal();
       showToast('Pet davolandi! 💊');
+      loadMyPets();
+    }
+
+    async function revivePet(petId) {
+      const p = myPetsCache.find(x => x.id === petId);
+      if (!p || !confirm(`${p.name || p.pet_name} ni ${p.revive_cost} coin evaziga tiriltirasizmi?`)) return;
+      const res = await fetch(`${API_BASE}/api/pets/${petId}/revive`, { method: 'POST', credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
+      currentUser.coin_balance = data.coin_balance;
+      updateCoinBadge();
+      closeModal();
+      showToast('Pet tirildi! ✨');
+      loadMyPets();
+    }
+
+    async function sellPet(petId) {
+      const p = myPetsCache.find(x => x.id === petId);
+      if (!p || !confirm(`${p.name || p.pet_name} (LV ${p.level}) ni ${p.sell_price} coin evaziga saytga sotasizmi? Bu amalni qaytarib bo'lmaydi.`)) return;
+      const res = await fetch(`${API_BASE}/api/pets/${petId}/sell`, { method: 'POST', credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
+      currentUser.coin_balance = data.coin_balance;
+      updateCoinBadge();
+      closeModal();
+      showToast(`Pet sotildi: +${data.sold_for} coin 💰`);
       loadMyPets();
     }
 

@@ -148,6 +148,8 @@ async function initDb() {
 
   // Eski bazalarda yo'q bo'lgan ustunlarni qo'shib qo'yamiz
   await ensureColumn('user_pets', 'name', 'TEXT');
+  // O'lgan pet qachon o'lgani (7 kun ichida tiriltirish mumkin)
+  await ensureColumn('user_pets', 'died_at', 'TEXT');
   await ensureColumn('transfers', 'is_anonymous', 'INTEGER NOT NULL DEFAULT 0');
   await ensureColumn('transfers', 'seen', 'INTEGER NOT NULL DEFAULT 0');
   // Gift noyobligi: 'common' (oddiy), 'rare' (noyob), 'legendary' (afsonaviy) — noyob giftlar chiqqanda push yuboriladi

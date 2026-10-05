@@ -2,13 +2,15 @@ const webpush = require('web-push');
 const db = require('./db');
 
 const HOUR_MS = 60 * 60 * 1000;
+const R = require('./petRules');
 
-// Pet holati chegaralari (pets.js bilan bir xil): 24 soatda kasal, 36 soatda o'ladi
-const PET_SICK_WARN_HOURS = 20;   // kasal bo'lishiga 4 soat qolganda ogohlantiramiz
-const PET_SICK_HOURS = 24;
-const PET_DEATH_WARN_HOURS = 32;  // o'lishiga 4 soat qolganda ogohlantiramiz
-const PET_DEATH_HOURS = 36;
-
+// Muddatlar petRules.js dan olinadi (bitta joyda o'zgartiriladi)
+const PET_HUNGRY_HOURS = R.HUNGRY_AFTER_MS / HOUR_MS;      // 8  — och bo'ldi
+const PET_SICK_HOURS = R.SICK_AFTER_MS / HOUR_MS;          // 24 — kasal
+const PET_SICK_WARN_HOURS = PET_SICK_HOURS - 4;            // kasal bo'lishiga 4 soat qolganda ogohlantiramiz
+const PET_DEATH_HOURS = R.DEATH_AFTER_MS / HOUR_MS;        // 72 — o'ladi
+const PET_DEATH_WARN_HOURS = PET_DEATH_HOURS - 12;         // o'lishiga 12 soat qolganda ogohlantiramiz
+const PET_REVIVE_HOURS = R.REVIVE_WINDOW_MS / HOUR_MS;     // 168 — o'lgandan keyin tiriltirish muddati
 const CREDIT_WARN_MS = 24 * HOUR_MS; // kredit to'lov muddatiga 24 soat qolganda eslatamiz
 const SCHEDULER_INTERVAL_MS = 10 * 60 * 1000;
 
@@ -154,9 +156,10 @@ async function runScheduledChecks() {
     if (!subscribed.size) return;
     const now = Date.now();
 
-    // 1) Pet'lar
+    // 1) Pet'lar: och (8s) -> kasal bo'lishiga 4s -> kasal (24s) -> o'lishiga 12s -> o'ldi (72s, 7 kun tiriltirish mumkin)
+    // Har bosqich uchun bitta eslatma; server uxlab qolgan bo'lsa, uyg'ongach faqat HOZIRGI bosqich yuboriladi.
     const pets = await db.prepare(`
-      SELECT up.id, up.user_id, up.name, up.last_fed_at, pt.name AS type_name
+      SELECT up.id, up.user_id, up.name, up.last_fed_at, pt.name AS type_name, pt.price AS type_price
       FROM user_pets up JOIN pet_types pt ON pt.id = up.pet_type_id
       WHERE up.status != 'dead'
     `).all();
@@ -164,29 +167,46 @@ async function runScheduledChecks() {
     for (const p of pets) {
       if (!subscribed.has(p.user_id)) continue;
       const hours = (now - parseDate(p.last_fed_at)) / HOUR_MS;
-      if (!(hours >= PET_SICK_WARN_HOURS) || hours >= PET_DEATH_HOURS) continue;
+      if (!(hours >= PET_HUNGRY_HOURS)) continue;
+      if (hours >= PET_DEATH_HOURS + PET_REVIVE_HOURS) continue;   // tiriltirish muddati ham o'tgan
       const petName = p.name || p.type_name;
+      const base = { url: '/index.html#mypet', tag: `pet-${p.id}` };
 
-      if (hours >= PET_DEATH_WARN_HOURS) {
-        if (await claimNotification(p.user_id, 'pet_death_soon', p.id, p.last_fed_at)) {
-          const left = Math.max(1, Math.ceil(PET_DEATH_HOURS - hours));
-          await sendToUsers([p.user_id], {
-            title: `💀 ${petName} o'lish arafasida!`,
-            body: `Taxminan ${left} soatdan keyin o'ladi. Zudlik bilan ovqatlantiring yoki davolang.`,
-            url: '/index.html#mypet',
-            tag: `pet-${p.id}`,
-          });
-        }
-      } else if (hours < PET_SICK_HOURS) {
-        if (await claimNotification(p.user_id, 'pet_sick_soon', p.id, p.last_fed_at)) {
-          const left = Math.max(1, Math.ceil(PET_SICK_HOURS - hours));
-          await sendToUsers([p.user_id], {
-            title: `🍖 ${petName} ochqayapti`,
-            body: `Taxminan ${left} soatdan keyin kasal bo'ladi. Ovqatlantirishni unutmang!`,
-            url: '/index.html#mypet',
-            tag: `pet-${p.id}`,
-          });
-        }
+      let kind, payload;
+      if (hours >= PET_DEATH_HOURS) {
+        const reviveLeft = Math.max(1, Math.ceil(PET_DEATH_HOURS + PET_REVIVE_HOURS - hours));
+        kind = 'pet_dead';
+        payload = {
+          title: `💀 ${petName} o'ldi`,
+          body: `${Math.ceil(reviveLeft / 24)} kun ichida ${R.reviveCost(p.type_price)} coin evaziga tiriltirishingiz mumkin.`,
+        };
+      } else if (hours >= PET_DEATH_WARN_HOURS) {
+        kind = 'pet_death_soon';
+        payload = {
+          title: `💀 ${petName} o'lish arafasida!`,
+          body: `Taxminan ${Math.max(1, Math.ceil(PET_DEATH_HOURS - hours))} soatdan keyin o'ladi. Zudlik bilan ovqatlantiring yoki davolang.`,
+        };
+      } else if (hours >= PET_SICK_HOURS) {
+        kind = 'pet_sick';
+        payload = {
+          title: `🤒 ${petName} kasal bo'ldi`,
+          body: `Daromad to'xtadi. Davolang yoki ovqatlantiring — ${Math.max(1, Math.ceil(PET_DEATH_HOURS - hours))} soatdan keyin o'lishi mumkin.`,
+        };
+      } else if (hours >= PET_SICK_WARN_HOURS) {
+        kind = 'pet_sick_soon';
+        payload = {
+          title: `🍖 ${petName} ochqayapti`,
+          body: `Taxminan ${Math.max(1, Math.ceil(PET_SICK_HOURS - hours))} soatdan keyin kasal bo'ladi. Ovqatlantirishni unutmang!`,
+        };
+      } else {
+        kind = 'pet_hungry';
+        payload = {
+          title: `🍖 ${petName} och`,
+          body: `Daromad 50% ga tushdi. Ovqatlantirmasangiz ${Math.max(1, Math.ceil(PET_SICK_HOURS - hours))} soatdan keyin kasal bo'ladi.`,
+        };
+      }
+      if (await claimNotification(p.user_id, kind, p.id, p.last_fed_at)) {
+        await sendToUsers([p.user_id], { ...payload, ...base });
       }
     }
 
