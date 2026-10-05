@@ -650,6 +650,7 @@
             🏷️
             <input type="file" accept="image/*" style="display:none" id="statusInput_${u.id}" onchange="uploadStatusImage(${u.id}, this.files[0])">
           </label>
+          ${u.status_image_url ? `<button class="btn-danger" title="Status rasmni olib tashlash" onclick="removeStatusImage(${u.id})">🏷️ ✕</button>` : ''}
         </div>
       `).join('');
     }
@@ -664,6 +665,17 @@
       const data = await res.json();
       if (!res.ok) { showAdminToast(data.error || 'Xatolik'); return; }
       showAdminToast('Status rasm o\'rnatildi!');
+      loadUsers();
+    }
+
+    async function removeStatusImage(userId) {
+      if (!confirm("Bu foydalanuvchining status rasmini olib tashlaysizmi?")) return;
+      const res = await fetch(`${API_BASE}/api/admin/users/${userId}/status-image`, {
+        method: 'DELETE', credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { showAdminToast(data.error || 'Xatolik'); return; }
+      showAdminToast('Status rasm olib tashlandi');
       loadUsers();
     }
 

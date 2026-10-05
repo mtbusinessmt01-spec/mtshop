@@ -80,6 +80,14 @@ router.post('/admin/users/:id/status-image', authMiddleware, adminMiddleware, up
   res.json({ ok: true, status_image_url: url });
 });
 
+// Admin bergan status (badge) rasmini olib tashlash
+router.delete('/admin/users/:id/status-image', authMiddleware, adminMiddleware, async (req, res) => {
+  const user = await db.prepare('SELECT id FROM users WHERE id = ?').get(req.params.id);
+  if (!user) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
+  await db.prepare('UPDATE users SET status_image_url = NULL WHERE id = ?').run(user.id);
+  res.json({ ok: true, status_image_url: null });
+});
+
 // Coin berish / olish
 router.post('/admin/users/:id/coin', authMiddleware, adminMiddleware, async (req, res) => {
   const { id } = req.params;
