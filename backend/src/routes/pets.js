@@ -129,9 +129,33 @@ async function refreshAllUserPets(userId) {
 
 // ---------- FOYDALANUVCHI ----------
 
+// Shop'da "Ko'rish" oynasi uchun: pet nima berishi va qoidalari (hammasi petRules.js dan hisoblanadi)
+function petShopInfo(t) {
+  return {
+    coin_per_day: R.round2((t.coin_per_3h || 0) * 8),
+    max_coin_per_3h: R.round2((t.coin_per_3h || 0) * (1 + R.MAX_LEVEL_BONUS)),
+    lv1_required_feed_xp: R.round2(R.requiredFeedXp(t, 1)),
+    heal_cost: R.healCost(t.price),
+    revive_cost: R.reviveCost(t.price),
+    sell_price_lv1: R.sellPrice(t.price, 1),
+    sell_price_max: R.sellPrice(t.price, 100000),
+    rules: {
+      max_pets: MAX_PETS_PER_USER,
+      hungry_after_hours: R.HUNGRY_AFTER_MS / R.HOUR_MS,
+      sick_after_hours: R.SICK_AFTER_MS / R.HOUR_MS,
+      death_after_hours: R.DEATH_AFTER_MS / R.HOUR_MS,
+      revive_days: R.REVIVE_WINDOW_MS / (24 * R.HOUR_MS),
+      hungry_income_percent: Math.round(R.HUNGRY_INCOME_FACTOR * 100),
+      level_bonus_per_level_percent: Math.round(R.levelBonus(2) * 100),
+      max_level_bonus_percent: Math.round(R.MAX_LEVEL_BONUS * 100),
+      bonus_cap_level: R.BONUS_CAP_LEVEL,
+    },
+  };
+}
+
 router.get('/pets/types', authMiddleware, async (req, res) => {
   const types = await db.prepare('SELECT * FROM pet_types WHERE stock IS NULL OR stock > 0 ORDER BY price ASC').all();
-  res.json(types);
+  res.json(types.map(t => ({ ...t, ...petShopInfo(t) })));
 });
 
 router.post('/pets/types/:id/buy', authMiddleware, async (req, res) => {
