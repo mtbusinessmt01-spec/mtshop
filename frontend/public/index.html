@@ -2009,6 +2009,7 @@
           <div style="margin-bottom:8px;"><b>Coin balans:</b> ${currentUser.coin_balance} 🪙</div>
         </div>
         <button class="btn" style="margin-top:14px;" onclick="openProfileEdit()">✏️ Profile edit</button>
+        <button class="btn" style="margin-top:14px;" onclick="openPromo()">🎟️ Promokod</button>
         ${currentUser.is_admin ? `<a href="admin.html" class="admin-link">⚙️ Admin panel</a>` : ''}
         <button class="btn secondary" style="margin-top:14px;" onclick="logout()">Hisobdan chiqish</button>
 
@@ -2185,6 +2186,69 @@
       } catch (e) {
         return { ok: false, status: 0, data: { error: "Tarmoq xatosi. Qayta urinib ko'ring." } };
       }
+    }
+
+    // =====================================================================
+    // PROMOKOD (Profils > Promokod)
+    // =====================================================================
+    function openPromo() {
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">🎟️ Promokod</div>
+        <div class="modal-sub">Promokodni kiriting va mukofotni oling.</div>
+        <input type="text" class="send-input" id="promoInput" placeholder="Masalan: MT2026" maxlength="32"
+               autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <div class="modal-sub" id="promoMsg" style="margin:10px 0 0;min-height:18px;color:#ff6b6b"></div>
+        <button class="btn" style="margin-top:14px" id="promoBtn">Faollashtirish</button>
+        <button class="btn-back" onclick="closeModal()">Yopish</button>
+      `;
+      openModal();
+      const inp = document.getElementById('promoInput');
+      const btn = document.getElementById('promoBtn');
+      const msg = document.getElementById('promoMsg');
+      let busy = false;
+      const go = async () => {
+        if (busy) return;
+        const code = inp.value.trim();
+        if (!code) { msg.textContent = 'Promokodni kiriting'; return; }
+        busy = true; btn.disabled = true; msg.textContent = '';
+        try {
+          const res = await fetch(`${API_BASE}/api/promocodes/redeem`, {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code }),
+          });
+          let data = {};
+          try { data = await res.json(); } catch (e) {}
+          if (!res.ok) { msg.textContent = data.error || 'Xatolik'; return; }
+          currentUser.coin_balance = data.coin_balance;
+          updateCoinBadge();
+          showPromoSuccess(data.rewards || []);
+          if (typeof tradeCurrentTab !== 'undefined' && tradeCurrentTab === 'profils') {
+            renderProfil(document.getElementById('main'));
+          }
+        } catch (e) {
+          msg.textContent = "Tarmoq xatosi. Qayta urinib ko'ring.";
+        } finally {
+          busy = false; btn.disabled = false;
+        }
+      };
+      btn.addEventListener('click', go);
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+      setTimeout(() => inp.focus(), 50);
+    }
+
+    function showPromoSuccess(rewards) {
+      const rows = rewards.map(r => {
+        if (r.type === 'coin') return `<div style="padding:8px 0">🪙 <b>+${esc(r.amount)}</b> coin</div>`;
+        if (r.type === 'gift') return `<div style="padding:8px 0">🎁 <b>${esc(r.name)}</b> × ${Number(r.quantity)}</div>`;
+        return `<div style="padding:8px 0">📦 <b>${esc(r.name)}</b> case × ${Number(r.quantity)}</div>`;
+      }).join('');
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">🎉 Promokod faollashtirildi!</div>
+        <div class="modal-sub">Mukofotlaringiz hisobingizga va Inventorga tushdi:</div>
+        <div style="text-align:left">${rows}</div>
+        <button class="btn" style="margin-top:14px" onclick="closeModal()">Zo'r!</button>
+      `;
     }
 
     // Profile edit: menyu

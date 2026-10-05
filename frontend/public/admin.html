@@ -135,6 +135,7 @@
     <button class="admin-nav-btn" data-section="push" onclick="switchAdminSection('push')">🔔 Bildirishnoma</button>
     <button class="admin-nav-btn" data-section="versions" onclick="switchAdminSection('versions')">🆕 Versiya</button>
     <button class="admin-nav-btn" data-section="trades" onclick="switchAdminSection('trades')">🔄 Trade</button>
+    <button class="admin-nav-btn" data-section="promos" onclick="switchAdminSection('promos')">🎟️ Promokod</button>
   </div>
 
   <div class="admin-section" data-section="users">
@@ -470,6 +471,40 @@
   <div class="card">
     <h2>Versiyalar</h2>
     <div class="gift-list" id="versionList">Yuklanmoqda...</div>
+  </div>
+  </div>
+
+  <div class="admin-section" data-section="promos" style="display:none">
+  <div class="card">
+    <h2>Yangi promokod</h2>
+    <form id="promoForm">
+      <label>Kod (bo'sh qoldirsangiz, avtomatik yaratiladi)</label>
+      <input type="text" id="promoCode" maxlength="32" placeholder="Masalan: MT2026" autocomplete="off">
+
+      <label>Coin mukofoti (ixtiyoriy)</label>
+      <input type="number" id="promoCoin" min="0" step="0.01" placeholder="Masalan: 50">
+
+      <label>Gift va case mukofotlari (ixtiyoriy)</label>
+      <div id="promoItems"></div>
+      <button type="button" class="btn-secondary" id="promoAddItemBtn" style="margin-top:4px">+ Gift / case qo'shish</button>
+
+      <label style="margin-top:16px">Nechta kishi ishlata oladi (bo'sh = cheksiz)</label>
+      <input type="number" id="promoMaxUses" min="1" step="1" placeholder="Masalan: 100">
+
+      <label>Amal qilish muddati (bo'sh = muddatsiz)</label>
+      <input type="datetime-local" id="promoExpires">
+
+      <div class="row" style="margin-top:12px">
+        <button type="submit" class="btn-primary" id="promoSubmitBtn">Yaratish</button>
+      </div>
+      <div class="msg" id="promoFormMsg"></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Promokodlar</h2>
+    <div class="msg" style="margin:0 0 10px;">ℹ️ Bitta foydalanuvchi bitta kodni faqat 1 marta ishlata oladi. Gift berilganda Shopdagi gift soni kamaymaydi.</div>
+    <div class="gift-list" id="promoList">Yuklanmoqda...</div>
   </div>
   </div>
 
@@ -1665,6 +1700,131 @@
       openAdminTrade(id);   // yangi audit yozuvi ko'rinishi uchun yangilaymiz
     }
 
+    // ---------- PROMOKODLAR ----------
+    let promoList = [];
+
+    function promoItemOptions(type) {
+      const src = type === 'case' ? cases : gifts;
+      return src.map(x => `<option value="${Number(x.id)}">${escHtml(x.name)}</option>`).join('')
+        || '<option value="">(hali yo\'q)</option>';
+    }
+
+    function addPromoItemRow() {
+      const wrap = document.getElementById('promoItems');
+      const div = document.createElement('div');
+      div.className = 'item-row';
+      div.innerHTML = `
+        <select class="pi-type"><option value="gift">🎁 Gift</option><option value="case">📦 Case</option></select>
+        <select class="pi-item">${promoItemOptions('gift')}</select>
+        <input type="number" class="pi-qty" min="1" max="50" step="1" value="1" style="width:70px" title="Nechta dona">
+        <button type="button" class="remove-item">✕</button>
+      `;
+      div.querySelector('.pi-type').addEventListener('change', (e) => {
+        div.querySelector('.pi-item').innerHTML = promoItemOptions(e.target.value);
+      });
+      div.querySelector('.remove-item').addEventListener('click', () => div.remove());
+      wrap.appendChild(div);
+    }
+
+    function promoStatus(p) {
+      if (!p.is_active) return '⏸ o\'chirilgan';
+      if (p.expires_at && Date.parse(p.expires_at) <= Date.now()) return '⌛ muddati tugagan';
+      if (p.max_uses != null && p.used_count >= p.max_uses) return '🚫 limit tugagan';
+      return '🟢 faol';
+    }
+
+    function promoRewardText(p) {
+      const parts = [];
+      if (p.coin_amount > 0) parts.push(`🪙 ${p.coin_amount}`);
+      p.items.forEach(i => parts.push(i.item_type === 'gift'
+        ? `🎁 ${escHtml(i.gift_name || '(o\'chirilgan gift)')} ×${i.quantity}`
+        : `📦 ${escHtml(i.case_name || '(o\'chirilgan case)')} ×${i.quantity}`));
+      return parts.join(' · ') || '—';
+    }
+
+    async function loadPromos() {
+      const res = await fetch(`${API_BASE}/api/admin/promocodes`, { credentials: 'include' });
+      const el = document.getElementById('promoList');
+      if (!res.ok) { el.textContent = 'Yuklab bo\'lmadi'; return; }
+      promoList = await res.json();
+      if (!promoList.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Hali promokod yo\'q</div>'; return; }
+      el.innerHTML = promoList.map(p => `
+        <div class="gift-item" style="flex-wrap:wrap">
+          <div class="info">
+            <div class="name">${escHtml(p.code)} <span class="meta">${promoStatus(p)}</span></div>
+            <div class="meta">${promoRewardText(p)}</div>
+            <div class="meta">Ishlatilgan: ${p.used_count}${p.max_uses != null ? ' / ' + p.max_uses : ' (cheksiz)'}
+              · Muddat: ${p.expires_at ? escHtml(new Date(p.expires_at).toLocaleString()) : 'muddatsiz'}</div>
+          </div>
+          <div class="row" style="gap:6px">
+            <button class="btn-secondary" onclick="showPromoUsers(${p.id})">👥</button>
+            <button class="btn-secondary" onclick="togglePromo(${p.id}, ${p.is_active ? 'false' : 'true'})">${p.is_active ? '⏸' : '▶️'}</button>
+            <button class="btn-secondary" onclick="deletePromo(${p.id})">🗑</button>
+          </div>
+          <div id="promoUsers_${p.id}" style="width:100%"></div>
+        </div>`).join('');
+    }
+
+    async function togglePromo(id, active) {
+      const res = await fetch(`${API_BASE}/api/admin/promocodes/${id}/active`, {
+        method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active }),
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Xatolik'); return; }
+      loadPromos();
+    }
+
+    async function deletePromo(id) {
+      if (!confirm("Promokodni o'chirasizmi? Ishlatilganlar tarixi ham o'chadi (berilgan mukofotlar qoladi).")) return;
+      const res = await fetch(`${API_BASE}/api/admin/promocodes/${id}`, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Xatolik'); return; }
+      loadPromos();
+    }
+
+    async function showPromoUsers(id) {
+      const box = document.getElementById('promoUsers_' + id);
+      if (box.dataset.open === '1') { box.innerHTML = ''; box.dataset.open = ''; return; }
+      const res = await fetch(`${API_BASE}/api/admin/promocodes/${id}/redemptions`, { credentials: 'include' });
+      const rows = res.ok ? await res.json() : [];
+      box.dataset.open = '1';
+      box.innerHTML = '<div class="meta" style="margin-top:8px">' +
+        (rows.map(r => `@${escHtml(r.username)} · ${escHtml(r.created_at)}`).join('<br>') || 'Hali hech kim ishlatmagan') + '</div>';
+    }
+
+    document.getElementById('promoAddItemBtn').addEventListener('click', addPromoItemRow);
+    document.getElementById('promoForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('promoFormMsg');
+      const btn = document.getElementById('promoSubmitBtn');
+      msg.textContent = ''; msg.style.color = '';
+      const items = [...document.querySelectorAll('#promoItems .item-row')].map(r => ({
+        item_type: r.querySelector('.pi-type').value,
+        item_id: Number(r.querySelector('.pi-item').value),
+        quantity: Number(r.querySelector('.pi-qty').value),
+      }));
+      const exp = document.getElementById('promoExpires').value;
+      const body = {
+        code: document.getElementById('promoCode').value.trim(),
+        coin_amount: document.getElementById('promoCoin').value,
+        max_uses: document.getElementById('promoMaxUses').value,
+        expires_at: exp ? new Date(exp).toISOString() : null,   // brauzer vaqti -> UTC
+        items,
+      };
+      btn.disabled = true;
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/promocodes`, {
+          method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) { msg.style.color = '#ff6b6b'; msg.textContent = d.error || 'Xatolik'; return; }
+        msg.style.color = '#4cd964'; msg.textContent = `Yaratildi: ${d.code}`;
+        e.target.reset();
+        document.getElementById('promoItems').innerHTML = '';
+        loadPromos();
+      } finally { btn.disabled = false; }
+    });
+
     checkAdmin().then(async () => {
       await loadUsers();
       await loadEvents();
@@ -1675,6 +1835,7 @@
       await loadPetTypes();
       await loadPushStats();
       await loadVersions();
+      await loadPromos();
       loadAdminTrades();
       addItemRow(); // birinchi qatorni avtomatik qo'shish
     });
