@@ -125,10 +125,14 @@ router.delete('/admin/users/:id', authMiddleware, adminMiddleware, async (req, r
   if (!user) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
 
   // Avval Trade'lar: ACTIVE bo'lsa bekor qilinib sherikka gift/coin qaytariladi
+  try {
   await trades.purgeUserTrades(parseInt(id, 10));
 
   const tx = db.transaction(async () => {
     await db.prepare('DELETE FROM profile_pins WHERE user_id = ?').run(id);
+    // 006 (promokod) va 003 (versiya) jadvallari users(id) ga bog'langan — avval tozalanadi
+    await db.prepare('DELETE FROM promo_redemptions WHERE user_id = ?').run(id);
+    await db.prepare('DELETE FROM app_version_testers WHERE user_id = ?').run(id);
     await db.prepare('DELETE FROM user_gifts WHERE user_id = ?').run(id);
     await db.prepare('DELETE FROM user_cases WHERE user_id = ?').run(id);
     await db.prepare('DELETE FROM user_pets WHERE user_id = ?').run(id);
@@ -148,6 +152,10 @@ router.delete('/admin/users/:id', authMiddleware, adminMiddleware, async (req, r
   await tx();
 
   res.json({ ok: true });
+  } catch (e) {
+    console.error("Hisobni o'chirish xatosi:", e.message);
+    res.status(500).json({ error: "Hisobni o'chirib bo'lmadi: " + e.message });
+  }
 });
 
 // ---------- FOYDALANUVCHI: qidiruv va ochiq profil ----------
