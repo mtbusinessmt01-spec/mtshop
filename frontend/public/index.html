@@ -297,7 +297,7 @@
     width: 100%;
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 24px;
-    padding: 22px 20px;
+    padding: 50px 20px 22px;   /* tepada X tugmasi uchun joy */
     max-height: 82vh;
     overflow-y: auto;
     box-shadow: 0 20px 50px rgba(0,0,0,0.4);
@@ -310,12 +310,13 @@
   .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
   .modal-sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
   .modal-close {
-    position: absolute; top: -14px; right: -6px;
+    /* Oyna ICHIDA, burchakdan masofa bilan; kontent aylanganda ham joyida turadi */
+    position: absolute; top: 12px; right: 12px; z-index: 2;
     width: 32px; height: 32px;
     display: flex; align-items: center; justify-content: center;
     background: #f1f2f6; border: none; border-radius: 50%;
     color: #171a21; font-size: 16px; font-weight: 700; cursor: pointer;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   }
   /* ---- To'liq ekran sahifa rejimi (Profile edit, Promokod, Mening kreditim, Mening hayvonim) ---- */
   .page-head { display: none; }
@@ -1743,6 +1744,7 @@
     function petStatusBadge(status) {
       if (status === 'dead') return `<span style="color:#ff6b6b;font-weight:700">💀 O'lgan</span>`;
       if (status === 'sick') return `<span style="color:#ffd166;font-weight:700">🤒 Kasal</span>`;
+      if (status === 'hungry') return `<span style="color:#ff9f43;font-weight:700">🍖 Och</span>`;
       return `<span style="color:#6bcB77;font-weight:700">💚 Sog'lom</span>`;
     }
 
@@ -1762,7 +1764,7 @@
             ${p.pet_image_url ? `<img src="${p.pet_image_url}" style="width:48px;height:48px;border-radius:12px;object-fit:cover;">` : `<div class="noimg" style="width:48px;height:48px;border-radius:12px;background:#2a2f3d;"></div>`}
             <div>
               <div style="font-weight:700;">${p.name || p.pet_name} <span style="color:var(--muted);font-weight:400;font-size:12px;">LV ${p.level}</span></div>
-              <div style="font-size:12px;">${petStatusBadge(p.status)}</div>
+              <div style="font-size:12px;">${petStatusBadge(p.stage || p.status)}</div>
             </div>
           </div>
           <button class="btn" onclick="openPetStats(${p.id})">📊 Statistika</button>
@@ -1774,11 +1776,13 @@
       const p = myPetsCache.find(x => x.id === petId);
       if (!p) return;
 
-      const hungerInfo = p.status === 'dead'
-        ? `Pet o'lgan`
-        : p.status === 'sick'
+      const hungerInfo = p.stage === 'dead'
+        ? `O'lgan — ${p.revive_hours_left} soat ichida tiriltirish mumkin`
+        : p.stage === 'sick'
           ? `Kasal — ${p.hours_until_death} soatdan keyin o'lishi mumkin`
-          : `${p.hours_until_sick} soatdan keyin ochqaydi (kasal bo'ladi)`;
+          : p.stage === 'hungry'
+            ? `Och (daromad 50%) — ${p.hours_until_sick} soatdan keyin kasal bo'ladi`
+            : `${p.hours_until_hungry} soatdan keyin ochqaydi`;
 
       document.getElementById('modalBody').innerHTML = `
         <div class="modal-title" style="display:flex; align-items:center; gap:8px;">
@@ -1787,15 +1791,20 @@
         </div>
         <div class="modal-sub">Turi: ${p.pet_name}</div>
 
-        <div class="case-item-row"><div class="ci-name">Sog'lomlik darajasi</div><div class="ci-chance">${petStatusBadge(p.status)}</div></div>
+        <div class="case-item-row"><div class="ci-name">Sog'lomlik darajasi</div><div class="ci-chance">${petStatusBadge(p.stage || p.status)}</div></div>
         <div class="case-item-row"><div class="ci-name">Holat</div><div class="ci-chance" style="font-size:12px;">${hungerInfo}</div></div>
         <div class="case-item-row"><div class="ci-name">Daraja (LV)</div><div class="ci-chance">LV ${p.level}</div></div>
         <div class="case-item-row"><div class="ci-name">XP</div><div class="ci-chance">${Math.round(p.xp*100)/100} / ${p.xp_per_level}</div></div>
         <div class="case-item-row"><div class="ci-name">Keyingi LV (${p.level + 1})</div><div class="ci-chance" style="font-size:12px;">To'yish uchun ${p.next_level_required_feed_xp} XP kifoya</div></div>
-        <div class="case-item-row"><div class="ci-name">Daromad</div><div class="ci-chance">🪙 ${p.coin_per_3h} / 3soat</div></div>
+        <div class="case-item-row"><div class="ci-name">Daromad</div><div class="ci-chance">🪙 ${p.income_now} / 3soat</div></div>
+        <div class="case-item-row"><div class="ci-name">LV bonusi</div><div class="ci-chance" style="font-size:12px;">+${p.level_bonus_percent}%${p.level_bonus_percent >= 80 ? ` (maksimum — LV ${p.bonus_cap_level} dan keyin sotish narxi oshadi)` : ''}</div></div>
+        ${p.status !== 'dead' ? `<div class="case-item-row"><div class="ci-name">Saytga sotish narxi</div><div class="ci-chance">🪙 ${p.sell_price}</div></div>` : ''}
 
         ${p.status !== 'dead' ? `<button class="btn" style="margin-top:14px" onclick="openFeedModal(${p.id})">🍖 Ovqatlantirish</button>` : ''}
-        ${p.status === 'sick' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="curePet(${p.id})">💊 Davolash (25 coin)</button>` : ''}
+        ${p.status === 'sick' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="curePet(${p.id})">💊 Davolash (${p.heal_cost} coin)</button>` : ''}
+        ${p.status === 'dead' ? `<button class="btn" style="margin-top:14px" onclick="revivePet(${p.id})">✨ Tiriltirish (${p.revive_cost} coin)</button>` : ''}
+        ${p.status === 'dead' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="discardPet(${p.id})">🗑 Tiriltirmasdan o'chirish</button>` : ''}
+        ${p.status !== 'dead' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="sellPet(${p.id})">💰 Saytga sotish (${p.sell_price} coin)</button>` : ''}
       `;
       openPage('Mening hayvonim', closeModal);
     }
@@ -1896,7 +1905,7 @@
       closeModal();
       const msg = data.leveled_up
         ? `🎉 Level oshdi! Endi LV ${data.new_level}`
-        : (data.satisfied_hunger ? "Pet to'ydi! 🍖" : "XP qo'shildi, lekin to'liq to'ymadi");
+        : (data.satisfied_hunger ? "Pet to'ydi! 🍖" : `Ochlik ${data.hunger_restored_percent}% ga tiklandi 🍖`);
       showToast(msg);
       loadMyPets();
       loadInventory();
@@ -1913,6 +1922,43 @@
       loadMyPets();
     }
 
+    async function revivePet(petId) {
+      const p = myPetsCache.find(x => x.id === petId);
+      if (!p || !confirm(`${p.name || p.pet_name} ni ${p.revive_cost} coin evaziga tiriltirasizmi?`)) return;
+      const res = await fetch(`${API_BASE}/api/pets/${petId}/revive`, { method: 'POST', credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
+      currentUser.coin_balance = data.coin_balance;
+      updateCoinBadge();
+      closeModal();
+      showToast('Pet tirildi! ✨');
+      loadMyPets();
+    }
+
+    async function discardPet(petId) {
+      const p = myPetsCache.find(x => x.id === petId);
+      if (!p || !confirm(`${p.name || p.pet_name} butunlay o'chiriladi va uni qayta tiriltirib bo'lmaydi. Davom etasizmi?`)) return;
+      const res = await fetch(`${API_BASE}/api/pets/${petId}/discard`, { method: 'POST', credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
+      closeModal();
+      showToast("Pet o'chirildi");
+      loadMyPets();
+    }
+
+    async function sellPet(petId) {
+      const p = myPetsCache.find(x => x.id === petId);
+      if (!p || !confirm(`${p.name || p.pet_name} (LV ${p.level}) ni ${p.sell_price} coin evaziga saytga sotasizmi? Bu amalni qaytarib bo'lmaydi.`)) return;
+      const res = await fetch(`${API_BASE}/api/pets/${petId}/sell`, { method: 'POST', credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
+      currentUser.coin_balance = data.coin_balance;
+      updateCoinBadge();
+      closeModal();
+      showToast(`Pet sotildi: +${data.sold_for} coin 💰`);
+      loadMyPets();
+    }
+
     async function loadPetShop() {
       const el = document.getElementById('petShopGrid');
       el.innerHTML = '<div class="empty-msg">Yuklanmoqda...</div>';
@@ -1922,15 +1968,54 @@
         el.innerHTML = '<div class="empty-msg">Hozircha pet turlari yo\'q</div>';
         return;
       }
+      petShopCache = types;
       el.innerHTML = types.map(t => `
         <div class="gift-card">
           ${giftImg({ image_url: t.image_url, name: t.name })}
           <div class="gift-name">${t.name}</div>
           <div class="gift-qty">${t.stock === null ? 'Cheksiz' : 'Qoldi: ' + t.stock}</div>
           <div class="gift-price">🪙 ${t.price}</div>
-          <button class="btn" onclick="buyPet(${t.id})">Sotib olish</button>
+          <button class="btn" onclick="openPetPreview(${t.id})">Ko'rish</button>
         </div>
       `).join('');
+    }
+
+    let petShopCache = [];
+
+    // Sotib olishdan oldin pet nima berishini ko'rsatadigan oyna
+    function openPetPreview(typeId) {
+      const t = petShopCache.find(x => x.id === typeId);
+      if (!t) return;
+      const r = t.rules;
+      const enough = currentUser && currentUser.coin_balance >= t.price;
+      const row = (name, val) => `<div class="case-item-row"><div class="ci-name">${name}</div><div class="ci-chance" style="font-size:12px; text-align:right;">${val}</div></div>`;
+
+      document.getElementById('modalBody').innerHTML = `
+        <div style="text-align:center; margin-bottom:10px;">
+          ${t.image_url ? `<img src="${t.image_url}" alt="${t.name}" style="width:96px;height:96px;border-radius:18px;object-fit:cover;">` : `<div class="gift-img-fallback">🐾</div>`}
+        </div>
+        <div class="modal-title" style="text-align:center;">${t.name}</div>
+        <div class="modal-sub" style="text-align:center;">${t.stock === null ? 'Cheksiz' : 'Shopda qoldi: ' + t.stock}</div>
+
+        <div class="modal-sub" style="margin:4px 0 6px; font-weight:700;">Nima beradi</div>
+        ${row('Daromad (LV 1)', `🪙 ${t.coin_per_3h} / 3 soat (≈ ${t.coin_per_day} / kun)`)}
+        ${row('LV bonusi', `har LV +${r.level_bonus_per_level_percent}%, eng ko'pi +${r.max_level_bonus_percent}% (LV ${r.bonus_cap_level} da). Maksimal daromad: 🪙 ${t.max_coin_per_3h} / 3 soat`)}
+
+        <div class="modal-sub" style="margin:14px 0 6px; font-weight:700;">Parvarish</div>
+        ${row("To'yish uchun XP", `${t.lv1_required_feed_xp} (har LV da biroz kamayadi). XP = gift narxi ÷ 10`)}
+        ${row('1 LV uchun XP', `${t.xp_per_level}`)}
+        ${row('Ovqatlantirmasangiz', `${r.hungry_after_hours} soatdan keyin och (daromad ${r.hungry_income_percent}%), ${r.sick_after_hours} soatdan keyin kasal (daromad yo'q), ${r.death_after_hours} soatdan keyin o'ladi`)}
+        ${row('Davolash narxi', `🪙 ${t.heal_cost}`)}
+        ${row('Tiriltirish', `🪙 ${t.revive_cost} (o'lgandan keyin ${r.revive_days} kun ichida)`)}
+
+        <div class="modal-sub" style="margin:14px 0 6px; font-weight:700;">Qayta sotish va limit</div>
+        ${row('Saytga sotish narxi', `🪙 ${t.sell_price_lv1} (LV 1). LV ${r.bonus_cap_level} dan keyin oshadi, eng ko'pi 🪙 ${t.sell_price_max}`)}
+        ${row('Limit', `Bir vaqtda ko'pi bilan ${r.max_pets} ta tirik pet`)}
+
+        <button class="btn" style="margin-top:16px" ${enough ? '' : 'disabled'} onclick="buyPet(${t.id})">Sotib olish — 🪙 ${t.price}</button>
+        ${enough ? '' : `<div style="font-size:12px; color:var(--muted); margin-top:8px; text-align:center;">Balansingiz yetarli emas (sizda 🪙 ${currentUser ? currentUser.coin_balance : 0})</div>`}
+      `;
+      openModal();
     }
 
     async function buyPet(typeId) {
@@ -1942,6 +2027,7 @@
         if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
         currentUser.coin_balance = data.coin_balance;
         updateCoinBadge();
+        closeModal();
         showToast('Pet sotib olindi! 🐾');
         loadMyPets();
         loadPetShop();
