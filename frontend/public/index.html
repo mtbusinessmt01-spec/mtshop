@@ -275,8 +275,8 @@
   /* ---- Modal ---- */
   .modal-overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(2px);
+    /* DIQQAT: bu yerda backdrop-filter bo'lmasligi kerak, aks holda oynaning blur effekti ishlamaydi */
+    background: rgba(0,0,0,0.32);
     display: none;
     align-items: flex-end;
     justify-content: center;
@@ -291,16 +291,17 @@
     margin-bottom: calc(14px + env(safe-area-inset-bottom));
   }
   .modal-box {
-    background: rgba(23,26,33,0.85);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    /* Shisha (blur) effekti: orqadagi sahifa xiralashib ko'rinadi */
+    background: rgba(30,33,43,0.50);
+    backdrop-filter: blur(30px) saturate(170%);
+    -webkit-backdrop-filter: blur(30px) saturate(170%);
     width: 100%;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.16);
     border-radius: 24px;
     padding: 34px 20px 22px;   /* tepada tutqich uchun joy */
     max-height: 82vh;
     overflow-y: auto;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.14);
     animation: slideUp 0.25s ease-out;
   }
   @keyframes slideUp {
