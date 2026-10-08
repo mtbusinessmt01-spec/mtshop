@@ -7,14 +7,32 @@ const { authMiddleware, adminMiddleware } = require('../auth');
 const trades = require('../trades');
 const profileSvc = require('../profile');
 
+const security = require('../security');
+
 const router = express.Router();
 
 // Barcha foydalanuvchilar ro'yxati
 router.get('/admin/users', authMiddleware, adminMiddleware, async (req, res) => {
   const users = await db.prepare(
-    'SELECT id, username, coin_balance, is_admin, is_blocked, status_image_url, created_at FROM users ORDER BY created_at DESC'
+    'SELECT id, username, coin_balance, is_admin, is_blocked, status_image_url, created_at, pin_hash, frozen, frozen_until FROM users ORDER BY created_at DESC'
   ).all();
-  res.json(users);
+  // pin_hash tashqariga chiqmaydi — faqat PIN o'rnatilgan-o'rnatilmagani
+  res.json(users.map(({ pin_hash, frozen, frozen_until, ...u }) => ({
+    ...u, has_pin: !!pin_hash, frozen: security.isFrozenRow({ frozen, frozen_until }),
+  })));
+});
+
+// Admin: foydalanuvchi xavfsizligini tiklash (PIN va parolni unutgan, hisob muzlatilgan va h.k.)
+router.post('/admin/users/:id/security', authMiddleware, adminMiddleware, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const user = await db.prepare('SELECT id FROM users WHERE id = ?').get(id);
+  if (!user) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
+  const { action } = req.body || {};
+  if (action === 'reset_pin') await security.clearPin(id);
+  else if (action === 'unfreeze') await security.unfreeze(id);
+  else if (action === 'logout_all') await security.revokeOthers(id, null);
+  else return res.status(400).json({ error: "Noto'g'ri amal" });
+  res.json({ ok: true });
 });
 
 // Yangi hisob yaratish (register yo'q, faqat admin yaratadi)
@@ -138,6 +156,9 @@ router.delete('/admin/users/:id', authMiddleware, adminMiddleware, async (req, r
     await db.prepare('DELETE FROM user_pets WHERE user_id = ?').run(id);
     await db.prepare('DELETE FROM push_subscriptions WHERE user_id = ?').run(id);
     await db.prepare('DELETE FROM notification_log WHERE user_id = ?').run(id);
+    // 007 (xavfsizlik) jadvallari users(id) ga bog'langan — avval tozalanadi
+    await db.prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
+    await db.prepare('DELETE FROM login_history WHERE user_id = ?').run(id);
     await db.prepare('DELETE FROM guarantor_overdues WHERE borrower_id = ? OR guarantor_id = ?').run(id, id);
     await db.prepare(`
       DELETE FROM credit_payments WHERE user_credit_id IN (SELECT id FROM user_credits WHERE user_id = ?)

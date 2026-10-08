@@ -3,6 +3,8 @@ const express = require('express');
 const db = require('../db');
 const trades = require('../trades');
 const { authMiddleware, adminMiddleware } = require('../auth');
+const security = require('../security');
+const { requirePin, requireNotFrozen } = security;
 
 const router = express.Router();
 const { TradeError } = trades;
@@ -61,7 +63,15 @@ router.get('/trades/available-gifts', authMiddleware, h(async (req, res) => {
 }));
 
 // Trade Request yuborish (oldindan gift/coin tanlash shart emas)
-router.post('/trades/request', authMiddleware, h(async (req, res) => {
+router.post('/trades/request', authMiddleware, requireNotFrozen, h(async (req, res) => {
+  // Sherik hisobini muzlatgan bo'lsa unga trade so'rovi yuborib bo'lmaydi
+  const uname = req.body && req.body.username;
+  if (uname) {
+    const target = await db.prepare('SELECT frozen, frozen_until FROM users WHERE username = ?').get(uname);
+    if (security.isFrozenRow(target)) {
+      throw new TradeError(403, "Bu foydalanuvchi trade va transferni vaqtincha o'chirib qo'ygan", { target_frozen: true });
+    }
+  }
   res.json(await trades.createRequest(req.user.id, req.body && req.body.username));
 }));
 
@@ -70,7 +80,7 @@ router.get('/trades/:id', authMiddleware, h(async (req, res) => {
   res.json(await trades.viewTrade(req.user.id, req.params.id, req.query.after));
 }));
 
-router.post('/trades/:id/accept', authMiddleware, h(async (req, res) => {
+router.post('/trades/:id/accept', authMiddleware, requireNotFrozen, h(async (req, res) => {
   res.json(await trades.acceptRequest(req.user.id, req.params.id));
 }));
 
@@ -106,7 +116,7 @@ router.post('/trades/:id/unlock', authMiddleware, h(async (req, res) => {
   res.json(await trades.unlockOffer(req.user.id, req.params.id));
 }));
 
-router.post('/trades/:id/confirm', authMiddleware, h(async (req, res) => {
+router.post('/trades/:id/confirm', authMiddleware, requireNotFrozen, requirePin, h(async (req, res) => {
   res.json(await trades.confirmTrade(req.user.id, req.params.id));
 }));
 

@@ -640,8 +640,9 @@
             <div class="u-name">@${u.username}
               ${u.is_admin ? '<span class="badge admin">ADMIN</span>' : ''}
               ${u.is_blocked ? '<span class="badge blocked">BLOK</span>' : ''}
+              ${u.frozen ? '<span class="badge blocked" style="background:rgba(125,211,252,.18);color:#7dd3fc">❄️ MUZLATILGAN</span>' : ''}
             </div>
-            <div class="u-meta">🪙 ${u.coin_balance} coin</div>
+            <div class="u-meta">🪙 ${u.coin_balance} coin · ${u.has_pin ? '🔐 PIN bor' : 'PIN yo\'q'}</div>
           </div>
           <div class="coin-mini">
             <input type="number" id="coinAmt_${u.id}" placeholder="miqdor" min="0" step="0.01">
@@ -649,6 +650,9 @@
             <button class="btn-take" onclick="giveTakeCoin(${u.id}, 'take')">− Olish</button>
           </div>
           <button class="btn-secondary" onclick="editUser(${u.id})">Tahrirlash</button>
+          ${u.has_pin ? `<button class="btn-secondary" title="Foydalanuvchi PIN'ni unutgan bo'lsa" onclick="adminSecurity(${u.id}, 'reset_pin')">🔐 PIN'ni tiklash</button>` : ''}
+          ${u.frozen ? `<button class="btn-secondary" onclick="adminSecurity(${u.id}, 'unfreeze')">❄️ Muzlatishni yechish</button>` : ''}
+          <button class="btn-secondary" title="Barcha qurilmalardan chiqarish" onclick="adminSecurity(${u.id}, 'logout_all')">📵 Hamma qurilmadan chiqarish</button>
           <button class="btn-danger" onclick="deleteUser(${u.id})">O'chirish</button>
           <label class="status-drop" id="statusDrop_${u.id}" title="Status rasm (bosing yoki tashlang)">
             🏷️
@@ -727,6 +731,25 @@
     }
 
     document.getElementById('userCancelEdit').addEventListener('click', resetUserForm);
+
+    const ADMIN_SECURITY_CONFIRM = {
+      reset_pin: "Foydalanuvchining tranzaksiya PIN'i o'chiriladi. Davom etasizmi?",
+      unfreeze: "Hisob muzlatilishi olib tashlanadi. Davom etasizmi?",
+      logout_all: "Foydalanuvchi barcha qurilmalardan chiqariladi (qayta kirishi kerak). Davom etasizmi?",
+    };
+
+    async function adminSecurity(id, action) {
+      if (!confirm(ADMIN_SECURITY_CONFIRM[action])) return;
+      const res = await fetch(`${API_BASE}/api/admin/users/${id}/security`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showAdminToast(data.error || 'Xatolik'); return; }
+      showAdminToast('Bajarildi ✅');
+      loadUsers();
+    }
 
     async function deleteUser(id) {
       if (!confirm("Rostdan o'chirilsinmi?")) return;

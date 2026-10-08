@@ -318,48 +318,6 @@
     color: #171a21; font-size: 16px; font-weight: 700; cursor: pointer;
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   }
-  /* ---- To'liq ekran sahifa rejimi (Profile edit, Promokod, Mening kreditim, Mening hayvonim) ---- */
-  .page-head { display: none; }
-  .modal-overlay.page {
-    padding: 0; align-items: stretch; justify-content: stretch;
-    background: var(--bg);
-    backdrop-filter: none; -webkit-backdrop-filter: none;
-  }
-  .modal-overlay.page .modal-wrap { max-width: none; margin: 0; height: 100%; }
-  .modal-overlay.page .modal-box {
-    max-height: none; height: 100%;
-    border-radius: 0; border: none; box-shadow: none;
-    background: var(--bg);
-    backdrop-filter: none; -webkit-backdrop-filter: none;
-    padding: calc(84px + env(safe-area-inset-top)) 18px calc(32px + env(safe-area-inset-bottom));
-    animation: pageIn 0.25s ease-out;
-  }
-  .modal-overlay.page #modalBody { max-width: 560px; margin: 0 auto; }
-  .modal-overlay.page .modal-title { margin-bottom: 12px; }
-  .modal-overlay.page .modal-close,
-  .modal-overlay.page .btn-back { display: none; }
-  .modal-overlay.page .page-head {
-    display: block;
-    position: absolute; top: 0; left: 0; right: 0; z-index: 3;
-    padding: calc(14px + env(safe-area-inset-top)) 16px 30px;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.72), rgba(0,0,0,0));
-    pointer-events: none;
-  }
-  .page-head-inner { max-width: 560px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
-  .page-back {
-    pointer-events: auto;
-    width: 40px; height: 40px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    background: #f1f2f6; border: none; border-radius: 50%;
-    color: #171a21; cursor: pointer;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
-  }
-  .page-head-title { flex: 1; text-align: center; font-size: 17px; font-weight: 800; }
-  .page-head-spacer { width: 40px; flex-shrink: 0; }
-  @keyframes pageIn {
-    from { transform: translateX(24px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-  }
   .case-item-row {
     display: flex; align-items: center; gap: 12px;
     background: #1f232e; padding: 10px; border-radius: 12px; margin-bottom: 8px;
@@ -701,6 +659,29 @@
     nav#bottomNav .nav-liquid-indicator { transition-duration: 1ms !important; }
   }
 
+
+  /* ===== Xavfsizlik bo'limi ===== */
+  .sec-card { text-align: left; padding: 16px; margin-bottom: 10px; }
+  .sec-status { font-weight: 800; margin-bottom: 6px; }
+  .sec-status.on { color: #4ade80; }
+  .sec-status.off { color: #ffd166; }
+  .sec-status.frozen { color: #7dd3fc; }
+  .sec-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: rgba(124,92,255,0.22); color: var(--accent-2); margin-left: 6px; vertical-align: middle; }
+  .sec-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .sec-row:last-child { border-bottom: none; }
+  .sec-ico { font-size: 18px; line-height: 1.2; }
+  .sec-dev { font-weight: 700; font-size: 14px; }
+  .sec-tag { font-size: 11px; font-weight: 700; margin-left: 6px; }
+  .sec-tag.bad { color: #ff6b6b; }
+  .sec-tag.warn { color: #ffd166; }
+  .sec-small { padding: 8px 12px; font-size: 13px; margin-top: 8px; }
+  .sec-opt { margin-top: 8px; }
+  #pinOverlay { z-index: 1200; }
+  .pin-input { text-align: center; font-size: 26px; letter-spacing: 12px; padding: 12px; }
+  .pin-msg { text-align: center; }
+  .pin-msg.err { color: #ff6b6b; }
+  .more-sheet.open .more-item:nth-child(6) { animation-delay: 320ms; }
 </style>
 </head>
 <body>
@@ -739,6 +720,7 @@
         <button class="more-item" data-tab="kreditlar"><span class="more-icon">💳</span><span><b>Kreditlar</b><small>Kredit va kafil so‘rovlari</small></span></button>
         <button class="more-item" data-tab="trade"><span class="more-icon">🔄</span><span><b>Trade</b><small>Do‘st bilan gift almashish</small></span></button>
         <button class="more-item" data-tab="profils"><span class="more-icon">👤</span><span><b>Profils</b><small>Profil va hisob</small></span></button>
+        <button class="more-item" data-tab="xavfsizlik"><span class="more-icon">🔐</span><span><b>Xavfsizlik</b><small>PIN, qurilmalar, kirish tarixi</small></span></button>
       </div>
     </section>
   </div>
@@ -746,15 +728,6 @@
   <div id="eventWallpaper"></div>
 
   <div class="modal-overlay" id="modalOverlay">
-    <div class="page-head">
-      <div class="page-head-inner">
-        <button class="page-back" onclick="pageBack()" aria-label="Orqaga">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 5 8 12 15 19"></polyline></svg>
-        </button>
-        <div class="page-head-title" id="pageHeadTitle"></div>
-        <div class="page-head-spacer"></div>
-      </div>
-    </div>
     <div class="modal-wrap">
       <button class="modal-close" onclick="closeModal()">✕</button>
       <div class="modal-box">
@@ -765,6 +738,97 @@
 
   <script src="config.js"></script>
   <script>
+    // ===== Tranzaksiya PIN =====
+    // Server "pin_required" desa, PIN so'raladi va so'rov o'sha PIN bilan avtomatik qayta yuboriladi.
+    // Shu sababli yuborish, trade tasdiqlash va gift sotish kodiga tegish shart emas.
+    const _origFetch = window.fetch.bind(window);
+
+    function pinOverlayEl() {
+      let ov = document.getElementById('pinOverlay');
+      if (!ov) {
+        ov = document.createElement('div');
+        ov.id = 'pinOverlay';
+        ov.className = 'modal-overlay';
+        document.body.appendChild(ov);
+      }
+      return ov;
+    }
+
+    function closePinPrompt() {
+      const ov = document.getElementById('pinOverlay');
+      if (ov) { ov.classList.remove('open'); ov.innerHTML = ''; }
+    }
+
+    // PIN kiritilsa — satr, bekor qilinsa — null
+    function askPin(message, isError) {
+      return new Promise((resolve) => {
+        const ov = pinOverlayEl();
+        ov.innerHTML = `
+          <div class="modal-wrap">
+            <button class="modal-close" id="pinCancelX" type="button">✕</button>
+            <div class="modal-box">
+              <div class="modal-title" style="text-align:center;">🔐 Tranzaksiya PIN</div>
+              <div class="modal-sub pin-msg ${isError ? 'err' : ''}" id="pinMsg"></div>
+              <input id="pinInput" class="send-input pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="••••">
+              <button class="btn" id="pinOk" style="margin-top:14px" disabled>Tasdiqlash</button>
+            </div>
+          </div>`;
+        document.getElementById('pinMsg').textContent = message || 'Davom etish uchun PIN kodingizni kiriting';
+        ov.classList.add('open');
+        const input = document.getElementById('pinInput');
+        const ok = document.getElementById('pinOk');
+        input.addEventListener('input', () => {
+          input.value = input.value.replace(/\D/g, '').slice(0, 6);
+          ok.disabled = input.value.length < 4;
+        });
+        const done = (v) => { resolve(v); };
+        ok.addEventListener('click', () => { if (input.value.length >= 4) done(input.value); });
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && input.value.length >= 4) done(input.value); });
+        document.getElementById('pinCancelX').addEventListener('click', () => done(null));
+        setTimeout(() => input.focus(), 50);
+      });
+    }
+
+    window.fetch = async function (url, opts) {
+      let res = await _origFetch(url, opts);
+      const isApi = typeof url === 'string' && url.indexOf('/api/') !== -1;
+      if (!isApi || (res.status !== 401 && res.status !== 403)) return res;
+
+      let data = null;
+      try { data = await res.clone().json(); } catch (e) { return res; }
+
+      // Boshqa qurilmadan chiqarilgan sessiya: login sahifasiga
+      if (res.status === 401 && data && data.session_revoked && !/\/api\/auth\//.test(url)) {
+        if (!window.__sessionRevokedHandled) {
+          window.__sessionRevokedHandled = true;
+          alert('Bu qurilmadan chiqarildingiz. Qayta kiring.');
+          window.location.href = 'login.html';
+        }
+        return res;
+      }
+
+      if (!(res.status === 403 && data && data.pin_required)) return res;
+
+      let message = data.error === 'Tranzaksiya PIN kodi kerak' ? '' : data.error;
+      let isErr = !!data.pin_invalid;
+      for (;;) {
+        const pin = await askPin(message, isErr);
+        if (pin === null) {
+          closePinPrompt();
+          return new Response(JSON.stringify({ error: 'PIN kiritilmadi, amal bekor qilindi' }), {
+            status: 403, headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        const headers = new Headers((opts && opts.headers) || {});
+        headers.set('X-Tx-Pin', pin);
+        res = await _origFetch(url, { ...(opts || {}), headers });
+        if (res.status !== 403) { closePinPrompt(); return res; }   // 200, 429 (bloklandi) va h.k.
+        try { data = await res.clone().json(); } catch (e) { closePinPrompt(); return res; }
+        if (!data.pin_required) { closePinPrompt(); return res; }
+        message = data.error; isErr = true;
+      }
+    };
+
     let currentUser = null;
     let actionInProgress = false; // tugmani ketma-ket tez-tez bosishning oldini olish uchun
 
@@ -856,6 +920,8 @@
         renderTradeHome(main);
       } else if (tab === 'profils') {
         renderProfil(main);
+      } else if (tab === 'xavfsizlik') {
+        renderXavfsizlik(main);
       }
     }
 
@@ -935,7 +1001,7 @@
 
         ${c.status === 'active' ? `<button class="btn" style="margin-top:14px" onclick="openPayChoice(${c.id})">To'lash</button>` : ''}
       `;
-      openPage('Mening kreditim', closeModal);
+      openModal();
     }
 
     function openPayChoice(creditId) {
@@ -956,7 +1022,6 @@
         </div>
         <button class="btn-back" onclick="openCreditDetail(${c.id})">&larr; Orqaga</button>
       `;
-      openPage("To'lov usuli", () => openCreditDetail(c.id));
     }
 
     async function payScheduled(creditId) {
@@ -998,7 +1063,6 @@
           <button class="btn" style="margin-top:14px" onclick="closeModal(); loadMyCredits();">Yopish</button>
         </div>
       `;
-      openPage("To'lov", () => { closeModal(); loadMyCredits(); });
     }
 
     async function loadCreditTypesForUser() {
@@ -1806,7 +1870,7 @@
         ${p.status === 'dead' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="discardPet(${p.id})">🗑 Tiriltirmasdan o'chirish</button>` : ''}
         ${p.status !== 'dead' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="sellPet(${p.id})">💰 Saytga sotish (${p.sell_price} coin)</button>` : ''}
       `;
-      openPage('Mening hayvonim', closeModal);
+      openModal();
     }
 
     async function editPetNameInline(petId) {
@@ -1827,7 +1891,7 @@
 
     async function openFeedModal(petId) {
       document.getElementById('modalBody').innerHTML = `<div class="modal-title">Yuklanmoqda...</div>`;
-      openPage('Ovqatlantirish', () => openPetStats(petId));
+      openModal();
       const res = await fetch(`${API_BASE}/api/inventory/gifts`, { credentials: 'include' });
       const myGifts = (await res.json()).filter(g => !g.trade_id);   // Trade'da band giftlar yedirilmaydi
 
@@ -1881,7 +1945,6 @@
         <button class="btn-back" onclick="openFeedModal(${petId})">&larr; Orqaga</button>
       `;
       window.__feedUnitXp = g.current_price / 10;
-      openPage('Ovqatlantirish', () => openFeedModal(petId));
     }
 
     function changeFeedQty(delta, maxQty) {
@@ -2141,6 +2204,219 @@
       }
     }
 
+
+    // ===================== XAVFSIZLIK =====================
+    let secStatus = { has_pin: false, frozen: false };
+
+    function secDateTime(iso) {
+      const d = new Date(iso); const p = (n) => String(n).padStart(2, '0');
+      return `${d.getDate()}-${UZ_MONTHS[d.getMonth()]} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    }
+    function secTimeAgo(iso) {
+      const sec = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+      if (sec < 60) return 'hozirgina';
+      if (sec < 3600) return `${Math.floor(sec / 60)} daqiqa oldin`;
+      if (sec < 86400) return `${Math.floor(sec / 3600)} soat oldin`;
+      if (sec < 86400 * 7) return `${Math.floor(sec / 86400)} kun oldin`;
+      return secDateTime(iso);
+    }
+    async function secApi(method, path, body) {
+      const opts = { method, credentials: 'include' };
+      if (body !== undefined) { opts.headers = { 'Content-Type': 'application/json' }; opts.body = JSON.stringify(body); }
+      try {
+        const res = await fetch(`${API_BASE}/api/security${path}`, opts);
+        let data = {}; try { data = await res.json(); } catch (e) {}
+        return { ok: res.ok, data };
+      } catch (e) {
+        return { ok: false, data: { error: "Tarmoq xatosi. Qayta urinib ko'ring." } };
+      }
+    }
+
+    function renderXavfsizlik(main) {
+      main.innerHTML = `
+        <div class="page-title">Xavfsizlik</div>
+        <div class="page-sub">Hisobingiz va coinlaringizni himoya qiling.</div>
+        <div id="secPinCard"></div>
+        <div id="secFreezeCard"></div>
+        <div class="section-title" style="margin-top:24px">📱 Faol qurilmalar</div>
+        <div id="secSessions"><div class="empty-msg">Yuklanmoqda...</div></div>
+        <div class="section-title" style="margin-top:24px">🕘 Kirish tarixi</div>
+        <div id="secLogins"><div class="empty-msg">Yuklanmoqda...</div></div>
+      `;
+      loadSecurityPage();
+    }
+
+    async function loadSecurityPage() {
+      const [st, ss, lg] = await Promise.all([secApi('GET', '/status'), secApi('GET', '/sessions'), secApi('GET', '/logins')]);
+      if (!document.getElementById('secPinCard')) return;   // foydalanuvchi boshqa bo'limga o'tib ketgan
+      if (st.ok) { secStatus = st.data; renderSecPinCard(); renderSecFreezeCard(); }
+      renderSecSessions(ss.ok ? ss.data : null);
+      renderSecLogins(lg.ok ? lg.data : null);
+    }
+
+    function renderSecPinCard() {
+      const st = secStatus, el = document.getElementById('secPinCard');
+      if (!el) return;
+      el.innerHTML = `
+        <div class="section-title">🔐 Tranzaksiya PIN</div>
+        <div class="gift-card sec-card">
+          <div class="sec-status ${st.has_pin ? 'on' : 'off'}">${st.has_pin ? "✅ PIN o'rnatilgan" : "⚠️ PIN o'rnatilmagan"}</div>
+          <div class="modal-sub" style="margin-bottom:12px;">Coin, gift va case yuborishda, trade'ni tasdiqlashda va giftni sotishda so'raladi. Telefoningiz birovning qo'liga tushsa ham coinlaringiz o'g'irlanmaydi.</div>
+          ${st.pin_locked_until ? `<div class="msg error" style="margin:0 0 10px;">PIN ko'p marta xato kiritilgani uchun ${secDateTime(st.pin_locked_until)} gacha bloklangan</div>` : ''}
+          <button class="btn" onclick="openPinSetup()">${st.has_pin ? "PINni o'zgartirish" : "PIN o'rnatish"}</button>
+          ${st.has_pin ? `<button class="btn secondary" style="margin-top:8px" onclick="openPinRemove()">PINni o'chirish</button>` : ''}
+        </div>`;
+    }
+
+    function renderSecFreezeCard() {
+      const st = secStatus, el = document.getElementById('secFreezeCard');
+      if (!el) return;
+      el.innerHTML = st.frozen ? `
+        <div class="section-title" style="margin-top:20px">❄️ Hisobni muzlatish</div>
+        <div class="gift-card sec-card">
+          <div class="sec-status frozen">❄️ Hisobingiz muzlatilgan</div>
+          <div class="modal-sub" style="margin-bottom:12px;">Transfer va trade o'chirilgan. ${st.frozen_until ? `Avtomatik ochilish: ${secDateTime(st.frozen_until)}.` : "Siz o'zingiz yoqmaguningizcha o'chiq turadi."}</div>
+          <button class="btn good" onclick="secUnfreeze()">Muzlatishni olib tashlash</button>
+        </div>` : `
+        <div class="section-title" style="margin-top:20px">❄️ Hisobni muzlatish</div>
+        <div class="gift-card sec-card">
+          <div class="sec-status on">Transfer va trade yoqilgan</div>
+          <div class="modal-sub" style="margin-bottom:12px;">Telefoningizni yo'qotsangiz yoki hisobingizga shubha bo'lsa, transfer va trade'ni vaqtincha o'chirib qo'ying. Coin va giftlaringiz joyida qoladi.</div>
+          <button class="btn secondary" onclick="openFreezeModal()">❄️ Hisobni muzlatish</button>
+        </div>`;
+    }
+
+    function renderSecSessions(list) {
+      const el = document.getElementById('secSessions');
+      if (!el) return;
+      if (!list) { el.innerHTML = '<div class="empty-msg">Yuklab bo\'lmadi</div>'; return; }
+      const others = list.filter(s => !s.current);
+      el.innerHTML = list.map(s => `
+        <div class="gift-card sec-card" style="margin-bottom:8px;">
+          <div class="sec-dev">${esc(s.device)}${s.current ? '<span class="sec-badge">Shu qurilma</span>' : ''}</div>
+          <div class="send-hint">IP: ${esc(s.ip || '—')} · Kirgan: ${secDateTime(s.created_at)}<br>Oxirgi faollik: ${secTimeAgo(s.last_seen_at)}</div>
+          ${s.current || !/^[0-9a-f]{32}$/.test(s.id) ? '' : `<button class="btn secondary sec-small" onclick="secRevoke('${s.id}')">Bu qurilmadan chiqarish</button>`}
+        </div>`).join('') + (others.length
+          ? `<button class="btn danger" style="margin-top:6px" onclick="secLogoutOthers()">Boshqa qurilmalardan chiqish</button>`
+          : `<div class="send-hint" style="margin-top:6px">Boshqa faol qurilma yo'q.</div>`);
+    }
+
+    function renderSecLogins(list) {
+      const el = document.getElementById('secLogins');
+      if (!el) return;
+      if (!list) { el.innerHTML = '<div class="empty-msg">Yuklab bo\'lmadi</div>'; return; }
+      if (!list.length) { el.innerHTML = '<div class="empty-msg">Hali yozuv yo\'q</div>'; return; }
+      el.innerHTML = `<div class="gift-card sec-card" style="padding:6px 16px;">` + list.map(l => `
+        <div class="sec-row">
+          <div class="sec-ico">${!l.success ? '❌' : (l.suspicious ? '⚠️' : '✅')}</div>
+          <div style="flex:1; min-width:0;">
+            <div class="sec-dev">${esc(l.device)}${!l.success ? '<span class="sec-tag bad">Noto\'g\'ri parol</span>' : (l.suspicious ? '<span class="sec-tag warn">Yangi qurilma</span>' : '')}</div>
+            <div class="send-hint" style="margin-top:2px;">IP: ${esc(l.ip || '—')} · ${secDateTime(l.created_at)}</div>
+          </div>
+        </div>`).join('') + `</div>`;
+    }
+
+    function openPinSetup() {
+      const has = secStatus.has_pin;
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">🔐 PIN ${has ? "o'zgartirish" : "o'rnatish"}</div>
+        <div class="modal-sub">4 dan 6 gacha raqam. Tasdiqlash uchun hisob parolingiz kerak.</div>
+        <label class="send-hint">Hisob paroli</label>
+        <input type="password" id="secPw" class="send-input" autocomplete="current-password">
+        <label class="send-hint" style="display:block; margin-top:10px;">${has ? 'Yangi PIN' : 'PIN'} (4–6 raqam)</label>
+        <input type="password" id="secPin1" class="send-input" inputmode="numeric" maxlength="6" autocomplete="off">
+        <label class="send-hint" style="display:block; margin-top:10px;">PINni takrorlang</label>
+        <input type="password" id="secPin2" class="send-input" inputmode="numeric" maxlength="6" autocomplete="off">
+        <div class="msg error" id="secPinErr"></div>
+        <button class="btn" id="secPinSave" style="margin-top:14px">Saqlash</button>
+      `;
+      openModal();
+      ['secPin1', 'secPin2'].forEach(id => document.getElementById(id).addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+      }));
+      document.getElementById('secPinSave').addEventListener('click', async (e) => {
+        const err = document.getElementById('secPinErr');
+        const pw = document.getElementById('secPw').value;
+        const p1 = document.getElementById('secPin1').value, p2 = document.getElementById('secPin2').value;
+        if (!pw) { err.textContent = 'Hisob parolini kiriting'; return; }
+        if (!/^\d{4,6}$/.test(p1)) { err.textContent = "PIN 4 dan 6 gacha raqamdan iborat bo'lishi kerak"; return; }
+        if (p1 !== p2) { err.textContent = 'PIN va takrori bir xil emas'; return; }
+        const b = e.currentTarget; b.disabled = true;
+        const r = await secApi('POST', '/pin', { password: pw, pin: p1 });
+        b.disabled = false;
+        if (!r.ok) { err.textContent = r.data.error || 'Xatolik'; return; }
+        closeModal();
+        showToast("PIN saqlandi 🔐");
+        loadSecurityPage();
+      });
+    }
+
+    function openPinRemove() {
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">PINni o'chirish</div>
+        <div class="modal-sub">PIN o'chirilsa, coin va giftlaringiz himoyasiz qoladi. Tasdiqlash uchun hisob parolingiz kerak.</div>
+        <input type="password" id="secPw" class="send-input" placeholder="Hisob paroli" autocomplete="current-password">
+        <div class="msg error" id="secPinErr"></div>
+        <button class="btn danger" id="secPinDel" style="margin-top:14px">PINni o'chirish</button>
+      `;
+      openModal();
+      document.getElementById('secPinDel').addEventListener('click', async (e) => {
+        const err = document.getElementById('secPinErr');
+        const pw = document.getElementById('secPw').value;
+        if (!pw) { err.textContent = 'Hisob parolini kiriting'; return; }
+        const b = e.currentTarget; b.disabled = true;
+        const r = await secApi('POST', '/pin/remove', { password: pw });
+        b.disabled = false;
+        if (!r.ok) { err.textContent = r.data.error || 'Xatolik'; return; }
+        closeModal();
+        showToast("PIN o'chirildi");
+        loadSecurityPage();
+      });
+    }
+
+    function openFreezeModal() {
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">❄️ Hisobni muzlatish</div>
+        <div class="modal-sub">Muzlatilganda coin/gift/case yuborish va trade o'chadi. Qancha vaqtga?</div>
+        <button class="btn secondary sec-opt" onclick="secFreeze(1)">1 soat</button>
+        <button class="btn secondary sec-opt" onclick="secFreeze(24)">24 soat</button>
+        <button class="btn secondary sec-opt" onclick="secFreeze(168)">7 kun</button>
+        <button class="btn sec-opt" onclick="secFreeze(0)">Muddatsiz (o'zim yoqaman)</button>
+      `;
+      openModal();
+    }
+
+    async function secFreeze(hours) {
+      const r = await secApi('POST', '/freeze', hours ? { hours } : {});
+      if (!r.ok) { showToast(r.data.error || 'Xatolik'); return; }
+      closeModal();
+      showToast('Hisob muzlatildi ❄️');
+      loadSecurityPage();
+    }
+
+    async function secUnfreeze() {
+      const r = await secApi('POST', '/unfreeze');   // PIN o'rnatilgan bo'lsa, PIN avtomatik so'raladi
+      if (!r.ok) { showToast(r.data.error || 'Xatolik'); return; }
+      showToast("Muzlatish olib tashlandi ✅");
+      loadSecurityPage();
+    }
+
+    async function secLogoutOthers() {
+      if (!confirm("Boshqa barcha qurilmalardan chiqiladi. Davom etasizmi?")) return;
+      const r = await secApi('POST', '/sessions/logout-others');
+      if (!r.ok) { showToast(r.data.error || 'Xatolik'); return; }
+      showToast(`${r.data.revoked} ta qurilmadan chiqarildi`);
+      loadSecurityPage();
+    }
+
+    async function secRevoke(id) {
+      if (!confirm('Bu qurilmadan chiqarasizmi?')) return;
+      const r = await secApi('POST', `/sessions/${id}/revoke`);
+      if (!r.ok) { showToast(r.data.error || 'Xatolik'); return; }
+      showToast('Qurilmadan chiqarildi');
+      loadSecurityPage();
+    }
+
     function renderProfil(main) {
       const statusImg = currentUser.status_image_url
         ? `<img src="${currentUser.status_image_url}" style="width:28px;height:28px;border-radius:8px;object-fit:cover;vertical-align:middle;margin-left:6px;">`
@@ -2154,6 +2430,7 @@
         </div>
         <button class="btn" style="margin-top:14px;" onclick="openProfileEdit()">✏️ Profile edit</button>
         <button class="btn" style="margin-top:14px;" onclick="openPromo()">🎟️ Promokod</button>
+        <button class="btn" style="margin-top:14px;" onclick="renderTab('xavfsizlik')">🔐 Xavfsizlik</button>
         ${currentUser.is_admin ? `<a href="admin.html" class="admin-link">⚙️ Admin panel</a>` : ''}
         <button class="btn secondary" style="margin-top:14px;" onclick="logout()">Hisobdan chiqish</button>
 
@@ -2337,6 +2614,7 @@
     // =====================================================================
     function openPromo() {
       document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">🎟️ Promokod</div>
         <div class="modal-sub">Promokodni kiriting va mukofotni oling.</div>
         <input type="text" class="send-input" id="promoInput" placeholder="Masalan: MT2026" maxlength="32"
                autocomplete="off" autocapitalize="characters" spellcheck="false">
@@ -2344,7 +2622,7 @@
         <button class="btn" style="margin-top:14px" id="promoBtn">Faollashtirish</button>
         <button class="btn-back" onclick="closeModal()">Yopish</button>
       `;
-      openPage('Promokod', closeModal);
+      openModal();
       const inp = document.getElementById('promoInput');
       const btn = document.getElementById('promoBtn');
       const msg = document.getElementById('promoMsg');
@@ -2392,12 +2670,12 @@
         <div style="text-align:left">${rows}</div>
         <button class="btn" style="margin-top:14px" onclick="closeModal()">Zo'r!</button>
       `;
-      openPage('Promokod', closeModal);
     }
 
     // Profile edit: menyu
     function openProfileEdit() {
       document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">✏️ Profile edit</div>
         <div class="modal-sub">Profilingizni giftlar bilan bezang.</div>
         <div class="pe-menu">
           <button class="btn" id="peEmoji">😀 Add emoji status</button>
@@ -2405,7 +2683,7 @@
         </div>
         <button class="btn-back" onclick="closeModal()">Yopish</button>
       `;
-      openPage('Profile edit', closeModal);
+      openModal();
       document.getElementById('peEmoji').addEventListener('click', openEmojiStatus);
       document.getElementById('pePin').addEventListener('click', openPinGifts);
     }
@@ -2414,13 +2692,11 @@
       document.getElementById('modalBody').innerHTML = `
         <div class="modal-title">Xatolik</div><div class="modal-sub">${esc(r.data.error || '')}</div>
         <button class="btn-back" onclick="openProfileEdit()">&larr; Orqaga</button>`;
-      openPage('Profile edit', closeModal);
     }
 
     // Emoji status
     async function openEmojiStatus() {
       document.getElementById('modalBody').innerHTML = `<div class="modal-title">Yuklanmoqda...</div>`;
-      openPage('Emoji status', openProfileEdit);
       const r = await profileApi('GET', '/edit');
       if (!r.ok) return profileEditError(r);
       const d = r.data;
@@ -2437,6 +2713,7 @@
             </div>`).join('')
         : `<div class="modal-sub">Sizda narxi ${d.limits.emoji_min_price} coin va undan yuqori gift yo'q.</div>`;
       document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">😀 Emoji status</div>
         <div class="modal-sub" style="margin-bottom:0">Username yonida ko'rinadigan gift rasmi. Narxi ${d.limits.emoji_min_price} coin va undan yuqori giftlar tanlanadi.</div>
         ${cur}
         <div class="tr-pick-list">${rows}</div>
@@ -2466,7 +2743,6 @@
     // Qadalgan giftlar
     async function openPinGifts() {
       document.getElementById('modalBody').innerHTML = `<div class="modal-title">Yuklanmoqda...</div>`;
-      openPage('Gift 📌', openProfileEdit);
       const r = await profileApi('GET', '/edit');
       if (!r.ok) return profileEditError(r);
       const d = r.data;
@@ -2480,6 +2756,7 @@
             </div>`).join('')
         : `<div class="modal-sub">Hali gift qadalmagan.</div>`;
       document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">Gift 📌</div>
         <div class="modal-sub" style="margin-bottom:0">Profilingizda hamma ko'radigan giftlar (${d.pins.length}/${d.limits.pin_max}). Narxi ${d.limits.pin_min_price} coin va undan yuqori giftlar qadaladi.</div>
         <div class="tr-pick-list">${pinned}</div>
         <button class="btn" id="pePinAdd" ${full ? 'disabled' : ''}>📌 Gift qadash</button>
@@ -2507,10 +2784,10 @@
             </div>`).join('')
         : `<div class="modal-sub">Qadash uchun narxi ${d.limits.pin_min_price} coin va undan yuqori bo'sh gift yo'q.</div>`;
       document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">📌 Gift tanlang</div>
         <div class="tr-pick-list">${rows}</div>
         <button class="btn-back" onclick="openPinGifts()">&larr; Orqaga</button>
       `;
-      openPage('Gift tanlang', openPinGifts);
       document.querySelectorAll('#modalBody .tr-pick-row[data-ug]').forEach(el => {
         el.addEventListener('click', async () => {
           const rr = await profileApi('POST', '/pins', { user_gift_id: Number(el.dataset.ug) });
@@ -3245,7 +3522,7 @@
     const moreSheet = document.getElementById('moreSheet');
     const moreBackdrop = document.getElementById('moreBackdrop');
     const closeMoreButton = document.getElementById('closeMoreButton');
-    const moreTabs = new Set(['jonatmoq', 'mypet', 'kreditlar', 'trade', 'profils']);
+    const moreTabs = new Set(['jonatmoq', 'mypet', 'kreditlar', 'trade', 'profils', 'xavfsizlik']);
 
     function updateLiquidIndicator(tab) {
       const indicator = bottomNav?.querySelector('.nav-liquid-indicator');
@@ -3272,7 +3549,7 @@
     }
 
     let currentNavTab = 'shops';
-    const TAB_ORDER = { shops: 0, inventor: 1, jonatmoq: 2, mypet: 2, kreditlar: 2, trade: 2, profils: 2 };
+    const TAB_ORDER = { shops: 0, inventor: 1, jonatmoq: 2, mypet: 2, kreditlar: 2, trade: 2, profils: 2, xavfsizlik: 2 };
 
     function setMoreOpen(open) {
       // Oyna ochiq turganda pill "Yana" tugmasiga o'tib turadi, yopilganda joriy bo'limga qaytadi
@@ -3383,24 +3660,7 @@
     }
 
     function openModal() { document.getElementById('modalOverlay').classList.add('open'); }
-    function closeModal() {
-      const ov = document.getElementById('modalOverlay');
-      ov.classList.remove('open', 'page');
-      pageBackFn = null;
-    }
-
-    // To'liq ekran sahifa: tepada orqaga tugmasi va sarlavha bor.
-    // back — orqaga bosilganda nima qilish (bo'lmasa, sahifa yopiladi).
-    let pageBackFn = null;
-    function openPage(title, back) {
-      const ov = document.getElementById('modalOverlay');
-      const wasPage = ov.classList.contains('page');
-      ov.classList.add('open', 'page');
-      document.getElementById('pageHeadTitle').textContent = title;
-      pageBackFn = back || null;
-      if (!wasPage) { const box = ov.querySelector('.modal-box'); if (box) box.scrollTop = 0; }
-    }
-    function pageBack() { if (pageBackFn) pageBackFn(); else closeModal(); }
+    function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
 
     async function buyCase(caseId, fromModal) {
       if (actionInProgress) return;

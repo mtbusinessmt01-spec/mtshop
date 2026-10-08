@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const push = require('../push');
 const { authMiddleware, adminMiddleware } = require('../auth');
+const { requirePin, requireNotFrozen } = require('../security');
 
 const router = express.Router();
 
@@ -25,7 +26,7 @@ async function findUserByUsername(username) {
 // ---------- FOYDALANUVCHI: yuborish ----------
 
 // Coin yuborish — 3% komissiya bilan (100 yuborsa, 103 yechiladi)
-router.post('/transfers/coin', authMiddleware, async (req, res) => {
+router.post('/transfers/coin', authMiddleware, requireNotFrozen, requirePin, async (req, res) => {
   const { to_username, amount, is_anonymous } = req.body || {};
   const amt = parseFloat(amount);
   if (!to_username || isNaN(amt) || amt <= 0) {
@@ -62,7 +63,7 @@ router.post('/transfers/coin', authMiddleware, async (req, res) => {
 });
 
 // Gift yuborish (inventardagi bitta dona)
-router.post('/transfers/gift', authMiddleware, async (req, res) => {
+router.post('/transfers/gift', authMiddleware, requireNotFrozen, requirePin, async (req, res) => {
   const { to_username, inventory_id, is_anonymous } = req.body || {};
   if (!to_username || !inventory_id) {
     return res.status(400).json({ error: 'Username va gift tanlanishi kerak' });
@@ -101,7 +102,7 @@ router.post('/transfers/gift', authMiddleware, async (req, res) => {
 });
 
 // Case yuborish (inventardagi bitta dona, hali ochilmagan)
-router.post('/transfers/case', authMiddleware, async (req, res) => {
+router.post('/transfers/case', authMiddleware, requireNotFrozen, requirePin, async (req, res) => {
   const { to_username, inventory_id, is_anonymous } = req.body || {};
   if (!to_username || !inventory_id) {
     return res.status(400).json({ error: 'Username va case tanlanishi kerak' });

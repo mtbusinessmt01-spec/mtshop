@@ -3,6 +3,7 @@ const { upload, fileToDataUrl } = require('../imageUpload');
 
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
+const { requirePin } = require('../security');
 const { isEventItemLocked, parseEventId } = require('../eventUtil');
 
 const router = express.Router();
@@ -147,7 +148,7 @@ router.get('/inventory/gifts', authMiddleware, async (req, res) => {
 });
 
 // Orqaga sotish: joriy narxning 80%
-router.post('/inventory/gifts/:inventoryId/sell', authMiddleware, async (req, res) => {
+router.post('/inventory/gifts/:inventoryId/sell', authMiddleware, requirePin, async (req, res) => {
   const item = await db.prepare(`
     SELECT ug.*, g.price as current_price
     FROM user_gifts ug JOIN gifts g ON g.id = ug.gift_id

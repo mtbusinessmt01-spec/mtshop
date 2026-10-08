@@ -171,6 +171,13 @@ async function initDb() {
   await client.execute('CREATE INDEX IF NOT EXISTS idx_user_gifts_trade ON user_gifts(trade_id)');
   // Foydalanuvchi qaysi sayt versiyasidan foydalanayotgani (asosiy versiya — 1.2)
   await ensureColumn('users', 'app_version', "TEXT NOT NULL DEFAULT '1.2'");
+  // Xavfsizlik: tranzaksiya PIN, hisobni muzlatish, sessiyalarni bekor qilish (007)
+  await ensureColumn('users', 'pin_hash', 'TEXT');
+  await ensureColumn('users', 'pin_failed', 'INTEGER NOT NULL DEFAULT 0');
+  await ensureColumn('users', 'pin_locked_until', 'TEXT');
+  await ensureColumn('users', 'frozen', 'INTEGER NOT NULL DEFAULT 0');
+  await ensureColumn('users', 'frozen_until', 'TEXT');
+  await ensureColumn('users', 'sessions_valid_after', 'TEXT');
 
   console.log('Turso bazasi tayyor.');
 }
