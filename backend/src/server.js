@@ -146,3 +146,5 @@ db.initDb()
     console.error('Bazani ishga tushirishda xato:', e);
     process.exit(1);
   });
+
+// redeploy
