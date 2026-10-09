@@ -724,6 +724,16 @@
   .sec-small { padding: 8px 12px; font-size: 13px; margin-top: 8px; }
   .sec-opt { margin-top: 8px; }
   #pinOverlay { z-index: 1200; }
+  /* PIN oynasi yangi (shisha/tutqich) dizaynda ham o'z yopish tugmasiga ega: .modal-close umumiy uslubi olib tashlangan */
+  #pinOverlay .modal-box { padding-top: 50px; }
+  #pinOverlay .modal-close {
+    position: absolute; top: 12px; right: 12px; z-index: 4;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    background: #f1f2f6; border: none; border-radius: 50%;
+    color: #171a21; font-size: 16px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
   .pin-input { text-align: center; font-size: 26px; letter-spacing: 12px; padding: 12px; }
   .pin-msg { text-align: center; }
   .pin-msg.err { color: #ff6b6b; }
