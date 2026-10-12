@@ -7,6 +7,7 @@
 //    (har o'qishda egalik va narx qayta tekshiriladi, shuning uchun sotish/yuborish kodlariga tegilmaydi).
 
 const db = require('./db');
+const { AVATAR_MAX_BYTES, normalizeFullName, sniffImage } = require('./identityRules');
 
 const EMOJI_MIN_PRICE = 200;
 const PIN_MIN_PRICE = 100;
@@ -163,7 +164,52 @@ async function unpinGift(userId, userGiftId) {
   return { ok: true };
 }
 
+// ---------- Ism Familiya va profil rasmi (foydalanuvchi o'zi qo'yadi, admin kiritmaydi) ----------
+
+// Rasm havolasi: ?v= — rasm almashganda brauzer keshi yangilanishi uchun
+function avatarUrl(userId, ver) {
+  return ver ? `/api/users/${Number(userId)}/avatar?v=${Number(ver)}` : null;
+}
+
+// SQL qatoridan ommaga beriladigan shaklga: avatar_ver -> avatar_url
+function withAvatar(row) {
+  if (!row) return row;
+  const { avatar_ver, ...rest } = row;
+  return { ...rest, avatar_url: avatarUrl(row.id, avatar_ver) };
+}
+
+async function setFullName(userId, raw) {
+  const r = normalizeFullName(raw);
+  if (!r.ok) throw new ProfileError(400, r.error);
+  await db.prepare('UPDATE users SET full_name = ? WHERE id = ?').run(r.value, userId);
+  return { ok: true, full_name: r.value };
+}
+
+async function setAvatar(userId, file) {
+  if (!file || !file.buffer) throw new ProfileError(400, 'Rasm tanlanmadi');
+  const mime = sniffImage(file.buffer);
+  if (!mime) throw new ProfileError(400, 'Faqat JPG, PNG yoki WEBP rasm yuklash mumkin');
+  if (file.buffer.length > AVATAR_MAX_BYTES) throw new ProfileError(400, 'Rasm hajmi katta (eng ko\'pi 250 KB)');
+  const ver = Date.now();
+  const dataUrl = `data:${mime};base64,${file.buffer.toString('base64')}`;
+  await db.prepare('UPDATE users SET avatar_data = ?, avatar_ver = ? WHERE id = ?').run(dataUrl, ver, userId);
+  return { ok: true, avatar_url: avatarUrl(userId, ver) };
+}
+
+async function clearAvatar(userId) {
+  await db.prepare('UPDATE users SET avatar_data = NULL, avatar_ver = NULL WHERE id = ?').run(userId);
+  return { ok: true, avatar_url: null };
+}
+
+// { mime, buffer } yoki null
+async function avatarFile(userId) {
+  const row = await db.prepare('SELECT avatar_data FROM users WHERE id = ?').get(userId);
+  const m = /^data:([^;]+);base64,([\s\S]*)$/.exec((row && row.avatar_data) || '');
+  return m ? { mime: m[1], buffer: Buffer.from(m[2], 'base64') } : null;
+}
+
 module.exports = {
   ProfileError, EMOJI_MIN_PRICE, PIN_MIN_PRICE, PIN_MAX,
   emojiMap, emojiFor, pinsFor, editData, setEmoji, clearEmoji, pinGift, unpinGift,
+  avatarUrl, withAvatar, setFullName, setAvatar, clearAvatar, avatarFile,
 };

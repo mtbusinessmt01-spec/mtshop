@@ -223,4 +223,51 @@ async function redemptions(id) {
   `).all(Number(id));
 }
 
-module.exports = { PromoError, redeem, listPromos, createPromo, setActive, removePromo, redemptions };
+// ---------- FOYDALANUVCHI: ishlatgan promokodlari tarixi ----------
+// Tarixda faqat oxirgi 7 kun ko'rinadi. Eski yozuvlar O'CHIRILMAYDI, faqat ko'rsatilmaydi:
+// promo_redemptions "bu kodni allaqachon ishlatgan" degan belgi ham, o'chirilsa foydalanuvchi
+// o'sha kodni yana ishlata olib qolardi. Admin promokodni o'chirsa (removePromo), tarixdan ham yo'qoladi.
+const HISTORY_DAYS = 7;
+const DAY_MS = 24 * 3600 * 1000;
+
+const sqlTs = (ms) => new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
+const parseTs = (str) => new Date(String(str).includes('T') ? str : String(str).replace(' ', 'T') + 'Z').getTime();
+
+async function myHistory(userId) {
+  const now = Date.now();
+  const rows = await db.prepare(`
+    SELECT r.id, r.created_at, p.id AS promo_id, p.code, p.coin_amount
+    FROM promo_redemptions r JOIN promo_codes p ON p.id = r.promo_id
+    WHERE r.user_id = ? AND r.created_at >= ?
+    ORDER BY r.id DESC LIMIT 50
+  `).all(userId, sqlTs(now - HISTORY_DAYS * DAY_MS));
+
+  const out = [];
+  for (const r of rows) {
+    const items = await db.prepare(`
+      SELECT i.item_type, i.quantity, g.name AS gift_name, c.name AS case_name
+      FROM promo_code_items i
+      LEFT JOIN gifts g ON g.id = i.gift_id
+      LEFT JOIN cases c ON c.id = i.case_id
+      WHERE i.promo_id = ? ORDER BY i.id
+    `).all(r.promo_id);
+
+    const rewards = [];
+    if (r.coin_amount > 0) rewards.push({ type: 'coin', amount: r.coin_amount });
+    for (const it of items) {
+      if (it.item_type === 'gift') rewards.push({ type: 'gift', name: it.gift_name || "O'chirilgan gift", quantity: it.quantity });
+      else rewards.push({ type: 'case', name: it.case_name || "O'chirilgan case", quantity: it.quantity });
+    }
+    const redeemedMs = parseTs(r.created_at);
+    out.push({
+      id: r.id,
+      code: r.code,
+      redeemed_at: new Date(redeemedMs).toISOString(),
+      days_left: Math.max(1, Math.ceil((redeemedMs + HISTORY_DAYS * DAY_MS - now) / DAY_MS)),
+      rewards,
+    });
+  }
+  return out;
+}
+
+module.exports = { PromoError, redeem, myHistory, HISTORY_DAYS, listPromos, createPromo, setActive, removePromo, redemptions };

@@ -20,6 +20,11 @@ router.post('/promocodes/redeem', authMiddleware, h(async (req, res) => {
   res.json(await promo.redeem(req.user.id, req.body && req.body.code));
 }));
 
+// Foydalanuvchi: o'zi ishlatgan promokodlar tarixi (oxirgi 7 kun)
+router.get('/promocodes/my', authMiddleware, h(async (req, res) => {
+  res.json(await promo.myHistory(req.user.id));
+}));
+
 // Admin
 router.get('/admin/promocodes', authMiddleware, adminMiddleware, h(async (req, res) => {
   res.json(await promo.listPromos());

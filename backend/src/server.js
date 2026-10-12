@@ -110,11 +110,11 @@ app.post('/api/auth/logout', async (req, res) => {
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
     const user = await db.prepare(
-      'SELECT id, username, coin_balance, is_admin, status_image_url, created_at FROM users WHERE id = ?'
+      'SELECT id, username, full_name, avatar_ver, coin_balance, is_admin, status_image_url, created_at FROM users WHERE id = ?'
     ).get(req.user.id);
     if (!user) return res.status(404).json({ error: 'Topilmadi' });
     const emoji = await profileSvc.emojiFor(user.id);   // egalik va narx qayta tekshiriladi
-    res.json({ ...user, emoji_gift_id: emoji ? emoji.gift_id : null });
+    res.json({ ...profileSvc.withAvatar(user), emoji_gift_id: emoji ? emoji.gift_id : null });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server xatosi' });
@@ -146,5 +146,3 @@ db.initDb()
     console.error('Bazani ishga tushirishda xato:', e);
     process.exit(1);
   });
-
-// redeploy

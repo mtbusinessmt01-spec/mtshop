@@ -738,6 +738,49 @@
   .pin-msg { text-align: center; }
   .pin-msg.err { color: #ff6b6b; }
   .more-sheet.open .more-item:nth-child(6) { animation-delay: 320ms; }
+
+  /* ===== Yana menyusi: 2x2 tugma + keng "Sozlamalar" (yangi tartib) ===== */
+  .more-sheet { padding: 12px; border-radius: 28px; }
+  .more-grid { gap: 10px; }
+  .more-item {
+    justify-content: center; text-align: center; min-height: 74px; padding: 12px;
+    border-radius: 24px; background: rgba(255,255,255,.11);
+  }
+  .more-item b { font-size: 15px; font-weight: 700; }
+  .more-item-wide { grid-column: 1 / -1; min-height: 64px; }
+
+  /* ===== Sozlamalar sahifalari ===== */
+  .st-profile {
+    width: 100%; display: flex; align-items: center; gap: 14px; padding: 14px;
+    border-radius: 22px; text-align: left; cursor: pointer; color: var(--text); font: inherit;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.10);
+  }
+  .st-profile:active { background: rgba(255,255,255,0.12); }
+  .st-avatar { border-radius: 50%; object-fit: cover; flex-shrink: 0; display: block; background: #2a2f3d; }
+  .st-name { font-size: 18px; font-weight: 800; line-height: 1.2; word-break: break-word; }
+  .st-user { color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .st-hint { color: var(--accent-2); font-size: 12px; margin-top: 4px; }
+  .st-chev { margin-left: auto; color: var(--muted); font-size: 22px; line-height: 1; flex-shrink: 0; }
+  .st-list {
+    margin-top: 14px; border-radius: 18px; overflow: hidden;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.08);
+  }
+  .st-row {
+    width: 100%; display: flex; align-items: center; gap: 12px; padding: 9px 12px;
+    text-align: left; color: var(--text); font: inherit; font-size: 15px; text-decoration: none;
+    background: none; border: none; border-bottom: 1px solid rgba(255,255,255,0.07); cursor: pointer;
+  }
+  .st-row:last-child { border-bottom: none; }
+  .st-row:active { background: rgba(255,255,255,0.08); }
+  .st-ico { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; display: block; }
+  .st-emo { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0;
+    background: rgba(255,255,255,0.10); font-size: 18px; }
+  .st-section { margin: 22px 2px 8px; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .st-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 4px 0 20px; }
+  .st-link { background: none; border: none; color: #ff6b6b; font: inherit; font-size: 13px; cursor: pointer; padding: 6px; }
+  .st-small { padding: 9px 14px; font-size: 13px; width: auto; display: inline-flex; }
+  .st-card { text-align: left; padding: 14px 16px; border-radius: 16px; background: var(--card); margin-bottom: 10px; }
+  .promo-chip { display: inline-block; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,0.10); font-size: 12px; margin: 6px 6px 0 0; }
 </style>
 </head>
 <body>
@@ -761,22 +804,13 @@
     </nav>
 
     <div class="more-backdrop" id="moreBackdrop"></div>
-    <section class="more-sheet" id="moreSheet" role="dialog" aria-modal="true" aria-labelledby="moreSheetTitle" aria-hidden="true">
-      <div class="sheet-handle"></div>
-      <div class="sheet-header">
-        <div>
-          <div class="sheet-title" id="moreSheetTitle">Yana</div>
-          <div class="sheet-subtitle">Qo‘shimcha bo‘limlar</div>
-        </div>
-        <button class="sheet-close" id="closeMoreButton" type="button" aria-label="Yopish">✕</button>
-      </div>
+    <section class="more-sheet" id="moreSheet" role="dialog" aria-modal="true" aria-label="Yana" aria-hidden="true">
       <div class="more-grid">
-        <button class="more-item" data-tab="jonatmoq"><span class="more-icon">📤</span><span><b>Jo‘natmoq</b><small>Gift yoki case yuborish</small></span></button>
-        <button class="more-item" data-tab="mypet"><span class="more-icon">🐾</span><span><b>MyPet</b><small>Petingizni boshqaring</small></span></button>
-        <button class="more-item" data-tab="kreditlar"><span class="more-icon">💳</span><span><b>Kreditlar</b><small>Kredit va kafil so‘rovlari</small></span></button>
-        <button class="more-item" data-tab="trade"><span class="more-icon">🔄</span><span><b>Trade</b><small>Do‘st bilan gift almashish</small></span></button>
-        <button class="more-item" data-tab="profils"><span class="more-icon">👤</span><span><b>Profils</b><small>Profil va hisob</small></span></button>
-        <button class="more-item" data-tab="xavfsizlik"><span class="more-icon">🔐</span><span><b>Xavfsizlik</b><small>PIN, qurilmalar, kirish tarixi</small></span></button>
+        <button class="more-item" data-tab="jonatmoq"><b>Jo‘natmoq</b></button>
+        <button class="more-item" data-tab="mypet"><b>MyPet</b></button>
+        <button class="more-item" data-tab="kreditlar"><b>Kredit</b></button>
+        <button class="more-item" data-tab="trade"><b>Trade</b></button>
+        <button class="more-item more-item-wide" data-action="settings"><b>Sozlamalar</b></button>
       </div>
     </section>
   </div>
@@ -903,7 +937,7 @@
         updateCoinBadge();
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('app').style.display = 'flex';
-        const validTabs = ['shops', 'inventor', 'jonatmoq', 'mypet', 'kreditlar', 'trade', 'profils'];
+        const validTabs = ['shops', 'inventor', 'jonatmoq', 'mypet', 'kreditlar', 'trade'];
         const startTab = validTabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'shops';
         renderTab(startTab);
         refreshEvent();
@@ -978,10 +1012,6 @@
         renderMyPet(main);
       } else if (tab === 'trade') {
         renderTradeHome(main);
-      } else if (tab === 'profils') {
-        renderProfil(main);
-      } else if (tab === 'xavfsizlik') {
-        renderXavfsizlik(main);
       }
     }
 
@@ -2292,10 +2322,9 @@
       }
     }
 
-    function renderXavfsizlik(main) {
-      main.innerHTML = `
-        <div class="page-title">Xavfsizlik</div>
-        <div class="page-sub">Hisobingiz va coinlaringizni himoya qiling.</div>
+    function openSecurityPage() {
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-sub">Hisobingiz va coinlaringizni himoya qiling.</div>
         <div id="secPinCard"></div>
         <div id="secFreezeCard"></div>
         <div class="section-title" style="margin-top:24px">📱 Faol qurilmalar</div>
@@ -2303,6 +2332,7 @@
         <div class="section-title" style="margin-top:24px">🕘 Kirish tarixi</div>
         <div id="secLogins"><div class="empty-msg">Yuklanmoqda...</div></div>
       `;
+      openPage('Xavfsizlik', openSettingsPage);
       loadSecurityPage();
     }
 
@@ -2390,7 +2420,7 @@
         <div class="msg error" id="secPinErr"></div>
         <button class="btn" id="secPinSave" style="margin-top:14px">Saqlash</button>
       `;
-      openModal();
+      openPage(has ? "PIN o'zgartirish" : "PIN o'rnatish", openSecurityPage);
       ['secPin1', 'secPin2'].forEach(id => document.getElementById(id).addEventListener('input', (e) => {
         e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
       }));
@@ -2405,9 +2435,8 @@
         const r = await secApi('POST', '/pin', { password: pw, pin: p1 });
         b.disabled = false;
         if (!r.ok) { err.textContent = r.data.error || 'Xatolik'; return; }
-        closeModal();
         showToast("PIN saqlandi 🔐");
-        loadSecurityPage();
+        openSecurityPage();
       });
     }
 
@@ -2419,7 +2448,7 @@
         <div class="msg error" id="secPinErr"></div>
         <button class="btn danger" id="secPinDel" style="margin-top:14px">PINni o'chirish</button>
       `;
-      openModal();
+      openPage("PINni o'chirish", openSecurityPage);
       document.getElementById('secPinDel').addEventListener('click', async (e) => {
         const err = document.getElementById('secPinErr');
         const pw = document.getElementById('secPw').value;
@@ -2428,9 +2457,8 @@
         const r = await secApi('POST', '/pin/remove', { password: pw });
         b.disabled = false;
         if (!r.ok) { err.textContent = r.data.error || 'Xatolik'; return; }
-        closeModal();
         showToast("PIN o'chirildi");
-        loadSecurityPage();
+        openSecurityPage();
       });
     }
 
@@ -2443,15 +2471,14 @@
         <button class="btn secondary sec-opt" onclick="secFreeze(168)">7 kun</button>
         <button class="btn sec-opt" onclick="secFreeze(0)">Muddatsiz (o'zim yoqaman)</button>
       `;
-      openModal();
+      openPage('Hisobni muzlatish', openSecurityPage);
     }
 
     async function secFreeze(hours) {
       const r = await secApi('POST', '/freeze', hours ? { hours } : {});
       if (!r.ok) { showToast(r.data.error || 'Xatolik'); return; }
-      closeModal();
       showToast('Hisob muzlatildi ❄️');
-      loadSecurityPage();
+      openSecurityPage();
     }
 
     async function secUnfreeze() {
@@ -2477,46 +2504,282 @@
       loadSecurityPage();
     }
 
-    function renderProfil(main) {
-      const statusImg = currentUser.status_image_url
-        ? `<img src="${currentUser.status_image_url}" style="width:28px;height:28px;border-radius:8px;object-fit:cover;vertical-align:middle;margin-left:6px;">`
+    // ===================== SOZLAMALAR =====================
+    // Hammasi to'liq ekran sahifa (openPage). Har sahifadagi orqaga tugmasi bir pog'ona yuqoriga qaytaradi:
+    // Sozlamalar -> (Profile | Xavfsizlik | Notification | Promocodelarim | Qidirish) -> ichki sahifalar
+    function stAvatar(u, size) {
+      const px = size || 56;
+      const src = u && u.avatar_url ? `${API_BASE}${u.avatar_url}` : 'icons/profile.png';
+      return `<img class="st-avatar" width="${px}" height="${px}" style="width:${px}px;height:${px}px" src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='icons/profile.png'">`;
+    }
+
+    function stRow(icon, label, handler) {
+      return `<button class="st-row" type="button" onclick="${handler}"><img class="st-ico" src="icons/${icon}.png" alt=""><span>${label}</span><span class="st-chev">›</span></button>`;
+    }
+
+    function openSettingsPage() {
+      const u = currentUser;
+      const statusImg = u.status_image_url
+        ? `<img src="${esc(u.status_image_url)}" style="width:20px;height:20px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-left:6px;">`
         : '';
-      main.innerHTML = `
-        <div class="page-title">Profils</div>
-        <div class="page-sub">@${currentUser.username}${statusImg}${emojiBadge(currentUser.emoji_gift_id)}</div>
-        <div class="gift-card" style="text-align:left; padding:20px;">
-          <div style="margin-bottom:8px;"><b>Username:</b> ${currentUser.username}</div>
-          <div style="margin-bottom:8px;"><b>Coin balans:</b> ${currentUser.coin_balance} 🪙</div>
+      document.getElementById('modalBody').innerHTML = `
+        <button class="st-profile" type="button" onclick="openProfilePage()">
+          ${stAvatar(u, 64)}
+          <div style="min-width:0;flex:1;">
+            <div class="st-name">${esc(u.full_name || u.username)}</div>
+            <div class="st-user">@${esc(u.username)}${statusImg}${emojiBadge(u.emoji_gift_id)}</div>
+            ${u.full_name ? '' : '<div class="st-hint">Ism va rasm qo\'shish</div>'}
+          </div>
+          <span class="st-chev">›</span>
+        </button>
+        <div class="st-list">
+          ${stRow('security', 'Xavfsizlik', 'openSecurityPage()')}
+          ${stRow('notification', 'Notification', 'openNotificationsPage()')}
+          ${stRow('promocode', 'Promocodelarim', 'openPromoPage()')}
+          ${stRow('search', 'Qidirish', 'openSearchPage()')}
+          ${u.is_admin ? `<a class="st-row" href="admin.html"><img class="st-ico" src="icons/admin.png" alt=""><span>Admin panel</span><span class="st-chev">›</span></a>` : ''}
         </div>
-        <button class="btn" style="margin-top:14px;" onclick="openProfileEdit()">✏️ Profile edit</button>
-        <button class="btn" style="margin-top:14px;" onclick="openPromo()">🎟️ Promokod</button>
-        <button class="btn" style="margin-top:14px;" onclick="renderTab('xavfsizlik')">🔐 Xavfsizlik</button>
-        ${currentUser.is_admin ? `<a href="admin.html" class="admin-link">⚙️ Admin panel</a>` : ''}
-        <button class="btn secondary" style="margin-top:14px;" onclick="logout()">Hisobdan chiqish</button>
+      `;
+      openPage('Sozlamalar');
+    }
 
-        <div id="versionWrap"></div>
+    // ---------- Profile: ism, rasm, emoji status, qadalgan giftlar, versiya, chiqish ----------
+    function openProfilePage() {
+      const u = currentUser;
+      document.getElementById('modalBody').innerHTML = `
+        <div class="st-hero">
+          ${stAvatar(u, 104)}
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;">
+            <label class="btn secondary st-small" for="pfFile" style="margin:0;cursor:pointer;">📷 Rasm tanlash</label>
+            <input type="file" id="pfFile" accept="image/jpeg,image/png,image/webp" hidden>
+            ${u.avatar_url ? `<button class="st-link" type="button" id="pfAvatarDel">Rasmni olib tashlash</button>` : ''}
+          </div>
+          <div class="msg error" id="pfAvatarErr" style="margin:0;text-align:center;"></div>
+        </div>
 
-        <div class="section-title" style="margin-top:28px">🔔 Bildirishnomalar</div>
-        <div class="gift-card" style="text-align:left; padding:16px;">
+        <label class="send-hint" for="pfName" style="display:block;margin:0 0 6px;">Ism Familiya</label>
+        <input type="text" id="pfName" class="send-input" maxlength="40" autocomplete="name" placeholder="Masalan: Ali Valiyev" value="${esc(u.full_name || '')}">
+        <div class="msg error" id="pfNameErr" style="margin-top:8px;"></div>
+        <button class="btn" id="pfNameSave" style="margin-top:10px;" disabled>Saqlash</button>
+
+        <div class="st-card" style="margin-top:18px;">
+          <div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:8px;"><span style="color:var(--muted)">Username</span><b>@${esc(u.username)}</b></div>
+          <div style="display:flex;justify-content:space-between;gap:10px;"><span style="color:var(--muted)">Coin balans</span><b>${esc(u.coin_balance)} 🪙</b></div>
+        </div>
+
+        <div class="st-section">Profilni bezash</div>
+        <div class="st-list" style="margin-top:0;">
+          <button class="st-row" type="button" onclick="openEmojiStatus()"><span class="st-emo">😀</span><span>Emoji status</span><span class="st-chev">›</span></button>
+          <button class="st-row" type="button" onclick="openPinGifts()"><span class="st-emo">📌</span><span>Qadalgan giftlar</span><span class="st-chev">›</span></button>
+        </div>
+
+        <div class="st-section">Profile versiyasi</div>
+        <div id="versionWrap"><div class="empty-msg" style="padding:12px 0;">Yuklanmoqda...</div></div>
+
+        <button class="btn secondary" type="button" style="margin-top:26px;" onclick="logout()">Hisobdan chiqish</button>
+      `;
+      openPage('Profile', openSettingsPage);
+
+      const nameInp = document.getElementById('pfName');
+      const nameBtn = document.getElementById('pfNameSave');
+      const nameErr = document.getElementById('pfNameErr');
+      const original = (u.full_name || '').trim();
+      const sync = () => { nameBtn.disabled = nameInp.value.trim().replace(/\s+/g, ' ') === original; nameErr.textContent = ''; };
+      nameInp.addEventListener('input', sync);
+      nameInp.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !nameBtn.disabled) nameBtn.click(); });
+      nameBtn.addEventListener('click', async () => {
+        nameBtn.disabled = true;
+        const r = await profileApi('PUT', '/me', { full_name: nameInp.value });
+        if (!r.ok) { nameErr.textContent = r.data.error || 'Xatolik'; nameBtn.disabled = false; return; }
+        await refreshMe();
+        showToast('Saqlandi ✅');
+        openProfilePage();
+      });
+
+      document.getElementById('pfFile').addEventListener('change', (e) => {
+        const f = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (f) uploadAvatar(f);
+      });
+      const del = document.getElementById('pfAvatarDel');
+      if (del) del.addEventListener('click', async () => {
+        const r = await profileApi('DELETE', '/avatar');
+        if (!r.ok) { document.getElementById('pfAvatarErr').textContent = r.data.error || 'Xatolik'; return; }
+        await refreshMe();
+        showToast("Rasm olib tashlandi");
+        openProfilePage();
+      });
+
+      loadVersionCard();
+    }
+
+    // Rasm brauzerda 320x320 JPEG ga kichraytiriladi (odatda 20-50 KB), keyin serverga yuboriladi
+    function resizeToSquareJpeg(file, size) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const side = Math.min(img.naturalWidth, img.naturalHeight);
+            const sx = (img.naturalWidth - side) / 2, sy = (img.naturalHeight - side) / 2;
+            const c = document.createElement('canvas');
+            c.width = c.height = size;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, size, size);   // shaffof PNG uchun
+            ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+            c.toBlob((b) => { URL.revokeObjectURL(url); b ? resolve(b) : reject(new Error('toBlob')); }, 'image/jpeg', 0.85);
+          } catch (e) { URL.revokeObjectURL(url); reject(e); }
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('rasm ochilmadi')); };
+        img.src = url;
+      });
+    }
+
+    async function uploadAvatar(file) {
+      const err = document.getElementById('pfAvatarErr');
+      err.textContent = '';
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { err.textContent = 'Faqat JPG, PNG yoki WEBP rasm tanlang'; return; }
+      if (file.size > 15 * 1024 * 1024) { err.textContent = 'Rasm juda katta (15 MB dan kichik tanlang)'; return; }
+      err.style.color = 'var(--muted)'; err.textContent = 'Yuklanmoqda...';
+      try {
+        const blob = await resizeToSquareJpeg(file, 320);
+        const fd = new FormData();
+        fd.append('avatar', blob, 'avatar.jpg');
+        const res = await fetch(`${API_BASE}/api/profile/avatar`, { method: 'POST', credentials: 'include', body: fd });
+        let data = {}; try { data = await res.json(); } catch (e) {}
+        if (!res.ok) { err.style.color = ''; err.textContent = data.error || 'Xatolik'; return; }
+        await refreshMe();
+        showToast('Rasm yangilandi 📷');
+        openProfilePage();
+      } catch (e) {
+        err.style.color = ''; err.textContent = "Rasmni yuklab bo'lmadi. Boshqa rasm tanlab ko'ring.";
+      }
+    }
+
+    // ---------- Notification ----------
+    function openNotificationsPage() {
+      document.getElementById('modalBody').innerHTML = `
+        <div class="st-card" style="padding:16px;">
           <div class="modal-sub" id="pushStatusText" style="margin-bottom:12px;">Tekshirilmoqda...</div>
           <button class="btn" id="pushToggleBtn" onclick="togglePush()" disabled>...</button>
         </div>
+        <div class="send-hint" style="text-align:center;">Bildirishnomalar har qurilmada alohida yoqiladi.</div>
+      `;
+      openPage('Notification', openSettingsPage);
+      initPushUI();
+    }
 
-        <div class="section-title" style="margin-top:28px">🔍 Foydalanuvchilarni qidirish</div>
-        <input type="text" class="send-input" id="userSearchInput" placeholder="Username kiriting...">
+    // ---------- Promocodelarim: kod kiritish + ishlatilganlar tarixi (7 kun) ----------
+    function openPromoPage() {
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-sub" style="margin-bottom:10px;">Promokodni kiriting va mukofotni oling.</div>
+        <input type="text" class="send-input" id="promoInput" placeholder="Masalan: MT2026" maxlength="32"
+               autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <div class="msg error" id="promoMsg" style="min-height:18px;margin-top:8px;"></div>
+        <button class="btn" id="promoBtn" style="margin-top:10px;">Faollashtirish</button>
+        <div id="promoResult"></div>
+        <div class="st-section">Ishlatilgan promokodlar</div>
+        <div id="promoHistory"><div class="empty-msg" style="padding:14px 0;">Yuklanmoqda...</div></div>
+      `;
+      openPage('Promocodelarim', openSettingsPage);
+
+      const inp = document.getElementById('promoInput');
+      const btn = document.getElementById('promoBtn');
+      const msg = document.getElementById('promoMsg');
+      let busy = false;
+      const go = async () => {
+        if (busy) return;
+        const code = inp.value.trim();
+        if (!code) { msg.textContent = 'Promokodni kiriting'; return; }
+        busy = true; btn.disabled = true; msg.textContent = '';
+        try {
+          const res = await fetch(`${API_BASE}/api/promocodes/redeem`, {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code }),
+          });
+          let data = {};
+          try { data = await res.json(); } catch (e) {}
+          if (!res.ok) { msg.textContent = data.error || 'Xatolik'; document.getElementById('promoResult').innerHTML = ''; return; }
+          currentUser.coin_balance = data.coin_balance;
+          updateCoinBadge();
+          inp.value = '';
+          showPromoSuccess(data.rewards || []);
+          loadPromoHistory();
+        } catch (e) {
+          msg.textContent = "Tarmoq xatosi. Qayta urinib ko'ring.";
+        } finally {
+          busy = false; btn.disabled = false;
+        }
+      };
+      btn.addEventListener('click', go);
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+      loadPromoHistory();
+    }
+
+    function promoRewardChips(rewards) {
+      return (rewards || []).map(r => {
+        if (r.type === 'coin') return `<span class="promo-chip">🪙 +${esc(r.amount)}</span>`;
+        if (r.type === 'gift') return `<span class="promo-chip">🎁 ${esc(r.name)} × ${Number(r.quantity)}</span>`;
+        return `<span class="promo-chip">📦 ${esc(r.name)} × ${Number(r.quantity)}</span>`;
+      }).join('');
+    }
+
+    function showPromoSuccess(rewards) {
+      const box = document.getElementById('promoResult');
+      if (!box) return;
+      box.innerHTML = `
+        <div class="st-card" style="margin-top:14px;border:1px solid rgba(63,191,106,.45);">
+          <div style="font-weight:800;">🎉 Promokod faollashtirildi!</div>
+          <div class="send-hint" style="margin-top:4px;">Mukofotlaringiz hisobingizga va Inventorga tushdi:</div>
+          <div>${promoRewardChips(rewards)}</div>
+        </div>`;
+    }
+
+    async function loadPromoHistory() {
+      const el = document.getElementById('promoHistory');
+      if (!el) return;
+      let list = null;
+      try {
+        const res = await fetch(`${API_BASE}/api/promocodes/my`, { credentials: 'include' });
+        if (res.ok) list = await res.json();
+      } catch (e) {}
+      if (!document.getElementById('promoHistory')) return;   // foydalanuvchi boshqa sahifaga o'tib ketgan
+      if (!list) { el.innerHTML = '<div class="empty-msg" style="padding:14px 0;">Tarixni yuklab bo\'lmadi</div>'; return; }
+      if (!list.length) {
+        el.innerHTML = `<div class="empty-msg" style="padding:14px 0 6px;">Hali promokod ishlatmagansiz</div>
+                        <div class="send-hint" style="text-align:center;">Tarix 7 kun saqlanadi.</div>`;
+        return;
+      }
+      el.innerHTML = list.map(h => `
+        <div class="st-card">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+            <b style="letter-spacing:.05em;">${esc(h.code)}</b>
+            <span class="send-hint" style="margin:0;">${secDateTime(h.redeemed_at)}</span>
+          </div>
+          <div>${promoRewardChips(h.rewards)}</div>
+          <div class="send-hint" style="margin-top:8px;">Tarixdan ${Number(h.days_left)} kundan keyin o'chadi</div>
+        </div>`).join('');
+    }
+
+    // ---------- Qidirish ----------
+    let stSearchQuery = '';
+    function openSearchPage() {
+      document.getElementById('modalBody').innerHTML = `
+        <input type="text" class="send-input" id="userSearchInput" placeholder="Username yoki ism..." autocomplete="off" value="${esc(stSearchQuery)}">
         <div id="userSearchResults" style="margin-top:12px"></div>
       `;
-
-      initPushUI();
-      loadVersionCard();
-
-      let searchTimeout;
-      document.getElementById('userSearchInput').addEventListener('input', (e) => {
-        clearTimeout(searchTimeout);
+      openPage('Qidirish', openSettingsPage);
+      const inp = document.getElementById('userSearchInput');
+      let timer;
+      inp.addEventListener('input', (e) => {
+        clearTimeout(timer);
         const q = e.target.value.trim();
+        stSearchQuery = q;
         if (!q) { document.getElementById('userSearchResults').innerHTML = ''; return; }
-        searchTimeout = setTimeout(() => runUserSearch(q), 300);
+        timer = setTimeout(() => runUserSearch(q), 300);
       });
+      if (stSearchQuery) runUserSearch(stSearchQuery);
     }
 
 
@@ -2532,11 +2795,10 @@
       if (!wrap) return;
       try {
         const res = await fetch(`${API_BASE}/api/versions/me`, { credentials: 'include' });
-        if (!res.ok) return;
+        if (!res.ok) { wrap.innerHTML = ''; return; }
         const data = await res.json();
-        if (!data.available.length) { wrap.innerHTML = ''; return; }
-        wrap.innerHTML = `
-          <div class="section-title" style="margin-top:28px">🆕 Yangi versiya</div>
+        const curCard = `<div class="st-card"><div style="font-weight:700;">Hozirgi versiya: V${verEsc(data.current)}</div>${data.available.length ? '' : '<div class="send-hint">Yangi versiya yo\'q.</div>'}</div>`;
+        wrap.innerHTML = curCard + `
           ${data.available.map(v => `
             <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:12px;" id="verCard-${verEsc(v.version)}">
               <div style="font-weight:700; margin-bottom:4px;">
@@ -2550,7 +2812,7 @@
             </div>
           `).join('')}
         `;
-      } catch (e) { /* tarmoq xatosi — kartani ko'rsatmaymiz */ }
+      } catch (e) { wrap.innerHTML = ''; /* tarmoq xatosi — kartani ko'rsatmaymiz */ }
     }
 
     let versionDownloading = false;
@@ -2672,91 +2934,23 @@
     // =====================================================================
     // PROMOKOD (Profils > Promokod)
     // =====================================================================
-    function openPromo() {
-      document.getElementById('modalBody').innerHTML = `
-        <div class="modal-title">🎟️ Promokod</div>
-        <div class="modal-sub">Promokodni kiriting va mukofotni oling.</div>
-        <input type="text" class="send-input" id="promoInput" placeholder="Masalan: MT2026" maxlength="32"
-               autocomplete="off" autocapitalize="characters" spellcheck="false">
-        <div class="modal-sub" id="promoMsg" style="margin:10px 0 0;min-height:18px;color:#ff6b6b"></div>
-        <button class="btn" style="margin-top:14px" id="promoBtn">Faollashtirish</button>
-        <button class="btn-back" onclick="closeModal()">Yopish</button>
-      `;
-      openModal();
-      const inp = document.getElementById('promoInput');
-      const btn = document.getElementById('promoBtn');
-      const msg = document.getElementById('promoMsg');
-      let busy = false;
-      const go = async () => {
-        if (busy) return;
-        const code = inp.value.trim();
-        if (!code) { msg.textContent = 'Promokodni kiriting'; return; }
-        busy = true; btn.disabled = true; msg.textContent = '';
-        try {
-          const res = await fetch(`${API_BASE}/api/promocodes/redeem`, {
-            method: 'POST', credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code }),
-          });
-          let data = {};
-          try { data = await res.json(); } catch (e) {}
-          if (!res.ok) { msg.textContent = data.error || 'Xatolik'; return; }
-          currentUser.coin_balance = data.coin_balance;
-          updateCoinBadge();
-          showPromoSuccess(data.rewards || []);
-          if (typeof tradeCurrentTab !== 'undefined' && tradeCurrentTab === 'profils') {
-            renderProfil(document.getElementById('main'));
-          }
-        } catch (e) {
-          msg.textContent = "Tarmoq xatosi. Qayta urinib ko'ring.";
-        } finally {
-          busy = false; btn.disabled = false;
-        }
-      };
-      btn.addEventListener('click', go);
-      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
-      setTimeout(() => inp.focus(), 50);
-    }
+    // (promokod endi Sozlamalar > Promocodelarim sahifasida)
 
-    function showPromoSuccess(rewards) {
-      const rows = rewards.map(r => {
-        if (r.type === 'coin') return `<div style="padding:8px 0">🪙 <b>+${esc(r.amount)}</b> coin</div>`;
-        if (r.type === 'gift') return `<div style="padding:8px 0">🎁 <b>${esc(r.name)}</b> × ${Number(r.quantity)}</div>`;
-        return `<div style="padding:8px 0">📦 <b>${esc(r.name)}</b> case × ${Number(r.quantity)}</div>`;
-      }).join('');
-      document.getElementById('modalBody').innerHTML = `
-        <div class="modal-title">🎉 Promokod faollashtirildi!</div>
-        <div class="modal-sub">Mukofotlaringiz hisobingizga va Inventorga tushdi:</div>
-        <div style="text-align:left">${rows}</div>
-        <button class="btn" style="margin-top:14px" onclick="closeModal()">Zo'r!</button>
-      `;
-    }
+    // (showPromoSuccess yuqoridagi Sozlamalar blokida)
 
     // Profile edit: menyu
-    function openProfileEdit() {
-      document.getElementById('modalBody').innerHTML = `
-        <div class="modal-title">✏️ Profile edit</div>
-        <div class="modal-sub">Profilingizni giftlar bilan bezang.</div>
-        <div class="pe-menu">
-          <button class="btn" id="peEmoji">😀 Add emoji status</button>
-          <button class="btn" id="pePin">Gift 📌</button>
-        </div>
-        <button class="btn-back" onclick="closeModal()">Yopish</button>
-      `;
-      openModal();
-      document.getElementById('peEmoji').addEventListener('click', openEmojiStatus);
-      document.getElementById('pePin').addEventListener('click', openPinGifts);
-    }
+    // (profil tahrirlash endi Sozlamalar > Profile sahifasida)
 
     function profileEditError(r) {
       document.getElementById('modalBody').innerHTML = `
-        <div class="modal-title">Xatolik</div><div class="modal-sub">${esc(r.data.error || '')}</div>
-        <button class="btn-back" onclick="openProfileEdit()">&larr; Orqaga</button>`;
+        <div class="modal-title">Xatolik</div><div class="modal-sub">${esc(r.data.error || '')}</div>`;
+      openPage('Xatolik', openProfilePage);
     }
 
     // Emoji status
     async function openEmojiStatus() {
       document.getElementById('modalBody').innerHTML = `<div class="modal-title">Yuklanmoqda...</div>`;
+      openPage('Emoji status', openProfilePage);
       const r = await profileApi('GET', '/edit');
       if (!r.ok) return profileEditError(r);
       const d = r.data;
@@ -2777,7 +2971,7 @@
         <div class="modal-sub" style="margin-bottom:0">Username yonida ko'rinadigan gift rasmi. Narxi ${d.limits.emoji_min_price} coin va undan yuqori giftlar tanlanadi.</div>
         ${cur}
         <div class="tr-pick-list">${rows}</div>
-        <button class="btn-back" onclick="openProfileEdit()">&larr; Orqaga</button>
+        <button class="btn-back" onclick="openProfilePage()">&larr; Orqaga</button>
       `;
       document.querySelectorAll('#modalBody .tr-pick-row[data-gid]').forEach(el => {
         el.addEventListener('click', async () => {
@@ -2785,7 +2979,6 @@
           if (!rr.ok) { showToast(rr.data.error || 'Xatolik'); return; }
           showToast('Emoji status qo\'yildi');
           await refreshMe();
-          if (tradeCurrentTab === 'profils') renderProfil(document.getElementById('main'));
           openEmojiStatus();
         });
       });
@@ -2795,7 +2988,6 @@
         if (!rr.ok) { showToast(rr.data.error || 'Xatolik'); return; }
         showToast('Emoji status olib tashlandi');
         await refreshMe();
-        if (tradeCurrentTab === 'profils') renderProfil(document.getElementById('main'));
         openEmojiStatus();
       });
     }
@@ -2803,6 +2995,7 @@
     // Qadalgan giftlar
     async function openPinGifts() {
       document.getElementById('modalBody').innerHTML = `<div class="modal-title">Yuklanmoqda...</div>`;
+      openPage('Qadalgan giftlar', openProfilePage);
       const r = await profileApi('GET', '/edit');
       if (!r.ok) return profileEditError(r);
       const d = r.data;
@@ -2820,7 +3013,7 @@
         <div class="modal-sub" style="margin-bottom:0">Profilingizda hamma ko'radigan giftlar (${d.pins.length}/${d.limits.pin_max}). Narxi ${d.limits.pin_min_price} coin va undan yuqori giftlar qadaladi.</div>
         <div class="tr-pick-list">${pinned}</div>
         <button class="btn" id="pePinAdd" ${full ? 'disabled' : ''}>📌 Gift qadash</button>
-        <button class="btn-back" onclick="openProfileEdit()">&larr; Orqaga</button>
+        <button class="btn-back" onclick="openProfilePage()">&larr; Orqaga</button>
       `;
       document.getElementById('pePinAdd').addEventListener('click', () => openPinPicker(d));
       document.querySelectorAll('#modalBody .tr-del[data-ug]').forEach(b => {
@@ -2848,6 +3041,7 @@
         <div class="tr-pick-list">${rows}</div>
         <button class="btn-back" onclick="openPinGifts()">&larr; Orqaga</button>
       `;
+      openPage('Gift tanlang', openPinGifts);
       document.querySelectorAll('#modalBody .tr-pick-row[data-ug]').forEach(el => {
         el.addEventListener('click', async () => {
           const rr = await profileApi('POST', '/pins', { user_gift_id: Number(el.dataset.ug) });
@@ -3365,25 +3559,26 @@
 
     async function runUserSearch(q) {
       const el = document.getElementById('userSearchResults');
+      if (!el) return;
       el.innerHTML = '<div class="empty-msg">Qidirilmoqda...</div>';
       const res = await fetch(`${API_BASE}/api/users/search?q=${encodeURIComponent(q)}`, { credentials: 'include' });
       const list = await res.json();
+      if (!document.getElementById('userSearchResults')) return;
       if (!list.length) { el.innerHTML = '<div class="empty-msg">Topilmadi</div>'; return; }
-      el.innerHTML = list.map(u => {
-        const img = u.status_image_url
-          ? `<img src="${u.status_image_url}" class="ci-icon">`
-          : `<div class="ci-icon">👤</div>`;
-        return `
-          <div class="case-item-row" style="cursor:pointer" onclick="openUserProfile('${u.username}')">
-            ${img}
-            <div class="ci-name">@${u.username}${emojiBadge(u.emoji_gift_id)}</div>
-          </div>`;
-      }).join('');
+      el.innerHTML = list.map(u => `
+        <div class="case-item-row" style="cursor:pointer" data-u="${esc(u.username)}">
+          ${stAvatar(u, 40)}
+          <div class="ci-name">
+            ${u.full_name ? `<div>${esc(u.full_name)}</div>` : ''}
+            <div style="${u.full_name ? 'color:var(--muted);font-size:12px;font-weight:500;' : ''}">@${esc(u.username)}${emojiBadge(u.emoji_gift_id)}</div>
+          </div>
+        </div>`).join('');
+      el.querySelectorAll('[data-u]').forEach(row => row.addEventListener('click', () => openUserProfile(row.dataset.u)));
     }
 
     async function openUserProfile(username) {
       document.getElementById('modalBody').innerHTML = `<div class="modal-title">Yuklanmoqda...</div>`;
-      openModal();
+      openPage('@' + username, openSearchPage);
 
       const res = await fetch(`${API_BASE}/api/users/${encodeURIComponent(username)}/profile`, { credentials: 'include' });
       const data = await res.json();
@@ -3425,7 +3620,13 @@
         : `<div class="modal-sub">Pet'lari yo'q</div>`;
 
       document.getElementById('modalBody').innerHTML = `
-        <div class="modal-title">@${esc(data.username)}${statusImg}${emojiBadge(data.emoji && data.emoji.gift_id)}</div>
+        <div class="st-hero" style="margin-bottom:6px;">
+          ${stAvatar(data, 88)}
+          <div style="text-align:center;">
+            ${data.full_name ? `<div class="st-name">${esc(data.full_name)}</div>` : ''}
+            <div class="st-user" style="${data.full_name ? '' : 'font-size:18px;font-weight:800;color:var(--text);'}">@${esc(data.username)}${statusImg}${emojiBadge(data.emoji && data.emoji.gift_id)}</div>
+          </div>
+        </div>
         ${data.username !== currentUser.username ? `<button class="btn" style="margin-top:10px" data-u="${esc(data.username)}" onclick="confirmTradeRequest(this.dataset.u)">🔄 Trade boshlash</button>` : ''}
         ${pinsHtml}
         <div class="modal-sub" style="margin-top:14px">🎁 Giftlari</div>
@@ -3581,8 +3782,7 @@
     const moreNavButton = document.getElementById('moreNavButton');
     const moreSheet = document.getElementById('moreSheet');
     const moreBackdrop = document.getElementById('moreBackdrop');
-    const closeMoreButton = document.getElementById('closeMoreButton');
-    const moreTabs = new Set(['jonatmoq', 'mypet', 'kreditlar', 'trade', 'profils', 'xavfsizlik']);
+    const moreTabs = new Set(['jonatmoq', 'mypet', 'kreditlar', 'trade']);
 
     function updateLiquidIndicator(tab) {
       const indicator = bottomNav?.querySelector('.nav-liquid-indicator');
@@ -3609,7 +3809,7 @@
     }
 
     let currentNavTab = 'shops';
-    const TAB_ORDER = { shops: 0, inventor: 1, jonatmoq: 2, mypet: 2, kreditlar: 2, trade: 2, profils: 2, xavfsizlik: 2 };
+    const TAB_ORDER = { shops: 0, inventor: 1, jonatmoq: 2, mypet: 2, kreditlar: 2, trade: 2 };
 
     function setMoreOpen(open) {
       // Oyna ochiq turganda pill "Yana" tugmasiga o'tib turadi, yopilganda joriy bo'limga qaytadi
@@ -3651,10 +3851,12 @@
       btn.addEventListener('click', () => renderTab(btn.dataset.tab));
     });
     moreNavButton.addEventListener('click', () => setMoreOpen(!moreSheet.classList.contains('open')));
-    closeMoreButton.addEventListener('click', () => setMoreOpen(false));
     moreBackdrop.addEventListener('click', () => setMoreOpen(false));
     moreSheet.querySelectorAll('.more-item').forEach(btn => {
-      btn.addEventListener('click', () => renderTab(btn.dataset.tab));
+      btn.addEventListener('click', () => {
+        if (btn.dataset.action === 'settings') { setMoreOpen(false); openSettingsPage(); return; }
+        renderTab(btn.dataset.tab);
+      });
     });
     window.addEventListener('resize', () => {
       const active = document.querySelector('#bottomNav button.active')?.dataset.tab || 'shops';
@@ -3719,7 +3921,7 @@
       openModal();
     }
 
-    function openModal() { document.getElementById('modalOverlay').classList.add('open'); }
+    function openModal() { const ov = document.getElementById('modalOverlay'); ov.classList.remove('page'); ov.classList.add('open'); }
     function closeModal() {
       const ov = document.getElementById('modalOverlay');
       ov.classList.remove('open', 'page');
@@ -3774,11 +3976,10 @@
     let pageBackFn = null;
     function openPage(title, back) {
       const ov = document.getElementById('modalOverlay');
-      const wasPage = ov.classList.contains('page');
       ov.classList.add('open', 'page');
       document.getElementById('pageHeadTitle').textContent = title;
       pageBackFn = back || null;
-      if (!wasPage) { const box = ov.querySelector('.modal-box'); if (box) box.scrollTop = 0; }
+      const box = ov.querySelector('.modal-box'); if (box) box.scrollTop = 0;   // har yangi sahifa tepadan boshlanadi
     }
     function pageBack() { if (pageBackFn) pageBackFn(); else closeModal(); }
 

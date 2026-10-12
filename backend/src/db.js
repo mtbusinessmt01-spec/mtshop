@@ -178,6 +178,10 @@ async function initDb() {
   await ensureColumn('users', 'frozen', 'INTEGER NOT NULL DEFAULT 0');
   await ensureColumn('users', 'frozen_until', 'TEXT');
   await ensureColumn('users', 'sessions_valid_after', 'TEXT');
+  // Profil: Ism Familiya va profil rasmi (rasm base64 sifatida, alohida URL orqali beriladi)
+  await ensureColumn('users', 'full_name', 'TEXT');
+  await ensureColumn('users', 'avatar_data', 'TEXT');
+  await ensureColumn('users', 'avatar_ver', 'INTEGER');
 
   console.log('Turso bazasi tayyor.');
 }

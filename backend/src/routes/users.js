@@ -186,16 +186,16 @@ router.get('/users/search', authMiddleware, async (req, res) => {
   const q = (req.query.q || '').trim();
   if (!q) return res.json([]);
   const rows = await db.prepare(
-    'SELECT id, username, status_image_url FROM users WHERE username LIKE ? ORDER BY username ASC LIMIT 20'
-  ).all(`%${q}%`);
+    'SELECT id, username, full_name, avatar_ver, status_image_url FROM users WHERE username LIKE ? OR full_name LIKE ? ORDER BY username ASC LIMIT 20'
+  ).all(`%${q}%`, `%${q}%`);
   const emojis = await profileSvc.emojiMap(rows.map(r => r.id));
-  res.json(rows.map(r => ({ ...r, emoji_gift_id: emojis.has(r.id) ? emojis.get(r.id).gift_id : null })));
+  res.json(rows.map(r => ({ ...profileSvc.withAvatar(r), emoji_gift_id: emojis.has(r.id) ? emojis.get(r.id).gift_id : null })));
 });
 
 // Ochiq profil: username, status, giftlari, case'lari (pet mavjudligi, lekin tafsilotsiz)
 router.get('/users/:username/profile', authMiddleware, async (req, res) => {
   const user = await db.prepare(
-    'SELECT id, username, status_image_url, created_at FROM users WHERE username = ?'
+    'SELECT id, username, full_name, avatar_ver, status_image_url, created_at FROM users WHERE username = ?'
   ).get(req.params.username);
   if (!user) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
 
@@ -220,7 +220,7 @@ router.get('/users/:username/profile', authMiddleware, async (req, res) => {
   const emoji = await profileSvc.emojiFor(user.id);
   const pins = (await profileSvc.pinsFor(user.id)).map(p => ({ gift_id: p.gift_id, name: p.name }));
 
-  res.json({ ...user, gifts, cases, pets, emoji, pins });
+  res.json({ ...profileSvc.withAvatar(user), gifts, cases, pets, emoji, pins });
 });
 
 module.exports = router;
