@@ -801,13 +801,22 @@
   @keyframes sheetOut { to { transform: translateY(40px) scale(.97); opacity: 0; } }
   .modal-box { animation: slideUp 0.34s cubic-bezier(.22,1,.36,1); }
 
-  /* To'liq ekran sahifa: o'ngdan suzib kiradi, o'ngga suzib chiqadi */
-  .modal-overlay.open.page { animation: pageEnter 380ms cubic-bezier(.22,1,.36,1) backwards; }
-  .modal-overlay.open.page.closing { animation: pageExit 280ms cubic-bezier(.4,0,.9,.6) forwards; }
+  /* To'liq ekran sahifa: faqat ichki kontent suzadi, orqaga tugmasi joyida turadi */
+  .modal-overlay.open.page { animation: pageBgIn 320ms ease backwards; }
+  .modal-overlay.open.page.closing { animation: pageBgOut 300ms ease forwards; pointer-events: none; }
+  .modal-overlay.page .modal-box { animation: pageEnter 400ms cubic-bezier(.22,1,.36,1) backwards; }
+  .modal-overlay.page.closing .modal-box { animation: pageExit 280ms cubic-bezier(.4,0,.9,.6) forwards; }
   .modal-overlay.page.closing .modal-wrap { animation: none; }
-  .modal-overlay.page .modal-box { animation: none; }
+  .modal-overlay.page.closing .page-head { animation: headOut 300ms ease forwards; }
+  @keyframes pageBgIn { from { background-color: rgba(15,17,21,0); } }
+  @keyframes pageBgOut { to { background-color: rgba(15,17,21,0); } }
   @keyframes pageEnter { from { transform: translateX(36%); opacity: 0; } }
   @keyframes pageExit { to { transform: translateX(36%); opacity: 0; } }
+  @keyframes headOut { 0%, 55% { opacity: 1; } 100% { opacity: 0; } }
+
+  /* Orqaga tugmasi: bosilganda bir marta kattalashib, o'z holiga qaytadi */
+  .page-back-btn.pop { animation: backPop 340ms cubic-bezier(.34,1.56,.64,1); }
+  @keyframes backPop { 0% { transform: scale(1); } 45% { transform: scale(1.3); } 100% { transform: scale(1); } }
 
   /* Sahifadan sahifaga o'tish (masalan Sozlamalar -> Profile va orqaga) */
   #modalBody.nav-fwd { animation: subInFwd 380ms cubic-bezier(.22,1,.36,1) both; }
@@ -834,7 +843,7 @@
   @keyframes toastOut { to { transform: translate(-50%, -14px); opacity: 0; } }
 
   @media (prefers-reduced-motion: reduce) {
-    .modal-overlay, .modal-overlay .modal-wrap, .modal-box, #modalBody, #pageHeadTitle, .main-ghost, #app.appear { animation: none !important; }
+    .modal-overlay, .modal-overlay .modal-wrap, .modal-box, .page-back-btn, .page-head, #modalBody, #pageHeadTitle, .main-ghost, #app.appear { animation: none !important; }
     ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
   }
 </style>
@@ -4096,7 +4105,11 @@
         _navAnimTimer = setTimeout(() => body.classList.remove('nav-fwd', 'nav-back'), 450);
       }
     }
-    function pageBack() { if (pageBackFn) { pageNavDir = 'back'; pageBackFn(); } else closeModal(); }
+    function pageBack() {
+      const btn = document.querySelector('.page-back-btn');   // bir marta kattalashib qaytadi
+      if (btn) { btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); }
+      if (pageBackFn) { pageNavDir = 'back'; pageBackFn(); } else closeModal();
+    }
 
     async function buyCase(caseId, fromModal) {
       if (actionInProgress) return;
