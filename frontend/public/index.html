@@ -781,6 +781,62 @@
   .st-small { padding: 9px 14px; font-size: 13px; width: auto; display: inline-flex; }
   .st-card { text-align: left; padding: 14px 16px; border-radius: 16px; background: var(--card); margin-bottom: 10px; }
   .promo-chip { display: inline-block; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,0.10); font-size: 12px; margin: 6px 6px 0 0; }
+
+  /* ===== Animatsiyalar v2: sahifa ochilishi / yopilishi ===== */
+  @view-transition { navigation: auto; }
+  ::view-transition-old(root) { animation: vtOut 180ms ease both; }
+  ::view-transition-new(root) { animation: vtIn 260ms ease both; }
+  @keyframes vtOut { to { opacity: 0; } }
+  @keyframes vtIn { from { opacity: 0; } }
+
+  #app.appear { animation: appFade 420ms cubic-bezier(.22,1,.36,1) both; }
+  @keyframes appFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  /* Pastdan chiqadigan oyna (sheet): fon xiralashadi, oyna chiqadi / tushadi */
+  .modal-overlay.open { animation: ovFadeIn 220ms ease backwards; }
+  .modal-overlay.open.closing { animation: ovFadeOut 240ms ease forwards; pointer-events: none; }
+  .modal-overlay.closing .modal-wrap { animation: sheetOut 240ms cubic-bezier(.4,0,1,1) forwards; }
+  @keyframes ovFadeIn { from { background-color: rgba(0,0,0,0); } }
+  @keyframes ovFadeOut { to { background-color: rgba(0,0,0,0); } }
+  @keyframes sheetOut { to { transform: translateY(40px) scale(.97); opacity: 0; } }
+  .modal-box { animation: slideUp 0.34s cubic-bezier(.22,1,.36,1); }
+
+  /* To'liq ekran sahifa: o'ngdan suzib kiradi, o'ngga suzib chiqadi */
+  .modal-overlay.open.page { animation: pageEnter 380ms cubic-bezier(.22,1,.36,1) backwards; }
+  .modal-overlay.open.page.closing { animation: pageExit 280ms cubic-bezier(.4,0,.9,.6) forwards; }
+  .modal-overlay.page.closing .modal-wrap { animation: none; }
+  .modal-overlay.page .modal-box { animation: none; }
+  @keyframes pageEnter { from { transform: translateX(36%); opacity: 0; } }
+  @keyframes pageExit { to { transform: translateX(36%); opacity: 0; } }
+
+  /* Sahifadan sahifaga o'tish (masalan Sozlamalar -> Profile va orqaga) */
+  #modalBody.nav-fwd { animation: subInFwd 380ms cubic-bezier(.22,1,.36,1) both; }
+  #modalBody.nav-back { animation: subInBack 380ms cubic-bezier(.22,1,.36,1) both; }
+  @keyframes subInFwd { from { opacity: 0; transform: translateX(42px); } to { opacity: 1; transform: none; } }
+  @keyframes subInBack { from { opacity: 0; transform: translateX(-42px); } to { opacity: 1; transform: none; } }
+  #pageHeadTitle.swap { animation: titleSwap 300ms ease both; }
+  @keyframes titleSwap { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* Asosiy bo'limlar almashganda eski kontent chiqib ketadi */
+  .main-ghost { position: fixed; overflow: hidden; pointer-events: none; z-index: 5; }
+  .main-ghost-inner { box-sizing: border-box; }
+  .main-ghost.page-fwd { animation: ghostOutFwd 260ms cubic-bezier(.4,0,1,1) forwards; }
+  .main-ghost.page-back { animation: ghostOutBack 260ms cubic-bezier(.4,0,1,1) forwards; }
+  .main-ghost.page-up { animation: ghostOutUp 240ms cubic-bezier(.4,0,1,1) forwards; }
+  @keyframes ghostOutFwd { to { opacity: 0; transform: translateX(-34px) scale(.985); filter: blur(4px); } }
+  @keyframes ghostOutBack { to { opacity: 0; transform: translateX(34px) scale(.985); filter: blur(4px); } }
+  @keyframes ghostOutUp { to { opacity: 0; transform: translateY(-18px) scale(.985); filter: blur(4px); } }
+
+  /* Tugmalar bosilganda va toast */
+  .btn { transition: transform 150ms ease, filter 150ms ease, opacity 150ms ease; }
+  .btn:active:not(:disabled) { transform: scale(.96); filter: brightness(1.12); }
+  .toast.out { animation: toastOut 300ms ease forwards; }
+  @keyframes toastOut { to { transform: translate(-50%, -14px); opacity: 0; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .modal-overlay, .modal-overlay .modal-wrap, .modal-box, #modalBody, #pageHeadTitle, .main-ghost, #app.appear { animation: none !important; }
+    ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -937,6 +993,7 @@
         updateCoinBadge();
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('app').style.display = 'flex';
+        document.getElementById('app').classList.add('appear');
         const validTabs = ['shops', 'inventor', 'jonatmoq', 'mypet', 'kreditlar', 'trade'];
         const startTab = validTabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'shops';
         renderTab(startTab);
@@ -961,6 +1018,7 @@
       t.className = 'toast';
       t.textContent = msg;
       document.body.appendChild(t);
+      setTimeout(() => t.classList.add('out'), 1900);
       setTimeout(() => t.remove(), 2200);
     }
 
@@ -3829,6 +3887,27 @@
       updateLiquidIndicator(tab);
     }
 
+    // Bo'limlar almashganda eski kontentning nusxasi animatsiya bilan chiqib ketadi
+    function spawnMainGhost(dir) {
+      if (REDUCED_MOTION) return;
+      const mainEl = document.getElementById('main');
+      if (!mainEl || !mainEl.firstElementChild) return;
+      const r = mainEl.getBoundingClientRect();
+      const ghost = document.createElement('div');
+      ghost.className = 'main-ghost ' + dir;
+      ghost.style.cssText = `left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;`;
+      const inner = document.createElement('div');
+      inner.className = 'main-ghost-inner';
+      inner.style.padding = getComputedStyle(mainEl).padding;
+      inner.style.transform = `translateY(${-mainEl.scrollTop}px)`;
+      inner.innerHTML = mainEl.innerHTML;
+      inner.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
+      inner.querySelectorAll('*').forEach(e => { e.style.animation = 'none'; });
+      ghost.appendChild(inner);
+      document.body.appendChild(ghost);
+      setTimeout(() => ghost.remove(), 300);
+    }
+
     // renderTab avvalgi funksiyasi ustidan navigation indikatorini sinxronlaydi.
     const _renderTab = renderTab;
     renderTab = async function(tab) {
@@ -3837,6 +3916,7 @@
       const to = TAB_ORDER[tab] ?? 0;
       const dir = to > from ? 'page-fwd' : (to < from ? 'page-back' : 'page-up');
       const mainEl = document.getElementById('main');
+      if (tab !== currentNavTab) spawnMainGhost(dir);   // eski kontent chiqib ketadi
       const pending = _renderTab(tab);        // kontent shu zahoti almashadi
       mainEl.classList.remove('page-fwd', 'page-back', 'page-up');
       void mainEl.offsetWidth;                // animatsiyani qayta boshlash uchun
@@ -3921,13 +4001,33 @@
       openModal();
     }
 
-    function openModal() { const ov = document.getElementById('modalOverlay'); ov.classList.remove('page'); ov.classList.add('open'); }
-    function closeModal() {
+    const REDUCED_MOTION = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let _modalCloseTimer = null;
+    function _cancelModalClose(ov) {
+      if (_modalCloseTimer) { clearTimeout(_modalCloseTimer); _modalCloseTimer = null; }
+      if (ov.classList.contains('closing')) { void ov.offsetWidth; ov.classList.remove('closing'); }
+    }
+    function openModal() {
       const ov = document.getElementById('modalOverlay');
-      ov.classList.remove('open', 'page');
+      _cancelModalClose(ov);
+      ov.classList.remove('page'); ov.classList.add('open');
+    }
+    function closeModal(instant) {
+      const ov = document.getElementById('modalOverlay');
       pageBackFn = null;
-      const w = ov.querySelector('.modal-wrap');
-      if (w) { w.style.transform = ''; w.style.transition = ''; }
+      pageNavDir = 'fwd';
+      const finish = () => {
+        _modalCloseTimer = null;
+        ov.classList.remove('open', 'page', 'closing');
+        const w = ov.querySelector('.modal-wrap');
+        if (w) { w.style.transform = ''; w.style.transition = ''; }
+        const b = document.getElementById('modalBody'); if (b) b.classList.remove('nav-fwd', 'nav-back');
+      };
+      if (!ov.classList.contains('open')) return;
+      if (instant || REDUCED_MOTION) { _cancelModalClose(ov); finish(); return; }
+      if (ov.classList.contains('closing')) return;
+      ov.classList.add('closing');                         // chiqish animatsiyasi
+      _modalCloseTimer = setTimeout(finish, 290);
     }
 
     // Oynani tutqichdan pastga tortib yopish, fonni bosib yopish, Escape
@@ -3954,7 +4054,7 @@
         wrap.style.transition = 'transform 0.2s ease';
         if (dy > 90 || (dy > 30 && fast)) {
           wrap.style.transform = 'translateY(110%)';
-          setTimeout(closeModal, 190);
+          setTimeout(() => closeModal(true), 190);
         } else {
           wrap.style.transform = '';
           setTimeout(() => { wrap.style.transition = ''; }, 220);
@@ -3974,14 +4074,29 @@
     // To'liq ekran sahifa: tepada orqaga tugmasi va sarlavha bor.
     // back — orqaga bosilganda nima qilish (bo'lmasa, sahifa yopiladi).
     let pageBackFn = null;
+    let pageNavDir = 'fwd';
+    let _navAnimTimer = null;
     function openPage(title, back) {
       const ov = document.getElementById('modalOverlay');
+      const wasPage = ov.classList.contains('open') && ov.classList.contains('page') && !ov.classList.contains('closing');
+      _cancelModalClose(ov);
       ov.classList.add('open', 'page');
-      document.getElementById('pageHeadTitle').textContent = title;
+      const titleEl = document.getElementById('pageHeadTitle');
+      const changed = titleEl.textContent !== title;
+      titleEl.textContent = title;
       pageBackFn = back || null;
       const box = ov.querySelector('.modal-box'); if (box) box.scrollTop = 0;   // har yangi sahifa tepadan boshlanadi
+      const dir = pageNavDir; pageNavDir = 'fwd';
+      if (wasPage && !REDUCED_MOTION) {                       // sahifadan sahifaga o'tish animatsiyasi
+        const body = document.getElementById('modalBody');
+        body.classList.remove('nav-fwd', 'nav-back'); void body.offsetWidth;
+        body.classList.add(dir === 'back' ? 'nav-back' : 'nav-fwd');
+        if (changed) { titleEl.classList.remove('swap'); void titleEl.offsetWidth; titleEl.classList.add('swap'); }
+        clearTimeout(_navAnimTimer);
+        _navAnimTimer = setTimeout(() => body.classList.remove('nav-fwd', 'nav-back'), 450);
+      }
     }
-    function pageBack() { if (pageBackFn) pageBackFn(); else closeModal(); }
+    function pageBack() { if (pageBackFn) { pageNavDir = 'back'; pageBackFn(); } else closeModal(); }
 
     async function buyCase(caseId, fromModal) {
       if (actionInProgress) return;
