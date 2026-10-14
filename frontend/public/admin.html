@@ -150,6 +150,7 @@
     <button class="admin-nav-btn" data-section="versions" onclick="switchAdminSection('versions')">🆕 Versiya</button>
     <button class="admin-nav-btn" data-section="trades" onclick="switchAdminSection('trades')">🔄 Trade</button>
     <button class="admin-nav-btn" data-section="promos" onclick="switchAdminSection('promos')">🎟️ Promokod</button>
+    <button class="admin-nav-btn" data-section="cardstyles" onclick="switchAdminSection('cardstyles')">🎨 Profil uslublari</button>
   </div>
 
   <div class="admin-section" data-section="users">
@@ -519,6 +520,43 @@
     <h2>Promokodlar</h2>
     <div class="msg" style="margin:0 0 10px;">ℹ️ Bitta foydalanuvchi bitta kodni faqat 1 marta ishlata oladi. Gift berilganda Shopdagi gift soni kamaymaydi.</div>
     <div class="gift-list" id="promoList">Yuklanmoqda...</div>
+  </div>
+  </div>
+
+
+  <div class="admin-section" data-section="cardstyles" style="display:none">
+  <div class="card">
+    <h2 id="csFormTitle">Yangi profil uslubi</h2>
+    <div class="msg" style="margin:0 0 10px;">ℹ️ Foydalanuvchilar bu uslublarni coin evaziga sotib olib, profil kartasiga qo'yadi. Narxni siz belgilaysiz (0 = bepul).</div>
+    <form id="csForm">
+      <input type="hidden" id="csEditId">
+      <label>Nomi</label>
+      <input type="text" id="csName" maxlength="30" placeholder="Masalan: Oltin tong" required>
+      <label>Turi</label>
+      <select id="csKind">
+        <option value="solid">Oddiy rang</option>
+        <option value="gradient" selected>Gradient (ikki rang)</option>
+        <option value="glow">Nur (qadalgan giftlar atrofida yorug'lik)</option>
+      </select>
+      <div class="row" style="gap:16px;align-items:flex-end">
+        <div><label>1-rang</label><input type="color" id="csC1" value="#6c5ce7" style="height:42px;padding:3px;width:90px"></div>
+        <div><label>2-rang</label><input type="color" id="csC2" value="#a29bfe" style="height:42px;padding:3px;width:90px"></div>
+      </div>
+      <label>Narxi (coin)</label>
+      <input type="number" id="csPrice" min="0" step="0.01" value="100" required>
+      <label>Ko'rinishi</label>
+      <div id="csPreview" style="border-radius:16px;padding:16px;display:flex;align-items:center;gap:12px;border:1px solid rgba(255,255,255,.1)"></div>
+      <div class="row" style="margin-top:12px">
+        <button type="submit" class="btn-primary" id="csSubmit">Yaratish</button>
+        <button type="button" class="btn-secondary" id="csCancel" style="display:none" onclick="csResetForm()">Bekor qilish</button>
+      </div>
+      <div class="msg" id="csMsg"></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Uslublar</h2>
+    <div class="gift-list" id="csList">Yuklanmoqda...</div>
   </div>
   </div>
 
@@ -1874,6 +1912,116 @@
       } finally { btn.disabled = false; }
     });
 
+
+    // ---------- PROFIL USLUBLARI ----------
+    let csItems = [];
+    function csStyle(kind, c1, c2) {
+      const rgb = (h) => [parseInt(h.substr(1,2),16), parseInt(h.substr(3,2),16), parseInt(h.substr(5,2),16)].join(',');
+      if (kind === 'solid') return `background:${c1};color:#fff;`;
+      if (kind === 'gradient') return `background:linear-gradient(135deg,${c1},${c2});color:#fff;`;
+      return `background:linear-gradient(135deg,rgba(${rgb(c1)},.2),rgba(${rgb(c2)},.1));border:1px solid rgba(${rgb(c1)},.7);box-shadow:0 0 22px rgba(${rgb(c1)},.4);color:#fff;`;
+    }
+    function csRenderPreview() {
+      const kind = document.getElementById('csKind').value;
+      const c1 = document.getElementById('csC1').value, c2 = document.getElementById('csC2').value;
+      const el = document.getElementById('csPreview');
+      el.setAttribute('style', 'border-radius:16px;padding:16px;display:flex;align-items:center;gap:12px;' + csStyle(kind, c1, c2));
+      el.innerHTML = '<div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.55)"></div><div><div style="font-weight:800">Ism Familiya</div><div style="opacity:.85;font-size:13px">@username</div></div>'
+        + (kind === 'glow' ? `<div style="margin-left:auto;width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.12);box-shadow:0 0 16px ${c1}"></div>` : '');
+    }
+    ['csKind', 'csC1', 'csC2'].forEach(id => document.addEventListener('DOMContentLoaded', () => document.getElementById(id).addEventListener('input', csRenderPreview)));
+
+    function csResetForm() {
+      document.getElementById('csForm').reset();
+      document.getElementById('csEditId').value = '';
+      document.getElementById('csFormTitle').textContent = 'Yangi profil uslubi';
+      document.getElementById('csSubmit').textContent = 'Yaratish';
+      document.getElementById('csCancel').style.display = 'none';
+      document.getElementById('csMsg').textContent = '';
+      csRenderPreview();
+    }
+
+    async function loadCardStyles() {
+      const el = document.getElementById('csList');
+      const res = await fetch(`${API_BASE}/api/admin/card-styles`, { credentials: 'include' });
+      if (!res.ok) { el.textContent = 'Yuklab bo\'lmadi'; return; }
+      csItems = await res.json();
+      if (!csItems.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Hali uslub yo\'q</div>'; return; }
+      const kindName = { solid: 'Oddiy rang', gradient: 'Gradient', glow: 'Nur' };
+      el.innerHTML = csItems.map(c => `
+        <div class="gift-item" style="flex-wrap:wrap">
+          <div style="width:54px;height:40px;border-radius:12px;flex:0 0 54px;${csStyle(c.kind, c.color1, c.color2)}"></div>
+          <div class="info">
+            <div class="name">${escHtml(c.name)} <span class="meta">${c.is_active ? '' : '(sotuvda emas)'}</span></div>
+            <div class="meta">${kindName[c.kind] || c.kind} · 🪙 ${c.price} · Sotib olgan: ${c.owners}</div>
+          </div>
+          <div class="row" style="gap:6px">
+            <button class="btn-secondary" onclick="csEdit(${c.id})">✏️</button>
+            <button class="btn-secondary" onclick="csToggle(${c.id}, ${c.is_active ? 'false' : 'true'})">${c.is_active ? '⏸' : '▶️'}</button>
+            <button class="btn-secondary" onclick="csDelete(${c.id})">🗑</button>
+          </div>
+        </div>`).join('');
+    }
+
+    function csEdit(id) {
+      const c = csItems.find(x => x.id === id); if (!c) return;
+      document.getElementById('csEditId').value = c.id;
+      document.getElementById('csName').value = c.name;
+      document.getElementById('csKind').value = c.kind;
+      document.getElementById('csC1').value = c.color1;
+      document.getElementById('csC2').value = c.color2;
+      document.getElementById('csPrice').value = c.price;
+      document.getElementById('csFormTitle').textContent = 'Uslubni tahrirlash';
+      document.getElementById('csSubmit').textContent = 'Saqlash';
+      document.getElementById('csCancel').style.display = '';
+      csRenderPreview();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function csToggle(id, active) {
+      const res = await fetch(`${API_BASE}/api/admin/card-styles/${id}`, {
+        method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: active }),
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Xatolik'); return; }
+      loadCardStyles();
+    }
+
+    async function csDelete(id) {
+      if (!confirm("Uslubni o'chirasizmi? Kimdadir bo'lsa, u faqat sotuvdan yashiriladi va egalari ishlatishda davom etadi.")) return;
+      const res = await fetch(`${API_BASE}/api/admin/card-styles/${id}`, { method: 'DELETE', credentials: 'include' });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(d.error || 'Xatolik'); return; }
+      if (d.hidden) alert('Uslub kimdadir bor, shuning uchun sotuvdan yashirildi.');
+      loadCardStyles();
+    }
+
+    document.getElementById('csForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('csMsg'), btn = document.getElementById('csSubmit');
+      const id = document.getElementById('csEditId').value;
+      const body = {
+        name: document.getElementById('csName').value.trim(),
+        kind: document.getElementById('csKind').value,
+        color1: document.getElementById('csC1').value,
+        color2: document.getElementById('csC2').value,
+        price: document.getElementById('csPrice').value,
+      };
+      btn.disabled = true;
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/card-styles${id ? '/' + id : ''}`, {
+          method: id ? 'PUT' : 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) { msg.style.color = '#ff6b6b'; msg.textContent = d.error || 'Xatolik'; return; }
+        csResetForm();
+        msg.style.color = '#4cd964'; msg.textContent = id ? 'Saqlandi' : `Yaratildi: ${d.name}`;
+        loadCardStyles();
+      } finally { btn.disabled = false; }
+    });
+    csRenderPreview();
+
     checkAdmin().then(async () => {
       await loadUsers();
       await loadEvents();
@@ -1885,6 +2033,7 @@
       await loadPushStats();
       await loadVersions();
       await loadPromos();
+      await loadCardStyles();
       loadAdminTrades();
       addItemRow(); // birinchi qatorni avtomatik qo'shish
     });

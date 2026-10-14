@@ -6,6 +6,7 @@ const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
 const trades = require('../trades');
 const profileSvc = require('../profile');
+const cardStyleSvc = require('../cardStyles');
 
 const security = require('../security');
 
@@ -220,7 +221,8 @@ router.get('/users/:username/profile', authMiddleware, async (req, res) => {
   const emoji = await profileSvc.emojiFor(user.id);
   const pins = (await profileSvc.pinsFor(user.id)).map(p => ({ gift_id: p.gift_id, name: p.name }));
 
-  res.json({ ...profileSvc.withAvatar(user), gifts, cases, pets, emoji, pins });
+  const card_style = await cardStyleSvc.styleFor(user.id);
+  res.json({ ...profileSvc.withAvatar(user), gifts, cases, pets, emoji, pins, card_style });
 });
 
 module.exports = router;

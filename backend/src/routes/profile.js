@@ -33,6 +33,10 @@ router.post('/profile/pins', authMiddleware, h(async (req, res) => {
   res.json(await profile.pinGift(req.user.id, req.body && req.body.user_gift_id));
 }));
 
+router.put('/profile/pins/order', authMiddleware, h(async (req, res) => {
+  res.json(await profile.reorderPins(req.user.id, req.body && req.body.user_gift_ids));
+}));
+
 router.delete('/profile/pins/:userGiftId', authMiddleware, h(async (req, res) => {
   res.json(await profile.unpinGift(req.user.id, req.params.userGiftId));
 }));

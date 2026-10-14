@@ -164,6 +164,31 @@ async function unpinGift(userId, userGiftId) {
   return { ok: true };
 }
 
+// Qadalgan giftlar tartibi: yuborilgan ro'yxat tartibida birinchi bo'ladi, qolganlari (yashirinlar) oxirida qoladi
+async function reorderPins(userId, ids) {
+  if (!Array.isArray(ids) || ids.length > 50) throw new ProfileError(400, "Tartib noto'g'ri");
+  const clean = [];
+  for (const v of ids) {
+    const n = parseId(v);
+    if (!n) throw new ProfileError(400, "Tartib noto'g'ri");
+    if (!clean.includes(n)) clean.push(n);
+  }
+  await db.withTx(async (tx) => {
+    const mine = await tx.prepare('SELECT user_gift_id FROM profile_pins WHERE user_id = ?').all(userId);
+    const mineSet = new Set(mine.map(r => r.user_gift_id));
+    let pos = 1;
+    for (const id of clean) {
+      if (!mineSet.has(id)) continue;
+      await tx.prepare('UPDATE profile_pins SET position = ? WHERE user_id = ? AND user_gift_id = ?').run(pos++, userId, id);
+      mineSet.delete(id);
+    }
+    for (const id of mineSet) {
+      await tx.prepare('UPDATE profile_pins SET position = ? WHERE user_id = ? AND user_gift_id = ?').run(pos++, userId, id);
+    }
+  });
+  return { ok: true };
+}
+
 // ---------- Ism Familiya va profil rasmi (foydalanuvchi o'zi qo'yadi, admin kiritmaydi) ----------
 
 // Rasm havolasi: ?v= — rasm almashganda brauzer keshi yangilanishi uchun
@@ -210,6 +235,6 @@ async function avatarFile(userId) {
 
 module.exports = {
   ProfileError, EMOJI_MIN_PRICE, PIN_MIN_PRICE, PIN_MAX,
-  emojiMap, emojiFor, pinsFor, editData, setEmoji, clearEmoji, pinGift, unpinGift,
+  emojiMap, emojiFor, pinsFor, editData, setEmoji, clearEmoji, pinGift, unpinGift, reorderPins,
   avatarUrl, withAvatar, setFullName, setAvatar, clearAvatar, avatarFile,
 };

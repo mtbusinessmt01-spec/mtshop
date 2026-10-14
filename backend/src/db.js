@@ -182,6 +182,8 @@ async function initDb() {
   await ensureColumn('users', 'full_name', 'TEXT');
   await ensureColumn('users', 'avatar_data', 'TEXT');
   await ensureColumn('users', 'avatar_ver', 'INTEGER');
+  // Pullik profil kartasi uslubi (card_styles jadvali 008 migratsiyada)
+  await ensureColumn('users', 'card_style_id', 'INTEGER');
 
   console.log('Turso bazasi tayyor.');
 }

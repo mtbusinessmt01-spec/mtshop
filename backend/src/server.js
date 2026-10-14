@@ -23,6 +23,8 @@ const profileRouter = require('./routes/profile');
 const promocodesRouter = require('./routes/promocodes');
 const securityRouter = require('./routes/security');
 const profileSvc = require('./profile');
+const cardStyleSvc = require('./cardStyles');
+const cardStylesRouter = require('./routes/cardStyles');
 const trades = require('./trades');
 const { pageMiddleware } = require('./versions');
 const push = require('./push');
@@ -56,6 +58,7 @@ app.use('/api', tradesRouter);
 app.use('/api', profileRouter);
 app.use('/api', promocodesRouter);
 app.use('/api', securityRouter);
+app.use('/api', cardStylesRouter);
 
 // --- AUTH ---
 
@@ -114,7 +117,8 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
     ).get(req.user.id);
     if (!user) return res.status(404).json({ error: 'Topilmadi' });
     const emoji = await profileSvc.emojiFor(user.id);   // egalik va narx qayta tekshiriladi
-    res.json({ ...profileSvc.withAvatar(user), emoji_gift_id: emoji ? emoji.gift_id : null });
+    const card_style = await cardStyleSvc.styleFor(user.id);
+    res.json({ ...profileSvc.withAvatar(user), emoji_gift_id: emoji ? emoji.gift_id : null, card_style });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server xatosi' });
