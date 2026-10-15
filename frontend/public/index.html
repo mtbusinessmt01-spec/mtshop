@@ -41,13 +41,36 @@
   .coin-badge {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     background: var(--surface);
-    padding: 8px 14px;
+    padding: 3px 4px 3px 14px;
     border-radius: 999px;
     font-weight: 700;
     font-size: 14px;
+    border: 0; font-family: inherit; color: inherit; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .15s ease, filter .15s ease;
   }
+  .coin-badge:active { transform: scale(.94); filter: brightness(1.12); }
+  .coin-badge .coin-ico { width: 30px; height: 30px; display: block; flex: none; }
+
+  /* ---- Coin oynasi (3D tanga) ---- */
+  .modal-overlay.coin-sheet-ov {
+    backdrop-filter: blur(calc(14px * var(--blur-k))); -webkit-backdrop-filter: blur(calc(14px * var(--blur-k)));
+  }
+  .modal-overlay.coin-sheet-ov .modal-box { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .coin-sheet { text-align: center; }
+  .coin3d { position: relative; width: min(250px, 64vw); aspect-ratio: 1; margin: 4px auto 6px; user-select: none; -webkit-user-select: none; }
+  .coin3d canvas { position: absolute; inset: 0; }
+  .coin3d-fallback { position: absolute; inset: 6%; width: 88%; height: 88%; object-fit: contain; pointer-events: none; transition: opacity .25s ease; }
+  .coin3d.ready .coin3d-fallback { opacity: 0; }
+  .coin-sheet-text { font-size: 24px; font-weight: 800; margin: 4px 0 18px; }
+  .coin-sheet-ok {
+    width: 100%; height: 54px; border: 0; border-radius: 999px; cursor: pointer;
+    background: #00aeef; color: #fff; font: inherit; font-size: 18px; font-weight: 600;
+    transition: transform .15s ease, filter .15s ease;
+  }
+  .coin-sheet-ok:active { transform: scale(.97); filter: brightness(1.1); }
   main {
     flex: 1;
     overflow-y: auto;
@@ -1103,7 +1126,7 @@ window.MTP = (function () {
   <div id="app">
     <header>
       <div class="brand"><img src="logo.jpg" alt="MTshop" class="logo-icon"> <span>MTshop</span></div>
-      <div class="coin-badge">🪙 <span id="coinBalance">0</span></div>
+      <button class="coin-badge" id="coinBadge" type="button" aria-label="Coin balansi" onclick="openCoinSheet()"><span id="coinBalance">0</span><img class="coin-ico" src="icons/coin.png" alt="" width="30" height="30"></button>
     </header>
 
     <main id="main">
@@ -1270,6 +1293,8 @@ window.MTP = (function () {
 
     function updateCoinBadge() {
       document.getElementById('coinBalance').textContent = currentUser.coin_balance;
+      const sb = document.getElementById('coinSheetBal');
+      if (sb) sb.textContent = currentUser.coin_balance;
     }
 
     function showToast(msg) {
@@ -4474,7 +4499,8 @@ window.MTP = (function () {
     function openModal() {
       const ov = document.getElementById('modalOverlay');
       _cancelModalClose(ov);
-      ov.classList.remove('page', 'split'); ov.classList.add('open');
+      destroyCoin3D();
+      ov.classList.remove('page', 'split', 'coin-sheet-ov'); ov.classList.add('open');
     }
     function closeModal(instant) {
       const ov = document.getElementById('modalOverlay');
@@ -4482,7 +4508,8 @@ window.MTP = (function () {
       pageNavDir = 'fwd';
       const finish = () => {
         _modalCloseTimer = null;
-        ov.classList.remove('open', 'page', 'closing', 'split');
+        ov.classList.remove('open', 'page', 'closing', 'split', 'coin-sheet-ov');
+        destroyCoin3D();
         const sd = document.getElementById('stSide'); if (sd) sd.innerHTML = '';
         const w = ov.querySelector('.modal-wrap');
         if (w) { w.style.transform = ''; w.style.transition = ''; }
@@ -4494,6 +4521,41 @@ window.MTP = (function () {
       if (ov.classList.contains('closing')) return;
       ov.classList.add('closing');                         // chiqish animatsiyasi
       _modalCloseTimer = setTimeout(finish, Math.round(290 * _k) + 40);
+    }
+
+    // ===== Coin oynasi: tepadagi coin tugmasi bosilganda 3D tanga bilan oyna ochiladi =====
+    let _coin3dInst = null, _coin3dPromise = null;
+    function destroyCoin3D() {
+      if (_coin3dInst) { try { _coin3dInst.destroy(); } catch (e) {} _coin3dInst = null; }
+    }
+    function loadCoin3D() {
+      if (window.MTCoin3D) return Promise.resolve(window.MTCoin3D);
+      if (!_coin3dPromise) {
+        _coin3dPromise = new Promise((resolve, reject) => {
+          const sc = document.createElement('script');
+          sc.src = 'vendor/coin3d.js?v=1';
+          sc.onload = () => window.MTCoin3D ? resolve(window.MTCoin3D) : reject(new Error('MTCoin3D yo\'q'));
+          sc.onerror = () => { _coin3dPromise = null; reject(new Error('coin3d.js yuklanmadi')); };
+          document.head.appendChild(sc);
+        });
+      }
+      return _coin3dPromise;
+    }
+    function openCoinSheet() {
+      if (!currentUser) return;
+      document.getElementById('modalBody').innerHTML = `
+        <div class="coin-sheet">
+          <div class="coin3d" id="coin3d"><img class="coin3d-fallback" src="icons/coin.png" alt="Coin"></div>
+          <div class="coin-sheet-text">Your coin: <span id="coinSheetBal">${esc(currentUser.coin_balance)}</span></div>
+          <button class="coin-sheet-ok" type="button" onclick="closeModal()">Ok</button>
+        </div>`;
+      openModal();
+      document.getElementById('modalOverlay').classList.add('coin-sheet-ov');
+      const host = document.getElementById('coin3d');
+      loadCoin3D().then((api) => {
+        if (!host.isConnected || _coin3dInst) return;          // oyna yopilib ulgurgan bo'lsa
+        _coin3dInst = api.mount(host, { url: 'coin.glb', onReady: () => host.classList.add('ready') });
+      }).catch(() => { /* 3D ishlamasa oddiy rasm ko'rinib turadi */ });
     }
 
     // Oynani tutqichdan pastga tortib yopish, fonni bosib yopish, Escape
