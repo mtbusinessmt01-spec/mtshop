@@ -53,6 +53,9 @@
   }
   .coin-badge:active { transform: scale(.94); filter: brightness(1.12); }
   .coin-badge .coin-ico { width: 30px; height: 30px; display: block; flex: none; }
+  /* Barcha joyda coin emojisi o'rniga yangi coin ikonkasi (matn o'lchamiga qarab kattalashadi) */
+  html img.cn { width: 1.15em; height: 1.15em; vertical-align: -0.22em; display: inline-block; object-fit: contain;
+    border-radius: 0; box-shadow: none; margin: 0; flex: none; background: none; }
 
   /* ---- Coin oynasi (3D tanga) ---- */
   .modal-overlay.coin-sheet-ov {
@@ -67,7 +70,7 @@
   .coin-sheet-text { font-size: 24px; font-weight: 800; margin: 4px 0 18px; }
   .coin-sheet-ok {
     width: 100%; height: 54px; border: 0; border-radius: 999px; cursor: pointer;
-    background: #00aeef; color: #fff; font: inherit; font-size: 18px; font-weight: 600;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff; font: inherit; font-size: 18px; font-weight: 600;
     transition: transform .15s ease, filter .15s ease;
   }
   .coin-sheet-ok:active { transform: scale(.97); filter: brightness(1.1); }
@@ -1400,7 +1403,7 @@ window.MTP = (function () {
       el.innerHTML = active.map(c => `
         <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:10px;">
           <div style="font-weight:700; margin-bottom:6px;">${c.type_name}</div>
-          <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">Qolgan qarz: 🪙 ${c.remaining_amount}</div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">Qolgan qarz: <img class="cn" src="icons/coin.png" alt="coin"> ${c.remaining_amount}</div>
           <button class="btn" onclick="openCreditDetail(${c.id})">Ko'rish</button>
         </div>
       `).join('');
@@ -1414,7 +1417,7 @@ window.MTP = (function () {
         ? c.payments.map(p => `
             <div class="case-item-row">
               <div class="ci-icon">${p.payment_type === 'early' ? '⚡' : '📅'}</div>
-              <div class="ci-name">🪙 ${p.amount} ${p.payment_type === 'early' ? '(oldindan)' : '(jadval)'}</div>
+              <div class="ci-name"><img class="cn" src="icons/coin.png" alt="coin"> ${p.amount} ${p.payment_type === 'early' ? '(oldindan)' : '(jadval)'}</div>
               <div class="ci-chance" style="font-size:11px;">${formatUzDate(p.created_at)}</div>
             </div>`).join('')
         : `<div class="modal-sub">Hali to'lov qilinmagan</div>`;
@@ -1422,10 +1425,10 @@ window.MTP = (function () {
       document.getElementById('modalBody').innerHTML = `
         <div class="modal-title">${c.type_name}</div>
         ${statusBadge}
-        <div class="case-item-row"><div class="ci-name">Siz olgan summa</div><div class="ci-chance">🪙 ${c.principal_amount}</div></div>
-        <div class="case-item-row"><div class="ci-name">Siz qaytaradigan summa</div><div class="ci-chance">🪙 ${c.total_to_pay}</div></div>
+        <div class="case-item-row"><div class="ci-name">Siz olgan summa</div><div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${c.principal_amount}</div></div>
+        <div class="case-item-row"><div class="ci-name">Siz qaytaradigan summa</div><div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${c.total_to_pay}</div></div>
         <div class="case-item-row"><div class="ci-name">Kredit foizi</div><div class="ci-chance">${c.interest_percent}%</div></div>
-        <div class="case-item-row"><div class="ci-name">Qolgan qarz</div><div class="ci-chance">🪙 ${c.remaining_amount}</div></div>
+        <div class="case-item-row"><div class="ci-name">Qolgan qarz</div><div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${c.remaining_amount}</div></div>
         <div class="case-item-row"><div class="ci-name">Keyingi to'lov</div><div class="ci-chance" style="font-size:12px;">${formatUzDate(c.next_payment_at)}</div></div>
 
         <div class="modal-sub" style="margin-top:16px">Oxirgi to'lovlarim</div>
@@ -1443,12 +1446,12 @@ window.MTP = (function () {
         <div class="modal-sub">"${c.type_name}" uchun</div>
         <div class="gift-card" style="text-align:left; padding:14px; margin-bottom:10px;">
           <div style="font-weight:700; margin-bottom:4px;">📅 Jadval bo'yicha</div>
-          <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">Haftalik belgilangan to'lov: 🪙 ${Math.min(c.weekly_payment, c.remaining_amount)}</div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">Haftalik belgilangan to'lov: <img class="cn" src="icons/coin.png" alt="coin"> ${Math.min(c.weekly_payment, c.remaining_amount)}</div>
           <button class="btn" onclick="payScheduled(${c.id})">Shu summani to'lash</button>
         </div>
         <div class="gift-card" style="text-align:left; padding:14px;">
           <div style="font-weight:700; margin-bottom:4px;">⚡ Oldindan to'lov</div>
-          <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">O'zingiz xohlagan summani to'lang (qolgan qarz: 🪙 ${c.remaining_amount})</div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">O'zingiz xohlagan summani to'lang (qolgan qarz: <img class="cn" src="icons/coin.png" alt="coin"> ${c.remaining_amount})</div>
           <input type="number" class="send-input" id="earlyPayAmount" placeholder="Miqdor" min="0" max="${c.remaining_amount}" step="0.01" style="margin-bottom:10px;">
           <button class="btn" onclick="payEarly(${c.id})">To'lash</button>
         </div>
@@ -1487,8 +1490,8 @@ window.MTP = (function () {
           <div class="win-icon">✅</div>
           <div class="win-title">To'lov tasdiqlandi</div>
           <div class="receipt">
-            <div class="receipt-row"><span>To'langan summa</span><span>🪙 ${data.paid_amount}</span></div>
-            <div class="receipt-row"><span>Qolgan qarz</span><span>🪙 ${data.remaining_amount}</span></div>
+            <div class="receipt-row"><span>To'langan summa</span><span><img class="cn" src="icons/coin.png" alt="coin"> ${data.paid_amount}</span></div>
+            <div class="receipt-row"><span>Qolgan qarz</span><span><img class="cn" src="icons/coin.png" alt="coin"> ${data.remaining_amount}</span></div>
             <div class="receipt-row"><span>Holat</span><span>${data.status === 'paid' ? "To'liq yopildi 🎉" : 'Faol'}</span></div>
             <div class="receipt-row"><span>Sana</span><span>${formatUzDate(now.toISOString())}</span></div>
           </div>
@@ -1523,8 +1526,8 @@ window.MTP = (function () {
       if (!t) return;
       document.getElementById('modalBody').innerHTML = `
         <div class="modal-title">${t.name}</div>
-        <div class="case-item-row"><div class="ci-name">Minimal summa</div><div class="ci-chance">🪙 ${t.min_amount}</div></div>
-        <div class="case-item-row"><div class="ci-name">Maksimal summa</div><div class="ci-chance">🪙 ${t.max_amount}</div></div>
+        <div class="case-item-row"><div class="ci-name">Minimal summa</div><div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${t.min_amount}</div></div>
+        <div class="case-item-row"><div class="ci-name">Maksimal summa</div><div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${t.max_amount}</div></div>
         <div class="case-item-row"><div class="ci-name">Foizi</div><div class="ci-chance">${t.interest_percent}%</div></div>
         <div class="case-item-row"><div class="ci-name">To'lash muddati</div><div class="ci-chance">${t.installments_weeks} hafta</div></div>
 
@@ -1698,9 +1701,9 @@ window.MTP = (function () {
           <div class="receipt">
             <div class="receipt-row"><span>Qarzdor</span><span>@${esc(o.borrower_username)}</span></div>
             <div class="receipt-row"><span>Kredit nomi</span><span>${esc(o.credit_name)}</span></div>
-            <div class="receipt-row"><span>Kechikkan to'lov</span><span>🪙 ${o.week_payment}</span></div>
+            <div class="receipt-row"><span>Kechikkan to'lov</span><span><img class="cn" src="icons/coin.png" alt="coin"> ${o.week_payment}</span></div>
             <div class="receipt-row"><span>Qolgan vaqt</span><span>${timeLeftText(o.deadline_at, serverNow)}</span></div>
-            <div class="receipt-row"><span>To'lamasa sizdan yechiladi</span><span>🪙 ${o.penalty_amount}</span></div>
+            <div class="receipt-row"><span>To'lamasa sizdan yechiladi</span><span><img class="cn" src="icons/coin.png" alt="coin"> ${o.penalty_amount}</span></div>
           </div>
           <div class="send-hint" style="text-align:center">2 sutkada ham to'lanmasa, shu hafta to'lovining 50% hisobingizdan olinadi.</div>
           <div class="guar-btn-row">
@@ -1757,8 +1760,8 @@ window.MTP = (function () {
           <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:10px;">
             <div style="font-weight:700; margin-bottom:6px;">@${esc(o.borrower_username)} to'lamadi &middot; ${esc(o.credit_name)}</div>
             <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">
-              Kechikkan to'lov: 🪙 ${o.week_payment} &middot; Qolgan vaqt: ${timeLeftText(o.deadline_at, od.server_now)}<br>
-              To'lamasa sizdan 🪙 ${o.penalty_amount} yechiladi
+              Kechikkan to'lov: <img class="cn" src="icons/coin.png" alt="coin"> ${o.week_payment} &middot; Qolgan vaqt: ${timeLeftText(o.deadline_at, od.server_now)}<br>
+              To'lamasa sizdan <img class="cn" src="icons/coin.png" alt="coin"> ${o.penalty_amount} yechiladi
             </div>
             <button class="btn" onclick="remindBorrowerFromPage(${o.id})">${o.reminded_at ? '📣 Yana eslatish' : '📣 Qarzdorga xabar berish'}</button>
           </div>
@@ -1783,7 +1786,7 @@ window.MTP = (function () {
           <div class="win-title">Kafillik jarimasi</div>
           <div class="modal-sub">Qarzdor 2 sutka ichida to'lamadi, shuning uchun hisobingizdan shu hafta to'lovining 50% yechildi.</div>
           <div class="receipt">
-            ${list.map(c => `<div class="receipt-row"><span>@${esc(c.borrower_username)} &middot; ${esc(c.credit_name)}</span><span>−🪙 ${c.charged_amount ?? 0}</span></div>`).join('')}
+            ${list.map(c => `<div class="receipt-row"><span>@${esc(c.borrower_username)} &middot; ${esc(c.credit_name)}</span><span>−<img class="cn" src="icons/coin.png" alt="coin"> ${c.charged_amount ?? 0}</span></div>`).join('')}
           </div>
           <button class="btn" style="margin-top:14px" onclick="ackCharged()">Tushunarli</button>
         </div>
@@ -1816,7 +1819,7 @@ window.MTP = (function () {
           <div class="modal-sub">@${esc(r.guarantor_username)} sizga kredit to'lovini to'lashni eslatdi.</div>
           <div class="receipt">
             <div class="receipt-row"><span>Kredit nomi</span><span>${esc(r.credit_name)}</span></div>
-            <div class="receipt-row"><span>To'lanishi kerak</span><span>🪙 ${r.week_payment}</span></div>
+            <div class="receipt-row"><span>To'lanishi kerak</span><span><img class="cn" src="icons/coin.png" alt="coin"> ${r.week_payment}</span></div>
             <div class="receipt-row"><span>Kafilingiz</span><span>@${esc(r.guarantor_username)}</span></div>
           </div>
           <div class="send-hint" style="text-align:center">To'lamasangiz, kafilingiz hisobidan jarima olinadi.</div>
@@ -1847,7 +1850,7 @@ window.MTP = (function () {
           <div class="receipt">
             <div class="receipt-row"><span>Kredit olayotgan</span><span>@${esc(r.requester_username)}</span></div>
             <div class="receipt-row"><span>Kredit nomi</span><span>${esc(r.credit_name)}</span></div>
-            <div class="receipt-row"><span>Miqdori</span><span>🪙 ${r.amount}</span></div>
+            <div class="receipt-row"><span>Miqdori</span><span><img class="cn" src="icons/coin.png" alt="coin"> ${r.amount}</span></div>
             <div class="receipt-row"><span>To'lash muddati</span><span>${r.installments_weeks} hafta</span></div>
           </div>
           <div class="guar-btn-row">
@@ -1897,7 +1900,7 @@ window.MTP = (function () {
         ${list.map((r, i) => `
           <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:10px;">
             <div style="font-weight:700; margin-bottom:6px;">@${esc(r.requester_username)} &middot; ${esc(r.credit_name)}</div>
-            <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">🪙 ${r.amount} &middot; ${r.installments_weeks} hafta</div>
+            <div style="font-size:13px; color:var(--muted); margin-bottom:10px;"><img class="cn" src="icons/coin.png" alt="coin"> ${r.amount} &middot; ${r.installments_weeks} hafta</div>
             <button class="btn" onclick="showGuarantorModal(window.__guarPageList, ${i})">Ko'rish</button>
           </div>
         `).join('')}
@@ -1917,7 +1920,7 @@ window.MTP = (function () {
         <div class="section-title" style="margin-top:24px">📨 Kafil so'rovlarim</div>
         ${list.map(r => `
           <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:10px;">
-            <div style="font-weight:700; margin-bottom:6px;">${esc(r.credit_name)} &middot; 🪙 ${r.amount}</div>
+            <div style="font-weight:700; margin-bottom:6px;">${esc(r.credit_name)} &middot; <img class="cn" src="icons/coin.png" alt="coin"> ${r.amount}</div>
             <div style="font-size:13px; color:var(--muted); margin-bottom:${r.status === 'pending' ? '10px' : '0'};">
               Kafil: @${esc(r.guarantor_username)} &middot;
               ${r.status === 'pending' ? '⏳ Javob kutilmoqda' : '❌ Rad etildi'}
@@ -2030,7 +2033,7 @@ window.MTP = (function () {
 
         <div class="section-title">Nima yuboramiz?</div>
         <div class="type-tabs">
-          <button class="type-tab active" data-type="coin" onclick="switchSendType('coin')">🪙 Coin</button>
+          <button class="type-tab active" data-type="coin" onclick="switchSendType('coin')"><img class="cn" src="icons/coin.png" alt="coin"> Coin</button>
           <button class="type-tab" data-type="gift" onclick="switchSendType('gift')">🎁 Gift</button>
           <button class="type-tab" data-type="case" onclick="switchSendType('case')">📦 Case</button>
         </div>
@@ -2129,7 +2132,7 @@ window.MTP = (function () {
         <div class="modal-title">Yuborishni tasdiqlang</div>
         <div class="case-item-row"><div class="ci-name">Narsa</div><div class="ci-chance">${ITEM_TYPE_LABELS[type]}</div></div>
         <div class="case-item-row"><div class="ci-name">Kimga</div><div class="ci-chance">@${body.to_username}</div></div>
-        ${type === 'coin' ? `<div class="case-item-row"><div class="ci-name">Miqdor</div><div class="ci-chance">🪙 ${body.amount}</div></div>` : ''}
+        ${type === 'coin' ? `<div class="case-item-row"><div class="ci-name">Miqdor</div><div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${body.amount}</div></div>` : ''}
 
         <div class="modal-sub" style="margin-top:16px">Anonim sifatida jo'natilsinmi?</div>
         <div class="modal-sub" style="font-size:11px; margin-top:-8px;">("Ha" desangiz, qabul qiluvchi sizdan kelganini bilmaydi)</div>
@@ -2184,7 +2187,7 @@ window.MTP = (function () {
     }
 
     function transferItemLine(t) {
-      if (t.item_type === 'coin') return `🪙 ${t.coin_amount} coin`;
+      if (t.item_type === 'coin') return `<img class="cn" src="icons/coin.png" alt="coin"> ${t.coin_amount} coin`;
       if (t.item_type === 'gift') return `🎁 ${t.gift_name || 'Gift'}`;
       return `📦 ${t.case_name || 'Case'}`;
     }
@@ -2292,9 +2295,9 @@ window.MTP = (function () {
         <div class="case-item-row"><div class="ci-name">Daraja (LV)</div><div class="ci-chance">LV ${p.level}</div></div>
         <div class="case-item-row"><div class="ci-name">XP</div><div class="ci-chance">${Math.round(p.xp*100)/100} / ${p.xp_per_level}</div></div>
         <div class="case-item-row"><div class="ci-name">Keyingi LV (${p.level + 1})</div><div class="ci-chance" style="font-size:12px;">To'yish uchun ${p.next_level_required_feed_xp} XP kifoya</div></div>
-        <div class="case-item-row"><div class="ci-name">Daromad</div><div class="ci-chance">🪙 ${p.income_now} / 3soat</div></div>
+        <div class="case-item-row"><div class="ci-name">Daromad</div><div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${p.income_now} / 3soat</div></div>
         <div class="case-item-row"><div class="ci-name">LV bonusi</div><div class="ci-chance" style="font-size:12px;">+${p.level_bonus_percent}%${p.level_bonus_percent >= 80 ? ` (maksimum — LV ${p.bonus_cap_level} dan keyin sotish narxi oshadi)` : ''}</div></div>
-        ${p.status !== 'dead' ? `<div class="case-item-row"><div class="ci-name">Saytga sotish narxi</div><div class="ci-chance">🪙 ${p.sell_price}</div></div>` : ''}
+        ${p.status !== 'dead' ? `<div class="case-item-row"><div class="ci-name">Saytga sotish narxi</div><div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${p.sell_price}</div></div>` : ''}
 
         ${p.status !== 'dead' ? `<button class="btn" style="margin-top:14px" onclick="openFeedModal(${p.id})">🍖 Ovqatlantirish</button>` : ''}
         ${p.status === 'sick' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="curePet(${p.id})">💊 Davolash (${p.heal_cost} coin)</button>` : ''}
@@ -2469,7 +2472,7 @@ window.MTP = (function () {
           ${giftImg({ image_url: t.image_url, name: t.name })}
           <div class="gift-name">${t.name}</div>
           <div class="gift-qty">${t.stock === null ? 'Cheksiz' : 'Qoldi: ' + t.stock}</div>
-          <div class="gift-price">🪙 ${t.price}</div>
+          <div class="gift-price"><img class="cn" src="icons/coin.png" alt="coin"> ${t.price}</div>
           <button class="btn" onclick="openPetPreview(${t.id})">Ko'rish</button>
         </div>
       `).join('');
@@ -2493,22 +2496,22 @@ window.MTP = (function () {
         <div class="modal-sub" style="text-align:center;">${t.stock === null ? 'Cheksiz' : 'Shopda qoldi: ' + t.stock}</div>
 
         <div class="modal-sub" style="margin:4px 0 6px; font-weight:700;">Nima beradi</div>
-        ${row('Daromad (LV 1)', `🪙 ${t.coin_per_3h} / 3 soat (≈ ${t.coin_per_day} / kun)`)}
-        ${row('LV bonusi', `har LV +${r.level_bonus_per_level_percent}%, eng ko'pi +${r.max_level_bonus_percent}% (LV ${r.bonus_cap_level} da). Maksimal daromad: 🪙 ${t.max_coin_per_3h} / 3 soat`)}
+        ${row('Daromad (LV 1)', `<img class="cn" src="icons/coin.png" alt="coin"> ${t.coin_per_3h} / 3 soat (≈ ${t.coin_per_day} / kun)`)}
+        ${row('LV bonusi', `har LV +${r.level_bonus_per_level_percent}%, eng ko'pi +${r.max_level_bonus_percent}% (LV ${r.bonus_cap_level} da). Maksimal daromad: <img class="cn" src="icons/coin.png" alt="coin"> ${t.max_coin_per_3h} / 3 soat`)}
 
         <div class="modal-sub" style="margin:14px 0 6px; font-weight:700;">Parvarish</div>
         ${row("To'yish uchun XP", `${t.lv1_required_feed_xp} (har LV da biroz kamayadi). XP = gift narxi ÷ 10`)}
         ${row('1 LV uchun XP', `${t.xp_per_level}`)}
         ${row('Ovqatlantirmasangiz', `${r.hungry_after_hours} soatdan keyin och (daromad ${r.hungry_income_percent}%), ${r.sick_after_hours} soatdan keyin kasal (daromad yo'q), ${r.death_after_hours} soatdan keyin o'ladi`)}
-        ${row('Davolash narxi', `🪙 ${t.heal_cost}`)}
-        ${row('Tiriltirish', `🪙 ${t.revive_cost} (o'lgandan keyin ${r.revive_days} kun ichida)`)}
+        ${row('Davolash narxi', `<img class="cn" src="icons/coin.png" alt="coin"> ${t.heal_cost}`)}
+        ${row('Tiriltirish', `<img class="cn" src="icons/coin.png" alt="coin"> ${t.revive_cost} (o'lgandan keyin ${r.revive_days} kun ichida)`)}
 
         <div class="modal-sub" style="margin:14px 0 6px; font-weight:700;">Qayta sotish va limit</div>
-        ${row('Saytga sotish narxi', `🪙 ${t.sell_price_lv1} (LV 1). LV ${r.bonus_cap_level} dan keyin oshadi, eng ko'pi 🪙 ${t.sell_price_max}`)}
+        ${row('Saytga sotish narxi', `<img class="cn" src="icons/coin.png" alt="coin"> ${t.sell_price_lv1} (LV 1). LV ${r.bonus_cap_level} dan keyin oshadi, eng ko'pi <img class="cn" src="icons/coin.png" alt="coin"> ${t.sell_price_max}`)}
         ${row('Limit', `Bir vaqtda ko'pi bilan ${r.max_pets} ta tirik pet`)}
 
-        <button class="btn" style="margin-top:16px" ${enough ? '' : 'disabled'} onclick="buyPet(${t.id})">Sotib olish — 🪙 ${t.price}</button>
-        ${enough ? '' : `<div style="font-size:12px; color:var(--muted); margin-top:8px; text-align:center;">Balansingiz yetarli emas (sizda 🪙 ${currentUser ? currentUser.coin_balance : 0})</div>`}
+        <button class="btn" style="margin-top:16px" ${enough ? '' : 'disabled'} onclick="buyPet(${t.id})">Sotib olish — <img class="cn" src="icons/coin.png" alt="coin"> ${t.price}</button>
+        ${enough ? '' : `<div style="font-size:12px; color:var(--muted); margin-top:8px; text-align:center;">Balansingiz yetarli emas (sizda <img class="cn" src="icons/coin.png" alt="coin"> ${currentUser ? currentUser.coin_balance : 0})</div>`}
       `;
       openModal();
     }
@@ -2917,7 +2920,7 @@ window.MTP = (function () {
         const owned = st.owned, isSel = sel === st.id;
         const btn = isSel ? `<button class="btn secondary" data-act="off">Olib tashlash</button>`
           : owned ? `<button class="btn" data-act="select" data-id="${st.id}">Tanlash</button>`
-          : `<button class="btn" data-act="buy" data-id="${st.id}" data-price="${esc(st.price)}">${st.price > 0 ? '🪙 ' + esc(st.price) + ' · Sotib olish' : 'Bepul olish'}</button>`;
+          : `<button class="btn" data-act="buy" data-id="${st.id}" data-price="${esc(st.price)}">${st.price > 0 ? '<img class="cn" src="icons/coin.png" alt="coin"> ' + esc(st.price) + ' · Sotib olish' : 'Bepul olish'}</button>`;
         return `<div class="pz-cs${isSel ? ' sel' : ''}">
           <div class="pz-cs-prev${csClass(st)}" style="${csVars(st)}"><span class="pz-av"></span><span class="pz-ln"><i></i><i></i></span></div>
           <div class="pz-cs-name">${esc(st.name)}</div>
@@ -3101,7 +3104,7 @@ window.MTP = (function () {
 
         <div class="st-card" style="margin-top:18px;">
           <div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:8px;"><span style="color:var(--muted)">Username</span><b>@${esc(u.username)}</b></div>
-          <div style="display:flex;justify-content:space-between;gap:10px;"><span style="color:var(--muted)">Coin balans</span><b>${esc(u.coin_balance)} 🪙</b></div>
+          <div style="display:flex;justify-content:space-between;gap:10px;"><span style="color:var(--muted)">Coin balans</span><b>${esc(u.coin_balance)} <img class="cn" src="icons/coin.png" alt="coin"></b></div>
         </div>
 
         <div class="st-section">Profilni bezash</div>
@@ -3256,7 +3259,7 @@ window.MTP = (function () {
 
     function promoRewardChips(rewards) {
       return (rewards || []).map(r => {
-        if (r.type === 'coin') return `<span class="promo-chip">🪙 +${esc(r.amount)}</span>`;
+        if (r.type === 'coin') return `<span class="promo-chip"><img class="cn" src="icons/coin.png" alt="coin"> +${esc(r.amount)}</span>`;
         if (r.type === 'gift') return `<span class="promo-chip">🎁 ${esc(r.name)} × ${Number(r.quantity)}</span>`;
         return `<span class="promo-chip">📦 ${esc(r.name)} × ${Number(r.quantity)}</span>`;
       }).join('');
@@ -3499,7 +3502,7 @@ window.MTP = (function () {
             <div class="tr-pick-row" data-gid="${Number(g.gift_id)}">
               ${tradeGiftThumb(g.gift_id)}
               <div class="tr-name">${esc(g.name)}</div>
-              <div class="tr-price">🪙 ${esc(g.price)}</div>
+              <div class="tr-price"><img class="cn" src="icons/coin.png" alt="coin"> ${esc(g.price)}</div>
               <div class="tr-add">Tanlash</div>
             </div>`).join('')
         : `<div class="modal-sub">Sizda narxi ${d.limits.emoji_min_price} coin va undan yuqori gift yo'q.</div>`;
@@ -3579,7 +3582,7 @@ window.MTP = (function () {
             <div class="tr-pick-row" data-ug="${Number(g.user_gift_id)}">
               ${tradeGiftThumb(g.gift_id)}
               <div class="tr-name">${esc(g.name)}</div>
-              <div class="tr-price">🪙 ${esc(g.price)}</div>
+              <div class="tr-price"><img class="cn" src="icons/coin.png" alt="coin"> ${esc(g.price)}</div>
               <div class="tr-add">📌 Qadash</div>
             </div>`).join('')
         : `<div class="modal-sub">Qadash uchun narxi ${d.limits.pin_min_price} coin va undan yuqori bo'sh gift yo'q.</div>`;
@@ -4207,7 +4210,7 @@ window.MTP = (function () {
           ${giftImg(g)}
           <div class="gift-name">${g.name}</div>
           <div class="gift-qty">${g.quantity === null ? 'Cheksiz' : 'Qoldi: ' + g.quantity}</div>
-          <div class="gift-price">🪙 ${g.price}</div>
+          <div class="gift-price"><img class="cn" src="icons/coin.png" alt="coin"> ${g.price}</div>
           <button class="btn" onclick="openGiftInfoModal(${g.id})">Ko'rish</button>
         </div>
       `).join('');
@@ -4223,14 +4226,14 @@ window.MTP = (function () {
         <div class="buy-pop">
           ${media}
           <div class="win-title">${g.name}</div>
-          <div class="modal-sub">🪙 ${g.price} &middot; ${g.quantity === null ? 'Cheksiz' : 'Qoldi: ' + g.quantity}</div>
+          <div class="modal-sub"><img class="cn" src="icons/coin.png" alt="coin"> ${g.price} &middot; ${g.quantity === null ? 'Cheksiz' : 'Qoldi: ' + g.quantity}</div>
         </div>
         <div class="qty-row">
           <button class="qty-btn" onclick="changeGiftQty(-1, ${maxQty})">−</button>
           <div class="qty-value" id="giftQtyValue">1</div>
           <button class="qty-btn" onclick="changeGiftQty(1, ${maxQty})">+</button>
         </div>
-        <div class="modal-sub" style="text-align:center; margin-top:6px;" id="giftQtyTotal">Jami: 🪙 ${g.price}</div>
+        <div class="modal-sub" style="text-align:center; margin-top:6px;" id="giftQtyTotal">Jami: <img class="cn" src="icons/coin.png" alt="coin"> ${g.price}</div>
         <button class="btn" style="margin-top:14px" onclick="confirmBuyGift(${g.id})">Sotib olish</button>
       `;
       window.__giftUnitPrice = g.price;
@@ -4243,7 +4246,7 @@ window.MTP = (function () {
       if (val < 1) val = 1;
       if (val > maxQty) val = maxQty;
       el.textContent = val;
-      document.getElementById('giftQtyTotal').textContent = `Jami: 🪙 ${Math.round(val * window.__giftUnitPrice * 100) / 100}`;
+      document.getElementById('giftQtyTotal').innerHTML = `Jami: <img class="cn" src="icons/coin.png" alt="coin"> ${Math.round(val * window.__giftUnitPrice * 100) / 100}`;
     }
 
     async function confirmBuyGift(giftId) {
@@ -4301,7 +4304,7 @@ window.MTP = (function () {
         <div class="gift-card">
           ${giftImg({ image_url: it.image_url, name: it.name })}
           <div class="gift-name">${it.name}</div>
-          <div class="gift-price">🪙 ${Math.round(it.current_price * 0.8 * 100) / 100} (sotish narxi)</div>
+          <div class="gift-price"><img class="cn" src="icons/coin.png" alt="coin"> ${Math.round(it.current_price * 0.8 * 100) / 100} (sotish narxi)</div>
           ${it.trade_id
             ? `<button class="btn secondary" disabled>🔒 Trade'da band</button>`
             : `<button class="btn secondary" onclick="sellGift(${it.inventory_id})">Sotish</button>`}
@@ -4453,14 +4456,14 @@ window.MTP = (function () {
           ${giftImg(c)}
           <div class="gift-name">${c.name}</div>
           <div class="gift-qty">${c.items.length} ta narsa</div>
-          <div class="gift-price">🪙 ${c.price}</div>
+          <div class="gift-price"><img class="cn" src="icons/coin.png" alt="coin"> ${c.price}</div>
           <button class="btn" onclick="openCaseInfoModal(${c.id})">Ko'rish</button>
         </div>
       `).join('');
     }
 
     function itemIcon(it) {
-      if (it.item_type === 'coin') return `<div class="ci-icon">🪙</div>`;
+      if (it.item_type === 'coin') return `<div class="ci-icon"><img class="cn" src="icons/coin.png" alt="coin"></div>`;
       return it.gift_image_url
         ? `<img class="ci-icon" src="${it.gift_image_url}">`
         : `<div class="ci-icon">🎁</div>`;
@@ -4485,7 +4488,7 @@ window.MTP = (function () {
         <div class="modal-title">${c.name}</div>
         <div class="modal-sub">Ichida chiqishi mumkin bo'lgan narsalar:</div>
         ${rows}
-        <button class="btn" style="margin-top:14px" onclick="buyCase(${c.id}, true)">Sotib olish — 🪙 ${c.price}</button>
+        <button class="btn" style="margin-top:14px" onclick="buyCase(${c.id}, true)">Sotib olish — <img class="cn" src="icons/coin.png" alt="coin"> ${c.price}</button>
       `;
       openModal();
     }
@@ -4676,7 +4679,7 @@ window.MTP = (function () {
     function reelCellHTML(it) {
       if (!it) return `<div class="reel-cell">❓</div>`;
       if (it.item_type === 'coin') {
-        return `<div class="reel-cell">🪙<div class="rc-label">${it.coin_amount} coin</div></div>`;
+        return `<div class="reel-cell"><img class="cn" src="icons/coin.png" alt="coin"><div class="rc-label">${it.coin_amount} coin</div></div>`;
       }
       const img = it.gift_image_url
         ? `<img src="${it.gift_image_url}">`
@@ -4750,7 +4753,7 @@ window.MTP = (function () {
         const body = document.getElementById('modalBody');
         if (!body) return;
         const winMedia = win.item_type === 'coin'
-          ? `<div class="win-icon">🪙</div>`
+          ? `<div class="win-icon"><img class="cn" src="icons/coin.png" alt="coin"></div>`
           : (win.image_url ? `<img src="${win.image_url}">` : `<div class="win-icon">🎁</div>`);
         const winText = win.item_type === 'coin' ? `${win.coin_amount} coin` : win.name;
         hap('win');
