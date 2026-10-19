@@ -1,0 +1,260 @@
+{
+  "backend/package.json": {
+    "mtime": 1790831570.784147,
+    "seen": 1792308011.1523178,
+    "ast_hash": "d6ef353e8303bf31b4ddddd730d5fde9",
+    "semantic_hash": "d6ef353e8303bf31b4ddddd730d5fde9"
+  },
+  "backend/src/auth.js": {
+    "mtime": 1791470451.1229472,
+    "seen": 1792308011.1523263,
+    "ast_hash": "24dd0ff87816c06a8d8e7ab68d378cab",
+    "semantic_hash": "24dd0ff87816c06a8d8e7ab68d378cab"
+  },
+  "backend/src/cardStyles.js": {
+    "mtime": 1791944715.0394392,
+    "seen": 1792308011.1523304,
+    "ast_hash": "dccddc0b3fbb1d6adb3531a89b791daf",
+    "semantic_hash": "dccddc0b3fbb1d6adb3531a89b791daf"
+  },
+  "backend/src/db.js": {
+    "mtime": 1791944715.0404408,
+    "seen": 1792308011.1523325,
+    "ast_hash": "39d212a78a4910ca69b8818c08cd4a69",
+    "semantic_hash": "39d212a78a4910ca69b8818c08cd4a69"
+  },
+  "backend/src/device.js": {
+    "mtime": 1791470451.1462529,
+    "seen": 1792308011.1523347,
+    "ast_hash": "a218c3c42edc4d4c7d61505533baa249",
+    "semantic_hash": "a218c3c42edc4d4c7d61505533baa249"
+  },
+  "backend/src/eventUtil.js": {
+    "mtime": 1790831570.9008777,
+    "seen": 1792308011.1523364,
+    "ast_hash": "5fa74bd55f5e694a8caf27cbfc84fd8a",
+    "semantic_hash": "5fa74bd55f5e694a8caf27cbfc84fd8a"
+  },
+  "backend/src/gifts.js": {
+    "mtime": 1790831570.9621813,
+    "seen": 1792308011.1523383,
+    "ast_hash": "b9f91a328a47f70c618e5d6d49f741ad",
+    "semantic_hash": "b9f91a328a47f70c618e5d6d49f741ad"
+  },
+  "backend/src/guarantor.js": {
+    "mtime": 1790851896.654572,
+    "seen": 1792308011.1523397,
+    "ast_hash": "0f829c07cbbc7bfef3c2d8cd6429e191",
+    "semantic_hash": "0f829c07cbbc7bfef3c2d8cd6429e191"
+  },
+  "backend/src/identityRules.js": {
+    "mtime": 1791794975.8196993,
+    "seen": 1792308011.1523416,
+    "ast_hash": "f6de34311ce83c83bdfcaba46eab08e3",
+    "semantic_hash": "f6de34311ce83c83bdfcaba46eab08e3"
+  },
+  "backend/src/imageUpload.js": {
+    "mtime": 1790831570.9732127,
+    "seen": 1792308011.152343,
+    "ast_hash": "d886a40edad6a01e16491bc796d7d8a8",
+    "semantic_hash": "d886a40edad6a01e16491bc796d7d8a8"
+  },
+  "backend/src/petRules.js": {
+    "mtime": 1791339160.3060565,
+    "seen": 1792308011.1523445,
+    "ast_hash": "edeb2a968eeec07c3ed717dcd6913b22",
+    "semantic_hash": "edeb2a968eeec07c3ed717dcd6913b22"
+  },
+  "backend/src/profile.js": {
+    "mtime": 1791944715.0414443,
+    "seen": 1792308011.1523468,
+    "ast_hash": "54b946dde8c91481616954d3ae80cde2",
+    "semantic_hash": "54b946dde8c91481616954d3ae80cde2"
+  },
+  "backend/src/promocodes.js": {
+    "mtime": 1791794975.8343885,
+    "seen": 1792308011.1523485,
+    "ast_hash": "75d93b0378ad5903051b7b297065a254",
+    "semantic_hash": "75d93b0378ad5903051b7b297065a254"
+  },
+  "backend/src/push.js": {
+    "mtime": 1791339160.315077,
+    "seen": 1792308011.15235,
+    "ast_hash": "25aca848ccdd373ab1d0645ef90dc17b",
+    "semantic_hash": "25aca848ccdd373ab1d0645ef90dc17b"
+  },
+  "backend/src/routes/cardStyles.js": {
+    "mtime": 1791944715.0424404,
+    "seen": 1792308011.1523514,
+    "ast_hash": "e1a23b8b62d4f78e8098d6d0e5e63f4a",
+    "semantic_hash": "e1a23b8b62d4f78e8098d6d0e5e63f4a"
+  },
+  "backend/src/routes/cases.js": {
+    "mtime": 1790831571.011291,
+    "seen": 1792308011.1523533,
+    "ast_hash": "0308a407b26f10815507889e1adb6adb",
+    "semantic_hash": "0308a407b26f10815507889e1adb6adb"
+  },
+  "backend/src/routes/credits.js": {
+    "mtime": 1790851896.678505,
+    "seen": 1792308011.1523547,
+    "ast_hash": "d56ca8193871e8988e0b6ce065c80922",
+    "semantic_hash": "d56ca8193871e8988e0b6ce065c80922"
+  },
+  "backend/src/routes/events.js": {
+    "mtime": 1790831570.9916022,
+    "seen": 1792308011.1523564,
+    "ast_hash": "4dcb226177bf7f5c2e87d01aa883269f",
+    "semantic_hash": "4dcb226177bf7f5c2e87d01aa883269f"
+  },
+  "backend/src/routes/gifts.js": {
+    "mtime": 1791470451.1786811,
+    "seen": 1792308011.1523578,
+    "ast_hash": "e7bf5d686c76482d10df2e9c2e1e512e",
+    "semantic_hash": "e7bf5d686c76482d10df2e9c2e1e512e"
+  },
+  "backend/src/routes/pets.js": {
+    "mtime": 1791339160.3301098,
+    "seen": 1792308011.1523595,
+    "ast_hash": "28cea35e51857b37e961b4cc0559762f",
+    "semantic_hash": "28cea35e51857b37e961b4cc0559762f"
+  },
+  "backend/src/routes/profile.js": {
+    "mtime": 1791944715.0434406,
+    "seen": 1792308011.1523612,
+    "ast_hash": "5b56af8985ba3bbcc1a239f3a56e1de5",
+    "semantic_hash": "5b56af8985ba3bbcc1a239f3a56e1de5"
+  },
+  "backend/src/routes/promocodes.js": {
+    "mtime": 1791794975.8589115,
+    "seen": 1792308011.1523626,
+    "ast_hash": "6838e20430a60c0a008f415b35177143",
+    "semantic_hash": "6838e20430a60c0a008f415b35177143"
+  },
+  "backend/src/routes/push.js": {
+    "mtime": 1790831571.051566,
+    "seen": 1792308011.152365,
+    "ast_hash": "a419a9e62fbe3bc2f00b69221aac69b1",
+    "semantic_hash": "a419a9e62fbe3bc2f00b69221aac69b1"
+  },
+  "backend/src/routes/security.js": {
+    "mtime": 1791470451.1873212,
+    "seen": 1792308011.1523666,
+    "ast_hash": "ef9623fa201de446c58765fda3271e55",
+    "semantic_hash": "ef9623fa201de446c58765fda3271e55"
+  },
+  "backend/src/routes/trades.js": {
+    "mtime": 1791470451.1958454,
+    "seen": 1792308011.152368,
+    "ast_hash": "9387f45ad9d2c03a060a257d10137874",
+    "semantic_hash": "9387f45ad9d2c03a060a257d10137874"
+  },
+  "backend/src/routes/transfers.js": {
+    "mtime": 1791470451.2046795,
+    "seen": 1792308011.1523697,
+    "ast_hash": "9117ff398f95a6968ee6d53eb9e232d6",
+    "semantic_hash": "9117ff398f95a6968ee6d53eb9e232d6"
+  },
+  "backend/src/routes/users.js": {
+    "mtime": 1791944715.0444388,
+    "seen": 1792308011.1523721,
+    "ast_hash": "4aec617f1a7ca8c4b2ad19c6e1eff636",
+    "semantic_hash": "4aec617f1a7ca8c4b2ad19c6e1eff636"
+  },
+  "backend/src/routes/versions.js": {
+    "mtime": 1791128542.0926921,
+    "seen": 1792308011.152375,
+    "ast_hash": "0b4b2fca0ee2cbe3c971964f92f678c3",
+    "semantic_hash": "0b4b2fca0ee2cbe3c971964f92f678c3"
+  },
+  "backend/src/security.js": {
+    "mtime": 1791470451.155779,
+    "seen": 1792308011.1523786,
+    "ast_hash": "65584d2e7ba44fa8d20a670a6c35f9d8",
+    "semantic_hash": "65584d2e7ba44fa8d20a670a6c35f9d8"
+  },
+  "backend/src/seed-admin.js": {
+    "mtime": 1790831570.9305315,
+    "seen": 1792308011.1523817,
+    "ast_hash": "74e5d4fb6e570eb800a99dcee82e9f28",
+    "semantic_hash": "74e5d4fb6e570eb800a99dcee82e9f28"
+  },
+  "backend/src/server.js": {
+    "mtime": 1791944715.0454388,
+    "seen": 1792308011.1523845,
+    "ast_hash": "93a912638271b9500c19cedd2a984469",
+    "semantic_hash": "93a912638271b9500c19cedd2a984469"
+  },
+  "backend/src/trades.js": {
+    "mtime": 1791128542.0650275,
+    "seen": 1792308011.152387,
+    "ast_hash": "55810d6c340788013587449d217b63bd",
+    "semantic_hash": "55810d6c340788013587449d217b63bd"
+  },
+  "backend/src/upload.js": {
+    "mtime": 1790831570.9521418,
+    "seen": 1792308011.152389,
+    "ast_hash": "fe0d5d119e0f59ab8e25b941ec57bc01",
+    "semantic_hash": "fe0d5d119e0f59ab8e25b941ec57bc01"
+  },
+  "backend/src/versions.js": {
+    "mtime": 1791128542.054026,
+    "seen": 1792308011.1523917,
+    "ast_hash": "c650b4065b122be40816a5fa4b1bd7b4",
+    "semantic_hash": "c650b4065b122be40816a5fa4b1bd7b4"
+  },
+  "backend/tests/device.test.js": {
+    "mtime": 1791470451.231028,
+    "seen": 1792308011.152394,
+    "ast_hash": "056da976aa46c62b6d62f6198b03a503",
+    "semantic_hash": "056da976aa46c62b6d62f6198b03a503"
+  },
+  "backend/tests/identity.test.js": {
+    "mtime": 1791794975.8935404,
+    "seen": 1792308011.1523972,
+    "ast_hash": "a6c1ff95ec5352e9434f8c8a7eb93c3b",
+    "semantic_hash": "a6c1ff95ec5352e9434f8c8a7eb93c3b"
+  },
+  "backend/tests/petRules.test.js": {
+    "mtime": 1791339160.3556292,
+    "seen": 1792308011.1523998,
+    "ast_hash": "f8864ea6dd02f9a14c0844328f2569c4",
+    "semantic_hash": "f8864ea6dd02f9a14c0844328f2569c4"
+  },
+  "backend/tests/profile.test.js": {
+    "mtime": 1791128542.2106993,
+    "seen": 1792308011.1524026,
+    "ast_hash": "b28407fdd9eee005ca03c032dbdd9f3c",
+    "semantic_hash": "b28407fdd9eee005ca03c032dbdd9f3c"
+  },
+  "backend/tests/promocodes.test.js": {
+    "mtime": 1791191232.8429804,
+    "seen": 1792308011.1524055,
+    "ast_hash": "8717fbc679317c1dac7301abb97097db",
+    "semantic_hash": "8717fbc679317c1dac7301abb97097db"
+  },
+  "backend/tests/trade.test.js": {
+    "mtime": 1791128542.1986487,
+    "seen": 1792308011.1524086,
+    "ast_hash": "94b4b2ad0c4fdb521d42eef60145951b",
+    "semantic_hash": "94b4b2ad0c4fdb521d42eef60145951b"
+  },
+  "frontend/public/config.js": {
+    "mtime": 1790831570.6875901,
+    "seen": 1792308011.1524115,
+    "ast_hash": "b09ce585c9786c9c8b84b73fd603f6e9",
+    "semantic_hash": "b09ce585c9786c9c8b84b73fd603f6e9"
+  },
+  "frontend/public/sw.js": {
+    "mtime": 1790831570.7225654,
+    "seen": 1792308011.1524143,
+    "ast_hash": "47be17bbaf1cc77bbd5609d15edfe7a7",
+    "semantic_hash": "47be17bbaf1cc77bbd5609d15edfe7a7"
+  },
+  "frontend/public/vendor/coin3d.js": {
+    "mtime": 1792291315.0472045,
+    "seen": 1792308011.1524172,
+    "ast_hash": "a2900fecd3e50cb11418765d9f43d49f",
+    "semantic_hash": "a2900fecd3e50cb11418765d9f43d49f"
+  }
+}
