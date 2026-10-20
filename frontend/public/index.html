@@ -829,12 +829,25 @@
 
   /* To'liq ekran sahifa: faqat ichki kontent suzadi, orqaga tugmasi joyida turadi */
   /* Sahifa butunlay o'zi suriladi: fon ham, sarlavha ham, yon panel ham 100% ko'rinib turadi (opacity animatsiyasi yo'q) */
-  .modal-overlay.open.page { animation: pageSlideIn calc(380ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards; }
-  .modal-overlay.open.page.closing { animation: pageSlideOut calc(290ms * var(--anim-k)) cubic-bezier(.4,0,.9,.6) forwards; pointer-events: none; }
+  /* Faqat sahifaning o'zi (modal-wrap) suriladi. Orqaga tugmasi joyida qoladi:
+     ochilganda kattalashib o'z holiga keladi, yopilganda bir kattalashib, keyin kichrayib yo'qoladi. */
+  .modal-overlay.open.page { animation: pageBgHold calc(380ms * var(--anim-k)) linear backwards; }
+  .modal-overlay.open.page.closing { animation: none; background: transparent; pointer-events: none; }
   .modal-overlay.page .modal-box { animation: none; }
-  .modal-overlay.page.closing .modal-wrap { animation: none; }
+  .modal-overlay.page.split .st-side { background: var(--bg); }
+  .modal-overlay.open.page .modal-wrap { animation: pageSlideIn calc(380ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards; }
+  .modal-overlay.open.page.closing .modal-wrap { animation: pageSlideOut calc(290ms * var(--anim-k)) cubic-bezier(.4,0,.9,.6) forwards; }
+  .modal-overlay.open.page .page-back-btn { animation: backIn calc(420ms * var(--anim-k)) cubic-bezier(.34,1.56,.64,1) backwards; }
+  .modal-overlay.open.page:not(.closing) .page-back-btn.pop { animation: backPop calc(340ms * var(--anim-k)) cubic-bezier(.34,1.56,.64,1); }
+  .modal-overlay.open.page.closing .page-head { background: transparent; }
+  .modal-overlay.open.page.closing .page-back-btn { animation: backOut calc(290ms * var(--anim-k)) ease-in-out forwards; }
+  .modal-overlay.open.page.closing .page-head-title { animation: titleOut calc(200ms * var(--anim-k)) ease forwards; }
+  @keyframes pageBgHold { 0%, 99% { background-color: transparent; } 100% { background-color: var(--bg); } }
   @keyframes pageSlideIn { from { transform: translateX(100%); } }
   @keyframes pageSlideOut { to { transform: translateX(100%); } }
+  @keyframes backIn { from { transform: scale(0); } 60% { transform: scale(1.2); } to { transform: scale(1); } }
+  @keyframes backOut { 0% { transform: scale(1); } 40% { transform: scale(1.5); } 100% { transform: scale(0); } }
+  @keyframes titleOut { to { opacity: 0; } }
 
   /* Orqaga tugmasi: bosilganda bir marta kattalashib, o'z holiga qaytadi */
   .page-back-btn.pop { animation: backPop calc(340ms * var(--anim-k)) cubic-bezier(.34,1.56,.64,1); }
@@ -1205,12 +1218,12 @@ window.MTP = (function () {
   <div id="eventWallpaper"></div>
 
   <div class="modal-overlay" id="modalOverlay">
-    <div class="modal-wrap">
-      <div class="modal-grab-zone" id="modalGrab"><div class="modal-grabber"></div></div>
-      <div class="page-head"><div class="page-head-inner">
+    <div class="page-head"><div class="page-head-inner">
         <button class="page-back-btn" onclick="pageBack()" aria-label="Orqaga"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
         <div class="page-head-title" id="pageHeadTitle"></div><div class="page-head-spacer"></div>
       </div></div>
+    <div class="modal-wrap">
+      <div class="modal-grab-zone" id="modalGrab"><div class="modal-grabber"></div></div>
       <aside class="st-side" id="stSide"></aside>
       <div class="modal-box">
         <div id="modalBody"></div>
