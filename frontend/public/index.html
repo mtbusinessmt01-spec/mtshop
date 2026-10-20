@@ -698,9 +698,9 @@
 
 
   /* --- Sahifalar orasida o'tish animatsiyalari --- */
-  #main.page-fwd > * { animation: pageInFwd calc(460ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) both; }
-  #main.page-back > * { animation: pageInBack calc(460ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) both; }
-  #main.page-up > * { animation: pageInUp calc(460ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) both; }
+  #main.page-fwd > * { animation: pageInFwd calc(460ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards; }
+  #main.page-back > * { animation: pageInBack calc(460ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards; }
+  #main.page-up > * { animation: pageInUp calc(460ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards; }
   #main.page-fwd > *:nth-child(2), #main.page-back > *:nth-child(2), #main.page-up > *:nth-child(2) { animation-delay: calc(40ms * var(--anim-k)); }
   #main.page-fwd > *:nth-child(3), #main.page-back > *:nth-child(3), #main.page-up > *:nth-child(3) { animation-delay: calc(80ms * var(--anim-k)); }
   #main.page-fwd > *:nth-child(4), #main.page-back > *:nth-child(4), #main.page-up > *:nth-child(4) { animation-delay: calc(120ms * var(--anim-k)); }
@@ -710,7 +710,7 @@
   @keyframes pageInUp { from { opacity: 0; transform: translateY(26px) scale(.985); filter: blur(5px); } to { opacity: 1; transform: none; filter: blur(0); } }
 
   /* Kartalar ketma-ket chiqadi */
-  .grid > .gift-card { animation: cardIn calc(420ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) both; }
+  .grid > .gift-card { animation: cardIn calc(420ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards; }
   .grid > .gift-card:nth-child(2) { animation-delay: calc(45ms * var(--anim-k)); }
   .grid > .gift-card:nth-child(3) { animation-delay: calc(90ms * var(--anim-k)); }
   .grid > .gift-card:nth-child(4) { animation-delay: calc(135ms * var(--anim-k)); }
@@ -815,7 +815,7 @@
   @keyframes vtOut { to { opacity: 0; } }
   @keyframes vtIn { from { opacity: 0; } }
 
-  #app.appear { animation: appFade calc(420ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) both; }
+  #app.appear { animation: appFade calc(420ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards; }
   @keyframes appFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
   /* Pastdan chiqadigan oyna (sheet): fon xiralashadi, oyna chiqadi / tushadi */
@@ -828,17 +828,13 @@
   .modal-box { animation: slideUp calc(0.34s * var(--anim-k)) cubic-bezier(.22,1,.36,1); }
 
   /* To'liq ekran sahifa: faqat ichki kontent suzadi, orqaga tugmasi joyida turadi */
-  .modal-overlay.open.page { animation: pageBgIn calc(320ms * var(--anim-k)) ease backwards; }
-  .modal-overlay.open.page.closing { animation: pageBgOut calc(300ms * var(--anim-k)) ease forwards; pointer-events: none; }
-  .modal-overlay.page .modal-box { animation: pageEnter calc(400ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards; }
-  .modal-overlay.page.closing .modal-box { animation: pageExit calc(280ms * var(--anim-k)) cubic-bezier(.4,0,.9,.6) forwards; }
+  /* Sahifa butunlay o'zi suriladi: fon ham, sarlavha ham, yon panel ham 100% ko'rinib turadi (opacity animatsiyasi yo'q) */
+  .modal-overlay.open.page { animation: pageSlideIn calc(380ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards; }
+  .modal-overlay.open.page.closing { animation: pageSlideOut calc(290ms * var(--anim-k)) cubic-bezier(.4,0,.9,.6) forwards; pointer-events: none; }
+  .modal-overlay.page .modal-box { animation: none; }
   .modal-overlay.page.closing .modal-wrap { animation: none; }
-  .modal-overlay.page.closing .page-head { animation: headOut calc(300ms * var(--anim-k)) ease forwards; }
-  @keyframes pageBgIn { from { background-color: rgba(15,17,21,0); } }
-  @keyframes pageBgOut { to { background-color: rgba(15,17,21,0); } }
-  @keyframes pageEnter { from { transform: translateX(36%); opacity: 0; } }
-  @keyframes pageExit { to { transform: translateX(36%); opacity: 0; } }
-  @keyframes headOut { 0%, 55% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes pageSlideIn { from { transform: translateX(100%); } }
+  @keyframes pageSlideOut { to { transform: translateX(100%); } }
 
   /* Orqaga tugmasi: bosilganda bir marta kattalashib, o'z holiga qaytadi */
   .page-back-btn.pop { animation: backPop calc(340ms * var(--anim-k)) cubic-bezier(.34,1.56,.64,1); }
@@ -950,12 +946,17 @@
   html[data-theme="light"] body::before { opacity: .55; }
 
   /* Oddiy (shishasiz) uslub */
+  /* Oddiy rejim: blur slayderi bu yerda ham ishlaydi (orqa fon yarim shaffof, blur ko'rinib turadi).
+     Shisha rejimi faqat yaltiroq chet, yorug'lik va indikator effektlarini qo'shadi. */
   html[data-glass="flat"] {
-    --g-modal: var(--card); --g-a: var(--surface); --g-b: var(--surface); --g-c: var(--surface);
-    --g-d1: var(--surface); --g-d2: var(--surface); --g-s1: var(--card); --g-s2: var(--card);
+    --g-modal: rgba(31,35,46,.80); --g-a: rgba(31,35,46,.80); --g-b: rgba(31,35,46,.86); --g-c: rgba(31,35,46,.88);
+    --g-d1: rgba(31,35,46,.80); --g-d2: rgba(31,35,46,.80); --g-s1: rgba(31,35,46,.86); --g-s2: rgba(31,35,46,.86);
     --glass-shadow: 0 8px 24px rgba(0,0,0,0.22);
   }
-  html[data-glass="flat"] * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  html[data-glass="flat"][data-theme="light"] {
+    --g-modal: rgba(255,255,255,.80); --g-a: rgba(255,255,255,.80); --g-b: rgba(255,255,255,.86); --g-c: rgba(255,255,255,.88);
+    --g-d1: rgba(255,255,255,.80); --g-d2: rgba(255,255,255,.80); --g-s1: rgba(255,255,255,.86); --g-s2: rgba(255,255,255,.86);
+  }
   html[data-glass="flat"] nav#bottomNav::after,
   html[data-glass="flat"] nav#bottomNav .nav-liquid-indicator::before,
   html[data-glass="flat"] nav#bottomNav .nav-liquid-indicator::after { display: none; }
@@ -1049,6 +1050,8 @@
   .cs-glow { background: linear-gradient(135deg, rgba(var(--cs1-rgb),.20), rgba(var(--cs2-rgb),.10)) !important; border: 1px solid rgba(var(--cs1-rgb),.7) !important; box-shadow: 0 0 26px rgba(var(--cs1-rgb),.35), inset 0 0 22px rgba(var(--cs2-rgb),.16) !important; }
   .cs-solid .st-name, .cs-gradient .st-name { color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.25); }
   .cs-solid .st-user, .cs-gradient .st-user, .cs-solid .st-hint, .cs-gradient .st-hint, .cs-solid .st-chev, .cs-gradient .st-chev { color: rgba(255,255,255,.88); }
+  /* Gradient border ostida ham bir tekis cho'zilsin (aks holda chap/ustki chetda ingichka chiziq paydo bo'ladi) */
+  .cs-solid, .cs-gradient { background-origin: border-box !important; background-clip: border-box !important; }
   .st-hero.cs-card { border-radius: 22px; padding: 18px 12px 16px; margin-bottom: 6px; }
   .pin-grid.cs-pins .pin-tile { border: 1px solid rgba(var(--cs1-rgb),.55); }
   .pin-grid.cs-pins.cs-glow-pins .pin-tile { box-shadow: 0 0 16px rgba(var(--cs1-rgb),.5); animation: pinGlow 2.6s ease-in-out infinite; }
@@ -1080,10 +1083,7 @@
   .modal-overlay.page.split .st-side {
     display: block; flex: 0 0 380px; width: 380px; height: 100%; overflow-y: auto;
     padding: calc(84px + env(safe-area-inset-top)) 18px 28px 24px; border-right: 1px solid var(--w100);
-    animation: sideIn calc(420ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards;
   }
-  .modal-overlay.page.split.closing .st-side { animation: headOut calc(300ms * var(--anim-k)) ease forwards; }
-  @keyframes sideIn { from { transform: translateX(-28px); opacity: 0; } }
   .modal-overlay.page.split .modal-box { flex: 1; min-width: 0; }
   .modal-overlay.page.split #modalBody { max-width: 760px; }
   .modal-overlay.page.split .page-head-inner { max-width: none; margin: 0; }
@@ -1472,7 +1472,6 @@ window.MTP = (function () {
         : `<div class="modal-sub">Hali to'lov qilinmagan</div>`;
 
       document.getElementById('modalBody').innerHTML = `
-        <div class="modal-title">${c.type_name}</div>
         ${statusBadge}
         <div class="case-item-row"><div class="ci-name">Siz olgan summa</div><div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${c.principal_amount}</div></div>
         <div class="case-item-row"><div class="ci-name">Siz qaytaradigan summa</div><div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${c.total_to_pay}</div></div>
@@ -1485,13 +1484,12 @@ window.MTP = (function () {
 
         ${c.status === 'active' ? `<button class="btn" style="margin-top:14px" onclick="openPayChoice(${c.id})">To'lash</button>` : ''}
       `;
-      openModal();
+      openPage(c.type_name);
     }
 
     function openPayChoice(creditId) {
       const c = myCreditsCache.find(x => x.id === creditId);
       document.getElementById('modalBody').innerHTML = `
-        <div class="modal-title">To'lov usulini tanlang</div>
         <div class="modal-sub">"${c.type_name}" uchun</div>
         <div class="gift-card" style="text-align:left; padding:14px; margin-bottom:10px;">
           <div style="font-weight:700; margin-bottom:4px;">📅 Jadval bo'yicha</div>
@@ -1504,8 +1502,8 @@ window.MTP = (function () {
           <input type="number" class="send-input" id="earlyPayAmount" placeholder="Miqdor" min="0" max="${c.remaining_amount}" step="0.01" style="margin-bottom:10px;">
           <button class="btn" onclick="payEarly(${c.id})">To'lash</button>
         </div>
-        <button class="btn-back" onclick="openCreditDetail(${c.id})">&larr; Orqaga</button>
       `;
+      openPage("To'lov usulini tanlang", () => openCreditDetail(creditId));
     }
 
     async function payScheduled(creditId) {
@@ -2354,7 +2352,7 @@ window.MTP = (function () {
         ${p.status === 'dead' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="discardPet(${p.id})">🗑 Tiriltirmasdan o'chirish</button>` : ''}
         ${p.status !== 'dead' ? `<button class="btn" style="margin-top:8px; background:#2a2f3d;" onclick="sellPet(${p.id})">💰 Saytga sotish (${p.sell_price} coin)</button>` : ''}
       `;
-      openModal();
+      openPage('Statistika');
     }
 
     async function editPetNameInline(petId) {
@@ -2375,7 +2373,7 @@ window.MTP = (function () {
 
     async function openFeedModal(petId) {
       document.getElementById('modalBody').innerHTML = `<div class="modal-title">Yuklanmoqda...</div>`;
-      openModal();
+      openPage('Ovqatlantirish', () => openPetStats(petId));
       const res = await fetch(`${API_BASE}/api/inventory/gifts`, { credentials: 'include' });
       const myGifts = (await res.json()).filter(g => !g.trade_id);   // Trade'da band giftlar yedirilmaydi
 
@@ -2426,8 +2424,8 @@ window.MTP = (function () {
         </div>
         <div class="modal-sub" style="text-align:center; margin-top:6px;" id="feedQtyXp">+${Math.round(g.current_price/10*100)/100} XP</div>
         <button class="btn" style="margin-top:14px" onclick="confirmFeed(${petId}, ${giftId})">Ovqatlantirish</button>
-        <button class="btn-back" onclick="openFeedModal(${petId})">&larr; Orqaga</button>
       `;
+      openPage('Miqdor', () => openFeedModal(petId));
       window.__feedUnitXp = g.current_price / 10;
     }
 
