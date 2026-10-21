@@ -17,7 +17,38 @@ function notifyTransfer(fromUsername, toUserId, isAnonymous, itemText) {
   });
 }
 
-const COMMISSION_RATE = 0.03; // 3%
+// Komissiya foizi app_settings jadvalida saqlanadi (admin o'zgartira oladi). Standart: 5%
+const COMMISSION_KEY = 'transfer_commission_percent';
+const DEFAULT_COMMISSION_PERCENT = 5;
+
+async function getCommissionPercent() {
+  const row = await db.prepare('SELECT value FROM app_settings WHERE key = ?').get(COMMISSION_KEY);
+  const p = row ? parseFloat(row.value) : NaN;
+  return isNaN(p) || p < 0 ? DEFAULT_COMMISSION_PERCENT : p;
+}
+
+// Foydalanuvchilar uchun: joriy komissiya foizi
+router.get('/settings/commission', authMiddleware, async (req, res) => {
+  res.json({ percent: await getCommissionPercent() });
+});
+
+// Admin: komissiyani ko'rish va o'zgartirish
+router.get('/admin/settings/commission', authMiddleware, adminMiddleware, async (req, res) => {
+  res.json({ percent: await getCommissionPercent() });
+});
+
+router.put('/admin/settings/commission', authMiddleware, adminMiddleware, async (req, res) => {
+  const percent = parseFloat(req.body?.percent);
+  if (isNaN(percent) || percent < 0 || percent > 100) {
+    return res.status(400).json({ error: "Komissiya 0 dan 100 gacha bo'lgan foiz bo'lishi kerak" });
+  }
+  const rounded = Math.round(percent * 100) / 100;
+  await db.prepare(`
+    INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+  `).run(COMMISSION_KEY, String(rounded));
+  res.json({ ok: true, percent: rounded });
+});
 
 async function findUserByUsername(username) {
   return db.prepare('SELECT * FROM users WHERE username = ?').get(username);
@@ -25,7 +56,7 @@ async function findUserByUsername(username) {
 
 // ---------- FOYDALANUVCHI: yuborish ----------
 
-// Coin yuborish — 3% komissiya bilan (100 yuborsa, 103 yechiladi)
+// Coin yuborish — admin belgilagan komissiya bilan (masalan 5% bo'lsa: 100 yuborsa, 105 yechiladi)
 router.post('/transfers/coin', authMiddleware, requireNotFrozen, requirePin, async (req, res) => {
   const { to_username, amount, is_anonymous } = req.body || {};
   const amt = parseFloat(amount);
@@ -39,7 +70,8 @@ router.post('/transfers/coin', authMiddleware, requireNotFrozen, requirePin, asy
   const toUser = await findUserByUsername(to_username);
   if (!toUser) return res.status(404).json({ error: 'Bunday foydalanuvchi topilmadi' });
 
-  const commission = Math.round(amt * COMMISSION_RATE * 100) / 100;
+  const commissionPercent = await getCommissionPercent();
+  const commission = Math.round(amt * (commissionPercent / 100) * 100) / 100;
   const totalDeduct = amt + commission;
 
   const deductResult = await db.prepare(

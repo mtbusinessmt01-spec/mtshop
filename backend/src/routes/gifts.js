@@ -70,9 +70,65 @@ router.delete('/admin/gifts/:id', authMiddleware, adminMiddleware, async (req, r
     await db.prepare('DELETE FROM case_items WHERE gift_id = ?').run(req.params.id);
     // Transfer tarixida bu giftga bo'lgan bog'lanishni yo'qotamiz (tarix o'zi qoladi)
     await db.prepare('UPDATE transfers SET gift_id = NULL WHERE gift_id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM gift_variants WHERE gift_id = ?').run(req.params.id);
     await db.prepare('DELETE FROM gifts WHERE id = ?').run(req.params.id);
   });
   await tx();
+  res.json({ ok: true });
+});
+
+// ---------- ADMIN: Gift turlari (nomi, narxi, rasmi bilan farq qiladi) ----------
+
+function parseVariantFields(body) {
+  const name = String(body.name || '').trim().slice(0, 60);
+  const price = parseFloat(body.price);
+  if (!name) return { error: 'Tur nomi kerak' };
+  if (isNaN(price) || price < 0) return { error: "Narx to'g'ri kiritilishi kerak" };
+  return { name, price: Math.round(price * 100) / 100 };
+}
+
+// Tanlangan giftning barcha turlari
+router.get('/admin/gifts/:id/variants', authMiddleware, adminMiddleware, async (req, res) => {
+  const gift = await db.prepare('SELECT * FROM gifts WHERE id = ?').get(req.params.id);
+  if (!gift) return res.status(404).json({ error: 'Gift topilmadi' });
+  const variants = await db.prepare('SELECT * FROM gift_variants WHERE gift_id = ? ORDER BY id ASC').all(gift.id);
+  res.json({ gift, variants });
+});
+
+// Yangi tur qo'shish
+router.post('/admin/gifts/:id/variants', authMiddleware, adminMiddleware, upload.single('image'), async (req, res) => {
+  const gift = await db.prepare('SELECT * FROM gifts WHERE id = ?').get(req.params.id);
+  if (!gift) return res.status(404).json({ error: 'Gift topilmadi' });
+  const f = parseVariantFields(req.body || {});
+  if (f.error) return res.status(400).json({ error: f.error });
+
+  const result = await db.prepare(
+    'INSERT INTO gift_variants (gift_id, name, price, image_url) VALUES (?, ?, ?, ?)'
+  ).run(gift.id, f.name, f.price, fileToDataUrl(req.file));
+  res.json(await db.prepare('SELECT * FROM gift_variants WHERE id = ?').get(result.lastInsertRowid));
+});
+
+// Turni tahrirlash (rasm yuborilmasa eskisi qoladi)
+router.put('/admin/gift-variants/:variantId', authMiddleware, adminMiddleware, upload.single('image'), async (req, res) => {
+  const v = await db.prepare('SELECT * FROM gift_variants WHERE id = ?').get(req.params.variantId);
+  if (!v) return res.status(404).json({ error: 'Tur topilmadi' });
+  const f = parseVariantFields(req.body || {});
+  if (f.error) return res.status(400).json({ error: f.error });
+
+  const imageUrl = req.file ? fileToDataUrl(req.file) : v.image_url;
+  await db.prepare('UPDATE gift_variants SET name = ?, price = ?, image_url = ? WHERE id = ?')
+    .run(f.name, f.price, imageUrl, v.id);
+  res.json(await db.prepare('SELECT * FROM gift_variants WHERE id = ?').get(v.id));
+});
+
+// Turni o'chirish: bu turni olgan foydalanuvchilarda gift asosiy gift ko'rinishida qoladi
+router.delete('/admin/gift-variants/:variantId', authMiddleware, adminMiddleware, async (req, res) => {
+  const v = await db.prepare('SELECT * FROM gift_variants WHERE id = ?').get(req.params.variantId);
+  if (!v) return res.status(404).json({ error: 'Tur topilmadi' });
+  await db.transaction(async () => {
+    await db.prepare('UPDATE user_gifts SET variant_id = NULL WHERE variant_id = ?').run(v.id);
+    await db.prepare('DELETE FROM gift_variants WHERE id = ?').run(v.id);
+  })();
   res.json({ ok: true });
 });
 
@@ -88,7 +144,17 @@ router.get('/gifts', authMiddleware, async (req, res) => {
       AND (g.event_id IS NULL OR e.id IS NULL OR e.starts_at <= ?)
     ORDER BY g.price ASC
   `).all(new Date().toISOString());
-  res.json(gifts);
+
+  // Har bir giftga uning turlarini biriktiramiz
+  const variantsByGift = {};
+  if (gifts.length) {
+    const ids = gifts.map(g => g.id);
+    const vs = await db.prepare(
+      `SELECT id, gift_id, name, price, image_url FROM gift_variants WHERE gift_id IN (${ids.map(() => '?').join(',')}) ORDER BY price ASC, id ASC`
+    ).all(...ids);
+    for (const v of vs) (variantsByGift[v.gift_id] = variantsByGift[v.gift_id] || []).push(v);
+  }
+  res.json(gifts.map(g => ({ ...g, variants: variantsByGift[g.id] || [] })));
 });
 
 // Sotib olish
@@ -100,7 +166,16 @@ router.post('/gifts/:id/buy', authMiddleware, async (req, res) => {
   }
 
   const qty = Math.max(1, parseInt(req.body?.quantity, 10) || 1);
-  const totalPrice = Math.round(gift.price * qty * 100) / 100;
+
+  // Tur tanlangan bo'lsa narx shu turdan olinadi (soni esa asosiy gift bilan umumiy)
+  let variant = null;
+  const variantId = parseInt(req.body?.variant_id, 10);
+  if (variantId) {
+    variant = await db.prepare('SELECT * FROM gift_variants WHERE id = ? AND gift_id = ?').get(variantId, gift.id);
+    if (!variant) return res.status(404).json({ error: 'Gift turi topilmadi' });
+  }
+  const unitPrice = variant ? variant.price : gift.price;
+  const totalPrice = Math.round(unitPrice * qty * 100) / 100;
 
   // Avval sonini (agar cheklangan bo'lsa) atomik ravishda kamaytiramiz
   if (gift.quantity !== null) {
@@ -126,9 +201,9 @@ router.post('/gifts/:id/buy', authMiddleware, async (req, res) => {
   }
 
   const insertOne = db.prepare(
-    'INSERT INTO user_gifts (user_id, gift_id, bought_price) VALUES (?, ?, ?)'
+    'INSERT INTO user_gifts (user_id, gift_id, bought_price, variant_id) VALUES (?, ?, ?, ?)'
   );
-  for (let i = 0; i < qty; i++) await insertOne.run(req.user.id, gift.id, gift.price);
+  for (let i = 0; i < qty; i++) await insertOne.run(req.user.id, gift.id, unitPrice, variant ? variant.id : null);
 
   const updatedUser = await db.prepare('SELECT coin_balance FROM users WHERE id = ?').get(req.user.id);
   res.json({ ok: true, coin_balance: updatedUser.coin_balance, bought_qty: qty });
@@ -137,10 +212,14 @@ router.post('/gifts/:id/buy', authMiddleware, async (req, res) => {
 // Inventar: mening giftlarim
 router.get('/inventory/gifts', authMiddleware, async (req, res) => {
   const items = await db.prepare(`
-    SELECT ug.id as inventory_id, ug.bought_price, ug.acquired_at, ug.trade_id,
-           g.id as gift_id, g.name, g.image_url, g.price as current_price
+    SELECT ug.id as inventory_id, ug.bought_price, ug.acquired_at, ug.trade_id, ug.variant_id,
+           g.id as gift_id,
+           COALESCE(v.name, g.name) as name,
+           COALESCE(v.image_url, g.image_url) as image_url,
+           COALESCE(v.price, g.price) as current_price
     FROM user_gifts ug
     JOIN gifts g ON g.id = ug.gift_id
+    LEFT JOIN gift_variants v ON v.id = ug.variant_id
     WHERE ug.user_id = ?
     ORDER BY ug.acquired_at DESC
   `).all(req.user.id);
@@ -150,8 +229,9 @@ router.get('/inventory/gifts', authMiddleware, async (req, res) => {
 // Orqaga sotish: joriy narxning 80%
 router.post('/inventory/gifts/:inventoryId/sell', authMiddleware, requirePin, async (req, res) => {
   const item = await db.prepare(`
-    SELECT ug.*, g.price as current_price
+    SELECT ug.*, COALESCE(v.price, g.price) as current_price
     FROM user_gifts ug JOIN gifts g ON g.id = ug.gift_id
+    LEFT JOIN gift_variants v ON v.id = ug.variant_id
     WHERE ug.id = ? AND ug.user_id = ?
   `).get(req.params.inventoryId, req.user.id);
 

@@ -232,6 +232,7 @@
       <div class="row">
         <button type="submit" class="btn-primary" id="submitBtn">Qo'shish</button>
         <button type="button" class="btn-secondary" id="cancelEdit" style="display:none">Bekor qilish</button>
+        <button type="button" class="btn-secondary" id="variantsBtn" style="display:none; margin-top:14px">🎨 Gift turlarini ko'rish</button>
       </div>
       <div class="msg" id="formMsg"></div>
     </form>
@@ -240,6 +241,38 @@
   <div class="card">
     <h2>Mavjud giftlar</h2>
     <div class="gift-list" id="giftList">Yuklanmoqda...</div>
+  </div>
+  </div>
+
+  <div class="admin-section" data-section="giftvariants" style="display:none">
+  <div class="card">
+    <a class="back" href="#" onclick="closeVariants(); return false;">&larr; Giftlarga qaytish</a>
+    <h2 id="variantsTitle" style="margin:12px 0 14px"></h2>
+    <button type="button" class="btn-primary" style="width:100%; margin-top:0" onclick="openVariantForm()">➕ Yangi tur qo'shish</button>
+
+    <form id="variantForm" style="display:none; margin-top:6px">
+      <input type="hidden" id="variantEditId">
+      <h2 id="variantFormTitle" style="margin:14px 0 0; font-size:15px">Yangi tur</h2>
+      <label>Tur nomi</label>
+      <input type="text" id="variantName" maxlength="60" required>
+      <label>Narxi (coin)</label>
+      <input type="number" id="variantPrice" min="0" step="0.01" required>
+      <label>Rasm</label>
+      <div class="dropzone" id="variantImageDropzone" onclick="document.getElementById('variantImage').click()">
+        <div id="variantImageDropzoneText">🖼️ Rasmni shu yerga tashlang yoki bosing</div>
+        <input type="file" id="variantImage" accept="image/*">
+      </div>
+      <div class="row">
+        <button type="submit" class="btn-primary" id="variantSubmitBtn">Qo'shish</button>
+        <button type="button" class="btn-secondary" style="margin-top:14px" onclick="hideVariantForm()">Bekor qilish</button>
+      </div>
+      <div class="msg" id="variantMsg"></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Turlar</h2>
+    <div class="gift-list" id="variantList">Yuklanmoqda...</div>
   </div>
   </div>
 
@@ -283,6 +316,15 @@
   </div>
 
   <div class="admin-section" data-section="transfers" style="display:none">
+  <div class="card">
+    <h2>Coin yuborish komissiyasi</h2>
+    <label>Komissiya (%)</label>
+    <input type="number" id="commissionInput" min="0" max="100" step="0.01">
+    <div class="msg" style="margin-top:6px;">Foydalanuvchi boshqasiga coin yuborganda shu foiz qo'shimcha yechiladi. Bayramlarda kamaytirish yoki 0 qilish mumkin.</div>
+    <button type="button" class="btn-primary" onclick="saveCommission()">Saqlash</button>
+    <div class="msg" id="commissionMsg"></div>
+  </div>
+
   <div class="card">
     <h2>Transfer tarixi</h2>
     <div class="gift-list" id="transferList">Yuklanmoqda...</div>
@@ -633,6 +675,7 @@
     }
 
     setupDropzone('imageDropzone', 'image', 'imageDropzoneText');
+    setupDropzone('variantImageDropzone', 'variantImage', 'variantImageDropzoneText');
     setupDropzone('caseImageDropzone', 'caseImage', 'caseImageDropzoneText');
     setupDropzone('eventBannerDropzone', 'eventBanner', 'eventBannerDropzoneText');
     setupDropzone('eventWallpaperDropzone', 'eventWallpaper', 'eventWallpaperDropzoneText');
@@ -889,10 +932,12 @@
       document.getElementById('formTitle').textContent = `"${g.name}" ni tahrirlash`;
       document.getElementById('submitBtn').textContent = 'Saqlash';
       document.getElementById('cancelEdit').style.display = 'inline-block';
+      document.getElementById('variantsBtn').style.display = 'inline-block';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function resetForm() {
+      document.getElementById('variantsBtn').style.display = 'none';
       document.getElementById('giftForm').reset();
       document.getElementById('editId').value = '';
       document.getElementById('qtyWrap').style.display = 'block';
@@ -946,6 +991,141 @@
       resetForm();
       loadGifts();
     });
+
+    // ---------- GIFT TURLARI ----------
+
+    let giftVariants = [];
+    let variantGift = null;
+
+    function vEsc(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    document.getElementById('variantsBtn').addEventListener('click', () => {
+      const id = parseInt(document.getElementById('editId').value, 10);
+      if (id) openVariants(id);
+    });
+
+    async function openVariants(giftId) {
+      const res = await fetch(`${API_BASE}/api/admin/gifts/${giftId}/variants`, { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Xatolik'); return; }
+      variantGift = data.gift;
+      giftVariants = data.variants;
+      document.getElementById('variantsTitle').textContent = `"${data.gift.name}" turlari`;
+      hideVariantForm();
+      renderVariants();
+      switchAdminSection('giftvariants');
+      window.scrollTo({ top: 0 });
+    }
+
+    function closeVariants() {
+      switchAdminSection('gifts');
+    }
+
+    function renderVariants() {
+      const el = document.getElementById('variantList');
+      if (!giftVariants.length) {
+        el.innerHTML = '<div style="color:var(--muted);font-size:13px">Bu giftning hali turi yo\'q. Yuqoridagi tugma orqali qo\'shing.</div>';
+        return;
+      }
+      el.innerHTML = giftVariants.map(v => `
+        <div class="gift-item" style="flex-wrap:wrap">
+          ${v.image_url ? `<img src="${v.image_url}">` : `<div class="noimg"></div>`}
+          <div class="info">
+            <div class="name">${vEsc(v.name)}</div>
+            <div class="meta">${v.price} coin</div>
+          </div>
+          <div style="display:flex; gap:8px; width:100%">
+            <button type="button" class="btn-danger" style="flex:1" onclick="deleteVariant(${v.id})">Turni o'chirish</button>
+            <button type="button" class="btn-secondary" style="flex:1" onclick="openVariantForm(${v.id})">Turni tahrirlash</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function hideVariantForm() {
+      const form = document.getElementById('variantForm');
+      form.reset();
+      form.style.display = 'none';
+      document.getElementById('variantEditId').value = '';
+      document.getElementById('variantImageDropzoneText').innerHTML = '🖼️ Rasmni shu yerga tashlang yoki bosing';
+      document.getElementById('variantMsg').textContent = '';
+    }
+
+    function openVariantForm(id) {
+      hideVariantForm();
+      const form = document.getElementById('variantForm');
+      form.style.display = 'block';
+      if (id) {
+        const v = giftVariants.find(x => x.id === id);
+        if (!v) return;
+        document.getElementById('variantEditId').value = v.id;
+        document.getElementById('variantName').value = v.name;
+        document.getElementById('variantPrice').value = v.price;
+        document.getElementById('variantFormTitle').textContent = `"${v.name}" ni tahrirlash`;
+        document.getElementById('variantSubmitBtn').textContent = 'Saqlash';
+        if (v.image_url) {
+          document.getElementById('variantImageDropzoneText').innerHTML = `<img class="dz-preview" src="${v.image_url}"><div>Joriy rasm (almashtirish uchun yangisini tanlang)</div>`;
+        }
+      } else {
+        document.getElementById('variantFormTitle').textContent = 'Yangi tur';
+        document.getElementById('variantSubmitBtn').textContent = "Qo'shish";
+      }
+      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    async function deleteVariant(id) {
+      if (!confirm("Bu tur o'chirilsinmi? Uni olgan foydalanuvchilarda gift asosiy giftga qaytadi.")) return;
+      const res = await fetch(`${API_BASE}/api/admin/gift-variants/${id}`, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Xatolik'); return; }
+      await openVariants(variantGift.id);
+    }
+
+    document.getElementById('variantForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('variantMsg');
+      msg.textContent = ''; msg.className = 'msg';
+
+      const editId = document.getElementById('variantEditId').value;
+      const fd = new FormData();
+      fd.append('name', document.getElementById('variantName').value);
+      fd.append('price', document.getElementById('variantPrice').value);
+      const imageFile = document.getElementById('variantImage').files[0];
+      if (imageFile) fd.append('image', imageFile);
+
+      const url = editId ? `${API_BASE}/api/admin/gift-variants/${editId}` : `${API_BASE}/api/admin/gifts/${variantGift.id}/variants`;
+      const res = await fetch(url, { method: editId ? 'PUT' : 'POST', credentials: 'include', body: fd });
+      const data = await res.json();
+      if (!res.ok) { msg.textContent = data.error || 'Xatolik'; msg.classList.add('error'); return; }
+      await openVariants(variantGift.id);
+    });
+
+    // ---------- KOMISSIYA SOZLAMASI ----------
+
+    async function loadCommission() {
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/settings/commission`, { credentials: 'include' });
+        if (res.ok) document.getElementById('commissionInput').value = (await res.json()).percent;
+      } catch (e) { /* tarmoq xatosi — qiymat bo'sh qoladi */ }
+    }
+
+    async function saveCommission() {
+      const msg = document.getElementById('commissionMsg');
+      msg.textContent = ''; msg.className = 'msg';
+      const res = await fetch(`${API_BASE}/api/admin/settings/commission`, {
+        method: 'PUT', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ percent: document.getElementById('commissionInput').value }),
+      });
+      const data = await res.json();
+      if (!res.ok) { msg.textContent = data.error || 'Xatolik'; msg.classList.add('error'); return; }
+      document.getElementById('commissionInput').value = data.percent;
+      msg.textContent = `Saqlandi! Komissiya endi ${data.percent}%`;
+      msg.classList.add('success');
+    }
+
+    loadCommission();
 
     // ---------- CASE MANAGEMENT ----------
 

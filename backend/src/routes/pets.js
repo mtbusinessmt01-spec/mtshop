@@ -252,6 +252,7 @@ router.put('/pets/:id/name', authMiddleware, async (req, res) => {
 router.post('/pets/:id/feed', authMiddleware, async (req, res) => {
   const { gift_id, quantity } = req.body || {};
   const qty = Math.max(1, parseInt(quantity, 10) || 1);
+  const feedVariantId = parseInt(req.body?.variant_id, 10) || 0;   // 0 = asosiy gift
 
   let pet = await db.prepare('SELECT * FROM user_pets WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
   if (!pet) return res.status(404).json({ error: 'Pet topilmadi' });
@@ -264,15 +265,21 @@ router.post('/pets/:id/feed', authMiddleware, async (req, res) => {
   if (pet.status === 'dead') return res.status(400).json({ error: "Bu pet o'lgan. Uni tiriltirishingiz mumkin." });
 
   const giftRows = await db.prepare(
-    'SELECT * FROM user_gifts WHERE user_id = ? AND gift_id = ? AND trade_id IS NULL ORDER BY id LIMIT ?'
-  ).all(req.user.id, gift_id, qty);
+    'SELECT * FROM user_gifts WHERE user_id = ? AND gift_id = ? AND COALESCE(variant_id, 0) = ? AND trade_id IS NULL ORDER BY id LIMIT ?'
+  ).all(req.user.id, gift_id, feedVariantId, qty);
   if (giftRows.length < qty) {
     return res.status(400).json({ error: `Sizda faqat ${giftRows.length} dona shu gift bor` });
   }
 
   const gift = await db.prepare('SELECT * FROM gifts WHERE id = ?').get(gift_id);
 
-  const xpGained = Math.round((gift.price / 10) * qty * 100) / 100;
+  // Tur tanlangan bo'lsa XP shu turning narxidan hisoblanadi
+  let unitPrice = gift.price;
+  if (feedVariantId) {
+    const fv = await db.prepare('SELECT price FROM gift_variants WHERE id = ? AND gift_id = ?').get(feedVariantId, gift_id);
+    if (fv) unitPrice = fv.price;
+  }
+  const xpGained = Math.round((unitPrice / 10) * qty * 100) / 100;
   const nowMs = Date.now();
   const elapsedMs = nowMs - R.parseTs(pet.last_fed_at);
   const { fraction, newElapsedMs } = R.applyFeed({

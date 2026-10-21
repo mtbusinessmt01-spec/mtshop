@@ -462,6 +462,16 @@
     background: var(--surface); color: var(--muted); font-size: 13px; cursor: pointer;
   }
   .qty-row { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 14px; }
+  .variant-row { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; margin-top: 8px; }
+  .variant-chip {
+    flex: 0 0 auto; width: 86px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 8px 6px; border-radius: 14px; border: 1.5px solid var(--w100); background: var(--surface);
+    color: var(--text); font-size: 11px; cursor: pointer;
+  }
+  .variant-chip img, .variant-chip .vc-fallback { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .variant-chip .vc-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .variant-chip .vc-price { color: var(--muted); }
+  .variant-chip.active { border-color: var(--accent); }
   .qty-btn {
     width: 40px; height: 40px; border-radius: 12px; border: none;
     background: var(--surface); color: var(--text); font-size: 20px; font-weight: 700; cursor: pointer;
@@ -2089,7 +2099,7 @@ window.MTP = (function () {
     async function renderJonatmoq(main) {
       main.innerHTML = `
         <div class="page-title">Jo'natmoq</div>
-        <div class="page-sub">Boshqa foydalanuvchiga gift, coin yoki case yuboring. Coin yuborishda 3% komissiya olinadi.</div>
+        <div class="page-sub">Boshqa foydalanuvchiga gift, coin yoki case yuboring. Coin yuborishda <span id="commissionPct">5</span>% komissiya olinadi.</div>
 
         <div class="section-title">Nima yuboramiz?</div>
         <div class="type-tabs">
@@ -2124,6 +2134,7 @@ window.MTP = (function () {
       `;
 
       document.getElementById('sendCoinAmount').addEventListener('input', updateCommissionHint);
+      loadCommissionRate();
 
       // Gift va case ro'yxatlarini yuklab dropdown'larga joylaymiz
       const [giftsRes, casesRes] = await Promise.all([
@@ -2151,10 +2162,27 @@ window.MTP = (function () {
       document.getElementById('sendCaseBlock').style.display = type === 'case' ? 'block' : 'none';
     }
 
+    // Komissiya foizini admin belgilaydi — serverdan olamiz (standart 5%)
+    let commissionPercent = 5;
+    async function loadCommissionRate() {
+      try {
+        const r = await fetch(`${API_BASE}/api/settings/commission`, { credentials: 'include' });
+        if (r.ok) {
+          const p = Number((await r.json()).percent);
+          if (!isNaN(p)) commissionPercent = p;
+        }
+      } catch (e) { /* tarmoq xatosi — standart foiz qoladi */ }
+      const el = document.getElementById('commissionPct');
+      if (el) el.textContent = commissionPercent;
+      updateCommissionHint();
+    }
+
     function updateCommissionHint() {
-      const amt = parseFloat(document.getElementById('sendCoinAmount').value) || 0;
-      const commission = Math.round(amt * 0.03 * 100) / 100;
+      const amtEl = document.getElementById('sendCoinAmount');
       const hint = document.getElementById('commissionHint');
+      if (!amtEl || !hint) return;
+      const amt = parseFloat(amtEl.value) || 0;
+      const commission = Math.round(amt * (commissionPercent / 100) * 100) / 100;
       hint.textContent = amt > 0 ? `Komissiya: ${commission} coin — jami ${amt + commission} coin yechiladi` : '';
     }
 
@@ -2393,10 +2421,11 @@ window.MTP = (function () {
       // Bir xil giftlarni guruhlaymiz (masalan 6 ta Ayiqcha)
       const grouped = {};
       myGifts.forEach(g => {
-        if (!grouped[g.gift_id]) {
-          grouped[g.gift_id] = { gift_id: g.gift_id, name: g.name, image_url: g.image_url, current_price: g.current_price, count: 0 };
+        const key = `${g.gift_id}:${g.variant_id || 0}`;   // har bir tur alohida guruh (narxi farq qiladi)
+        if (!grouped[key]) {
+          grouped[key] = { key, gift_id: g.gift_id, variant_id: g.variant_id || 0, name: g.name, image_url: g.image_url, current_price: g.current_price, count: 0 };
         }
-        grouped[g.gift_id].count += 1;
+        grouped[key].count += 1;
       });
       const groups = Object.values(grouped);
 
@@ -2411,7 +2440,7 @@ window.MTP = (function () {
         <div class="modal-title">Ovqatlantirish uchun gift tanlang</div>
         <div class="modal-sub">Gift narxi qancha bo'lsa, shuncha XP beradi (narx/10)</div>
         ${groups.map(g => `
-          <div class="case-item-row" style="cursor:pointer" onclick="openFeedQtyModal(${petId}, ${g.gift_id})">
+          <div class="case-item-row" style="cursor:pointer" onclick="openFeedQtyModal(${petId}, '${g.key}')">
             ${g.image_url ? `<img class="ci-icon" src="${g.image_url}">` : `<div class="ci-icon">🎁</div>`}
             <div class="ci-name">${g.name} <span style="color:var(--muted)">x${g.count}</span></div>
             <div class="ci-chance">${g.current_price} coin</div>
@@ -2421,8 +2450,8 @@ window.MTP = (function () {
       window.__feedGroups = groups;
     }
 
-    function openFeedQtyModal(petId, giftId) {
-      const g = window.__feedGroups.find(x => x.gift_id === giftId);
+    function openFeedQtyModal(petId, groupKey) {
+      const g = window.__feedGroups.find(x => x.key === groupKey);
       if (!g) return;
       document.getElementById('modalBody').innerHTML = `
         <div class="buy-pop">
@@ -2436,7 +2465,7 @@ window.MTP = (function () {
           <button class="qty-btn" onclick="changeFeedQty(1, ${g.count})">+</button>
         </div>
         <div class="modal-sub" style="text-align:center; margin-top:6px;" id="feedQtyXp">+${Math.round(g.current_price/10*100)/100} XP</div>
-        <button class="btn" style="margin-top:14px" onclick="confirmFeed(${petId}, ${giftId})">Ovqatlantirish</button>
+        <button class="btn" style="margin-top:14px" onclick="confirmFeed(${petId}, ${g.gift_id}, ${g.variant_id})">Ovqatlantirish</button>
       `;
       openPage('Miqdor', () => openFeedModal(petId));
       window.__feedUnitXp = g.current_price / 10;
@@ -2451,12 +2480,12 @@ window.MTP = (function () {
       document.getElementById('feedQtyXp').textContent = `+${Math.round(val * window.__feedUnitXp * 100) / 100} XP`;
     }
 
-    async function confirmFeed(petId, giftId) {
+    async function confirmFeed(petId, giftId, variantId) {
       const quantity = parseInt(document.getElementById('feedQtyValue').textContent, 10);
       const res = await fetch(`${API_BASE}/api/pets/${petId}/feed`, {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gift_id: giftId, quantity }),
+        body: JSON.stringify({ gift_id: giftId, variant_id: variantId || 0, quantity }),
       });
       const data = await res.json();
       if (!res.ok) { showToast(data.error || 'Xatolik'); return; }
@@ -4269,35 +4298,55 @@ window.MTP = (function () {
         <div class="gift-card">
           ${giftImg(g)}
           <div class="gift-name">${g.name}</div>
-          <div class="gift-qty">${g.quantity === null ? 'Cheksiz' : 'Qoldi: ' + g.quantity}</div>
+          <div class="gift-qty">${g.quantity === null ? 'Cheksiz' : 'Qoldi: ' + g.quantity}${(g.variants && g.variants.length) ? ' &middot; ' + (g.variants.length + 1) + ' tur' : ''}</div>
           <div class="gift-price"><img class="cn" src="icons/coin.png" alt="coin"> ${g.price}</div>
           <button class="btn" onclick="openGiftInfoModal(${g.id})">Ko'rish</button>
         </div>
       `).join('');
     }
 
-    function openGiftInfoModal(giftId) {
+    function openGiftInfoModal(giftId, variantId) {
       const g = lastLoadedShopGifts.find(x => x.id === giftId);
       if (!g) return;
       const maxQty = g.quantity === null ? 999 : g.quantity;
-      const media = g.image_url ? `<img src="${g.image_url}">` : `<div class="bp-icon-fallback">🎁</div>`;
+
+      // Asosiy gift ham bitta "tur" sifatida tanlanadi; admin qo'shgan turlar yoniga chiqadi
+      const variants = g.variants || [];
+      const sel = variantId ? variants.find(v => v.id === variantId) : null;
+      const cur = sel
+        ? { name: sel.name, price: sel.price, image_url: sel.image_url || g.image_url }
+        : { name: g.name, price: g.price, image_url: g.image_url };
+      const media = cur.image_url ? `<img src="${cur.image_url}">` : `<div class="bp-icon-fallback">🎁</div>`;
+      const options = [{ id: null, name: g.name, price: g.price, image_url: g.image_url }, ...variants];
+      const chips = variants.length ? `
+        <div class="variant-row">
+          ${options.map(o => `
+            <button class="variant-chip ${(o.id || null) === (sel ? sel.id : null) ? 'active' : ''}" onclick="openGiftInfoModal(${g.id}, ${o.id === null ? 'null' : o.id})">
+              ${(o.image_url || g.image_url) ? `<img src="${o.image_url || g.image_url}">` : `<div class="vc-fallback">🎁</div>`}
+              <span class="vc-name">${o.name}</span>
+              <span class="vc-price">${o.price}</span>
+            </button>
+          `).join('')}
+        </div>` : '';
+      window.__giftSel = { giftId: g.id, variantId: sel ? sel.id : null };
 
       document.getElementById('modalBody').innerHTML = `
         <div class="buy-pop">
           ${media}
-          <div class="win-title">${g.name}</div>
-          <div class="modal-sub"><img class="cn" src="icons/coin.png" alt="coin"> ${g.price} &middot; ${g.quantity === null ? 'Cheksiz' : 'Qoldi: ' + g.quantity}</div>
+          <div class="win-title">${cur.name}</div>
+          <div class="modal-sub"><img class="cn" src="icons/coin.png" alt="coin"> ${cur.price} &middot; ${g.quantity === null ? 'Cheksiz' : 'Qoldi: ' + g.quantity}</div>
         </div>
+        ${chips}
         <div class="qty-row">
           <button class="qty-btn" onclick="changeGiftQty(-1, ${maxQty})">−</button>
           <div class="qty-value" id="giftQtyValue">1</div>
           <button class="qty-btn" onclick="changeGiftQty(1, ${maxQty})">+</button>
         </div>
-        <div class="modal-sub" style="text-align:center; margin-top:6px;" id="giftQtyTotal">Jami: <img class="cn" src="icons/coin.png" alt="coin"> ${g.price}</div>
+        <div class="modal-sub" style="text-align:center; margin-top:6px;" id="giftQtyTotal">Jami: <img class="cn" src="icons/coin.png" alt="coin"> ${cur.price}</div>
         <button class="btn" style="margin-top:14px" onclick="confirmBuyGift(${g.id})">Sotib olish</button>
       `;
-      window.__giftUnitPrice = g.price;
-      openModal();
+      window.__giftUnitPrice = cur.price;
+      if (!document.getElementById('modalOverlay').classList.contains('open')) openModal();
     }
 
     function changeGiftQty(delta, maxQty) {
@@ -4311,10 +4360,11 @@ window.MTP = (function () {
 
     async function confirmBuyGift(giftId) {
       const quantity = parseInt(document.getElementById('giftQtyValue').textContent, 10);
-      await buyGift(giftId, quantity);
+      const sel = window.__giftSel && window.__giftSel.giftId === giftId ? window.__giftSel.variantId : null;
+      await buyGift(giftId, quantity, sel);
     }
 
-    async function buyGift(giftId, quantity) {
+    async function buyGift(giftId, quantity, variantId) {
       if (actionInProgress) return;
       actionInProgress = true;
       try {
@@ -4322,7 +4372,7 @@ window.MTP = (function () {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ quantity: quantity || 1 }),
+          body: JSON.stringify({ quantity: quantity || 1, variant_id: variantId || undefined }),
         });
         const data = await res.json();
         if (!res.ok) {
@@ -4331,9 +4381,12 @@ window.MTP = (function () {
         }
         currentUser.coin_balance = data.coin_balance;
         updateCoinBadge();
-        loadShop();
 
-        const gift = lastLoadedShopGifts.find(g => g.id === giftId);
+        // Tur sotib olingan bo'lsa, shu turning nomi va rasmi ko'rsatiladi (ro'yxat yangilanishidan oldin olamiz)
+        const baseGift = lastLoadedShopGifts.find(g => g.id === giftId);
+        const vsel = baseGift && variantId ? (baseGift.variants || []).find(v => v.id === variantId) : null;
+        const gift = baseGift ? (vsel ? { ...baseGift, name: vsel.name, image_url: vsel.image_url || baseGift.image_url } : baseGift) : baseGift;
+        loadShop();
         const media = gift && gift.image_url
           ? `<img src="${gift.image_url}">`
           : `<div class="bp-icon-fallback">🎁</div>`;
