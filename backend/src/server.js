@@ -22,6 +22,8 @@ const tradesRouter = require('./routes/trades');
 const profileRouter = require('./routes/profile');
 const promocodesRouter = require('./routes/promocodes');
 const securityRouter = require('./routes/security');
+const airdropRouter = require('./routes/airdrop');
+const airdropSvc = require('./airdrop');
 const profileSvc = require('./profile');
 const cardStyleSvc = require('./cardStyles');
 const cardStylesRouter = require('./routes/cardStyles');
@@ -58,6 +60,7 @@ app.use('/api', tradesRouter);
 app.use('/api', profileRouter);
 app.use('/api', promocodesRouter);
 app.use('/api', securityRouter);
+app.use('/api', airdropRouter);
 app.use('/api', cardStylesRouter);
 
 // --- AUTH ---
@@ -145,6 +148,7 @@ db.initDb()
     push.startScheduler();
     guarantor.startScheduler();
     trades.startScheduler();
+    airdropSvc.startScheduler();
   })
   .catch((e) => {
     console.error('Bazani ishga tushirishda xato:', e);
