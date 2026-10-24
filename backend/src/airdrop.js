@@ -6,7 +6,7 @@ const profileSvc = require('./profile');
 
 const RADIUS_KEY = 'airdrop_radius_m';
 const DEFAULT_RADIUS_M = 30;
-const MAX_ACCURACY_M = Number(process.env.AIRDROP_MAX_ACCURACY_M) || 50;   // GPS aniqligi bundan yomon bo'lsa, yaqin deb hisoblanmaydi
+const MAX_ACCURACY_M = Number(process.env.AIRDROP_MAX_ACCURACY_M) || 150;   // GPS aniqligi bundan yomon bo'lsa, yaqin deb hisoblanmaydi
 const LOC_TTL_MS = 20 * 1000;     // joylashuv shu muddatdan eski bo'lsa — foydalanuvchi "ko'rinmaydi"
 const DROP_TTL_MS = 30 * 1000;    // qabul qiluvchi javob berishi uchun vaqt
 const MIN_UPDATE_MS = 1500;       // bitta foydalanuvchidan joylashuv yuborish chastotasi cheklovi
