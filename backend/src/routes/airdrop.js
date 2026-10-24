@@ -6,7 +6,7 @@ const airdrop = require('../airdrop');
 const router = express.Router();
 
 function fail(res, e) {
-  if (e instanceof airdrop.AirdropError) return res.status(e.status).json({ error: e.message });
+  if (e instanceof airdrop.AirdropError) return res.status(e.status).json({ error: e.message, ...e.extra });
   console.error('AirDrop xatosi:', e);
   res.status(500).json({ error: 'Server xatosi' });
 }
@@ -46,7 +46,16 @@ router.post('/airdrop/glow', authMiddleware, async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-router.post('/airdrop/send', authMiddleware, requireNotFrozen, requirePin, async (req, res) => {
+// Giftni tanlash paytida PIN so'raladi (PIN o'rnatilgan bo'lsa) — keyin swipe'da qayta so'ralmaydi
+router.post('/airdrop/arm', authMiddleware, requireNotFrozen, requirePin, async (req, res) => {
+  try {
+    const { inventory_id } = req.body || {};
+    if (!inventory_id) return res.status(400).json({ error: 'Gift tanlanishi kerak' });
+    res.json(await airdrop.arm(req.user.id, Number(inventory_id)));
+  } catch (e) { fail(res, e); }
+});
+
+router.post('/airdrop/send', authMiddleware, requireNotFrozen, async (req, res) => {
   try {
     const { to_user_id, inventory_id } = req.body || {};
     if (!to_user_id || !inventory_id) return res.status(400).json({ error: 'Foydalanuvchi va gift tanlanishi kerak' });

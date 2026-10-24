@@ -6,7 +6,7 @@ const profileSvc = require('./profile');
 
 const RADIUS_KEY = 'airdrop_radius_m';
 const DEFAULT_RADIUS_M = 30;
-const MAX_ACCURACY_M = Number(process.env.AIRDROP_MAX_ACCURACY_M) || 150;   // GPS aniqligi bundan yomon bo'lsa, yaqin deb hisoblanmaydi
+const MAX_ACCURACY_M = Number(process.env.AIRDROP_MAX_ACCURACY_M) || 50;   // GPS aniqligi bundan yomon bo'lsa, yaqin deb hisoblanmaydi
 const LOC_TTL_MS = 20 * 1000;     // joylashuv shu muddatdan eski bo'lsa — foydalanuvchi "ko'rinmaydi"
 const DROP_TTL_MS = 30 * 1000;    // qabul qiluvchi javob berishi uchun vaqt
 const MIN_UPDATE_MS = 1500;       // bitta foydalanuvchidan joylashuv yuborish chastotasi cheklovi
@@ -15,7 +15,7 @@ const MIN_UPDATE_MS = 1500;       // bitta foydalanuvchidan joylashuv yuborish c
 const presence = new Map();
 
 class AirdropError extends Error {
-  constructor(status, message) { super(message); this.status = status; }
+  constructor(status, message, extra) { super(message); this.status = status; this.extra = extra || {}; }
 }
 
 async function getRadius() {
@@ -121,6 +121,19 @@ function broadcastNearby() {      // ro'yxat o'zgarganda hammaga (tez-tez emas) 
   }, 400);
 }
 
+// Tasdiqlangan ("armed") gift: PIN swipe'dan oldin, giftni tanlash paytida tekshiriladi.
+// Tasdiq qisqa muddat amal qiladi va yuborilgach ishlatilib bo'ladi.
+const ARM_TTL_MS = 3 * 60 * 1000;
+const armed = new Map();      // userId -> { inventoryId, until }
+
+async function arm(userId, inventoryId) {
+  const item = await db.prepare('SELECT id, trade_id FROM user_gifts WHERE id = ? AND user_id = ?').get(inventoryId, userId);
+  if (!item) throw new AirdropError(404, 'Gift inventaringizda topilmadi');
+  if (item.trade_id) throw new AirdropError(409, "Bu gift Trade'da band");
+  armed.set(userId, { inventoryId: item.id, until: Date.now() + ARM_TTL_MS });
+  return { ok: true, expires_in: ARM_TTL_MS / 1000 };
+}
+
 // Swipe balandligi (0..1) — faqat "yaqin" bo'lgan, oqimi ochiq qabul qiluvchiga uzatiladi. Hech narsa saqlanmaydi.
 const lastGlow = new Map();   // fromUserId -> ts
 async function glow(fromUserId, toUserId, level) {
@@ -136,6 +149,10 @@ async function glow(fromUserId, toUserId, level) {
 }
 
 async function send(fromUser, toUserId, inventoryId) {
+  const ar = armed.get(fromUser.id);
+  if (!ar || ar.inventoryId !== inventoryId || ar.until < Date.now()) {
+    throw new AirdropError(403, 'Giftni qayta tanlang va PIN bilan tasdiqlang', { need_arm: true });
+  }
   const radius = await getRadius();
   const a = presence.get(fromUser.id), b = presence.get(toUserId);
   const rel = isNear(a, b, radius);
@@ -175,6 +192,7 @@ async function send(fromUser, toUserId, inventoryId) {
     await db.prepare("UPDATE airdrops SET status = 'EXPIRED', resolved_at = datetime('now') WHERE id = ?").run(id);
     throw new AirdropError(409, 'Foydalanuvchi hozir AirDrop sahifasida emas');
   }
+  armed.delete(fromUser.id);
   return { id, expires_at: expires };
 }
 
@@ -243,6 +261,7 @@ function startScheduler() {
       for (const [, p] of presence) if (p.ts && !isFresh(p) && p.lat !== null) { p.lat = p.lng = null; p.acc = Infinity; p.ts = 0; changed = true; }
       if (changed) broadcastNearby();
       for (const [id, ts] of lastGlow) if (Date.now() - ts > 60000) lastGlow.delete(id);
+      for (const [id, a] of armed) if (a.until < Date.now()) armed.delete(id);
       await expireStale();
     } catch (e) { console.error('AirDrop scheduler xatosi:', e.message); }
   }, 5000).unref();
@@ -250,5 +269,5 @@ function startScheduler() {
 
 module.exports = {
   AirdropError, getRadius, setRadius, addStream, removeStream, updateLocation,
-  nearbyFor, broadcastNearby, glow, send, accept, resolveSimple, startScheduler, sse,
+  nearbyFor, broadcastNearby, glow, arm, send, accept, resolveSimple, startScheduler, sse,
 };
