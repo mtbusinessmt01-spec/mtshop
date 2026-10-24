@@ -38,6 +38,14 @@ router.get('/airdrop/nearby', authMiddleware, async (req, res) => {
   try { res.json(await airdrop.nearbyFor(req.user.id)); } catch (e) { fail(res, e); }
 });
 
+router.post('/airdrop/glow', authMiddleware, async (req, res) => {
+  try {
+    const { to_user_id, level } = req.body || {};
+    if (!to_user_id || Number(to_user_id) === req.user.id) return res.json({ ok: false });
+    res.json({ ok: await airdrop.glow(req.user.id, Number(to_user_id), level) });
+  } catch (e) { fail(res, e); }
+});
+
 router.post('/airdrop/send', authMiddleware, requireNotFrozen, requirePin, async (req, res) => {
   try {
     const { to_user_id, inventory_id } = req.body || {};

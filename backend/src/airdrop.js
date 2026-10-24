@@ -6,7 +6,7 @@ const profileSvc = require('./profile');
 
 const RADIUS_KEY = 'airdrop_radius_m';
 const DEFAULT_RADIUS_M = 30;
-const MAX_ACCURACY_M = 150;        // GPS aniqligi bundan yomon bo'lsa, yaqin deb hisoblanmaydi
+const MAX_ACCURACY_M = Number(process.env.AIRDROP_MAX_ACCURACY_M) || 50;   // GPS aniqligi bundan yomon bo'lsa, yaqin deb hisoblanmaydi
 const LOC_TTL_MS = 20 * 1000;     // joylashuv shu muddatdan eski bo'lsa — foydalanuvchi "ko'rinmaydi"
 const DROP_TTL_MS = 30 * 1000;    // qabul qiluvchi javob berishi uchun vaqt
 const MIN_UPDATE_MS = 1500;       // bitta foydalanuvchidan joylashuv yuborish chastotasi cheklovi
@@ -121,6 +121,20 @@ function broadcastNearby() {      // ro'yxat o'zgarganda hammaga (tez-tez emas) 
   }, 400);
 }
 
+// Swipe balandligi (0..1) — faqat "yaqin" bo'lgan, oqimi ochiq qabul qiluvchiga uzatiladi. Hech narsa saqlanmaydi.
+const lastGlow = new Map();   // fromUserId -> ts
+async function glow(fromUserId, toUserId, level) {
+  const lv = Math.max(0, Math.min(1, Number(level)));
+  if (!isFinite(lv)) throw new AirdropError(400, "Daraja noto'g'ri");
+  const now = Date.now();
+  if (now - (lastGlow.get(fromUserId) || 0) < 60) return false;      // juda tez-tez yuborilmasin
+  lastGlow.set(fromUserId, now);
+  const a = presence.get(fromUserId), b = presence.get(toUserId);
+  if (!a || !b || !isNear(a, b, await getRadius()).near) return false;
+  emitTo(toUserId, 'glow', { from_id: fromUserId, level: Math.round(lv * 100) / 100 });
+  return true;
+}
+
 async function send(fromUser, toUserId, inventoryId) {
   const radius = await getRadius();
   const a = presence.get(fromUser.id), b = presence.get(toUserId);
@@ -228,6 +242,7 @@ function startScheduler() {
       let changed = false;
       for (const [, p] of presence) if (p.ts && !isFresh(p) && p.lat !== null) { p.lat = p.lng = null; p.acc = Infinity; p.ts = 0; changed = true; }
       if (changed) broadcastNearby();
+      for (const [id, ts] of lastGlow) if (Date.now() - ts > 60000) lastGlow.delete(id);
       await expireStale();
     } catch (e) { console.error('AirDrop scheduler xatosi:', e.message); }
   }, 5000).unref();
@@ -235,5 +250,5 @@ function startScheduler() {
 
 module.exports = {
   AirdropError, getRadius, setRadius, addStream, removeStream, updateLocation,
-  nearbyFor, broadcastNearby, send, accept, resolveSimple, startScheduler, sse,
+  nearbyFor, broadcastNearby, glow, send, accept, resolveSimple, startScheduler, sse,
 };
