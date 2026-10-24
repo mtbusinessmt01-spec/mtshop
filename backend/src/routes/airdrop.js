@@ -20,8 +20,8 @@ router.get('/airdrop/stream', authMiddleware, async (req, res) => {
     'X-Accel-Buffering': 'no',
   });
   res.flushHeaders();
-  airdrop.addStream(req.user.id, res);
-  airdrop.sse(res, 'ready', { radius: await airdrop.getRadius() });
+  airdrop.addStream(req.user.id, res, airdrop.netKey(req));
+  airdrop.sse(res, 'ready', { radius: await airdrop.getRadius(), ...airdrop.limits() });
   const ping = setInterval(() => { try { res.write(': ping\n\n'); } catch (e) { /* yopilgan */ } }, 20000);
   req.on('close', () => { clearInterval(ping); airdrop.removeStream(req.user.id, res); });
 });

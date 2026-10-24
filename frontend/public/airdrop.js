@@ -115,6 +115,45 @@
   .ad-burst { position:fixed; left:50%; top:45%; z-index:2100; pointer-events:none; font-size:30px; animation: adBurst 1s ease-out forwards; }
   @keyframes adBurst { to { transform: translate(var(--dx), var(--dy)) scale(.4); opacity:0; } }
 
+  /* --- Tip ichidagi tugma, odam belgisi, Yuborish tugmasi --- */
+  .ad-tip .btn { margin:10px 0 0; padding:8px 14px; font-size:13px; }
+  .ad-person .ad-net { position:absolute; top:-2px; right:8px; font-size:12px; width:20px; height:20px; border-radius:50%; background:rgba(46,204,113,.9); color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.4); }
+  .ad-go { display:none; border:0; border-radius:999px; padding:11px 26px; font:inherit; font-size:15px; font-weight:700; color:#fff; cursor:pointer;
+    background:linear-gradient(135deg, #7c6cf0, #5a49d6); box-shadow:0 8px 22px rgba(108,92,231,.5); transition:transform .15s, box-shadow .15s; }
+  .ad-go:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(108,92,231,.65); }
+  .ad-go:active { transform:scale(.97); }
+
+  /* --- NOUTBUK / KATTA EKRAN: radar chapda, Gifts paneli doim o'ngda --- */
+  @media (min-width: 900px) {
+    .modal-overlay.page #modalBody:has(#airdropRoot) { max-width:none !important; }
+    #airdropRoot { background: radial-gradient(circle at calc((100% - 380px) / 2) 46%, rgba(108,92,231,.34), transparent 58%); }
+    .ad-radar { right:380px; }
+    .ad-chiprow { right:394px; top:calc(76px + env(safe-area-inset-top)); }
+    .ad-tip { right:394px; max-width:520px; top:calc(122px + env(safe-area-inset-top)); }
+    .ad-empty { right:380px; top:auto; bottom:calc(150px + env(safe-area-inset-bottom)); }
+    .ad-dock { right:380px; bottom:calc(26px + env(safe-area-inset-bottom)); }
+    .ad-go { display:inline-block; }
+    .ad-person { width:92px; }
+    .ad-person span { font-size:12.5px; max-width:92px; }
+    .ad-person:hover .st-avatar { transform:scale(1.08); }
+    .ad-puck:hover:not(.dim) { transform:translateY(-3px); }
+    .ad-pill, .ad-scrim, .ad-grab { display:none !important; }
+    .ad-sheet { left:auto; right:20px; top:calc(76px + env(safe-area-inset-top)); bottom:calc(20px + env(safe-area-inset-bottom)); width:340px; height:auto;
+      transform:none !important; transition:none; padding:18px 16px 14px; border-radius:28px;
+      background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14); backdrop-filter:blur(24px) saturate(160%); -webkit-backdrop-filter:blur(24px) saturate(160%);
+      box-shadow:0 20px 50px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.12); }
+    .ad-sheet h3 { display:flex; align-items:baseline; justify-content:space-between; font-size:21px; }
+    .ad-sheet h3 small { font-size:13px; font-weight:600; opacity:.65; }
+    .ad-grid { scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.3) transparent; }
+    .ad-gift:hover { transform:scale(1.05); }
+    .ad-gift:hover .ad-thumb { background:rgba(255,255,255,.18); }
+  }
+  @media (min-width: 1400px) {
+    .ad-radar { right:440px; } .ad-chiprow, .ad-tip { right:454px; } .ad-empty, .ad-dock { right:440px; }
+    .ad-sheet { width:400px; } .ad-grid { grid-template-columns:repeat(4, 1fr); }
+    #airdropRoot { background: radial-gradient(circle at calc((100% - 440px) / 2) 46%, rgba(108,92,231,.34), transparent 58%); }
+  }
+
   /* --- Harakatni kamaytirish --- */
   .ad-reduced .ad-pulse, .ad-reduced .ad-hint.bob { animation:none; }
   .ad-reduced .ad-person { animation:none; transition:none; }
@@ -129,6 +168,7 @@
   const LAUNCH_PX = 90;          // shundan baland surib qo'yib yuborilsa — gift uchadi
   let S = null;                  // AirDrop sessiyasi (sahifa ochiq paytda)
   const $ = s => document.querySelector(s);
+  const isDesk = () => !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);   // sichqonchali qurilma (noutbuk/kompyuter)
 
   async function post(path, body, extra) {
     const r = await fetch(`${API_BASE}/api/airdrop/${path}`, { method: 'POST', ...H, headers: { ...J, ...(extra || {}) }, body: JSON.stringify(body || {}) });
@@ -193,30 +233,31 @@
           <div class="ad-me" id="adMe"></div>
         </div>
         <div class="ad-chiprow">
-          <button class="ad-chip" id="adChip" type="button">📶 GPS aniqlanmoqda...</button>
+          <button class="ad-chip" id="adChip" type="button">📶 Joylashuv aniqlanmoqda...</button>
           <button class="ad-snd" id="adSnd" type="button" aria-label="Tovush">${soundOn() ? '🔊' : '🔇'}</button>
         </div>
         <div class="ad-tip" id="adTip"></div>
-        <div class="ad-empty" id="adEmpty"><b>📡 Yaqin atrofda hech kim yo'q</b>Do'stingiz ham AirDrop sahifasini ochsin va yoningizda tursin</div>
+        <div class="ad-empty" id="adEmpty"><b>📡 Yaqin atrofda hech kim yo'q</b>${isDesk() ? "Do'stingiz ham AirDrop sahifasini ochsin — bir Wi-Fi'da va yoningizda tursin" : "Do'stingiz ham AirDrop sahifasini ochsin va yoningizda tursin"}</div>
         <div class="ad-dock" id="adDock"></div>
         <button class="ad-pill" id="adPill" type="button">Gifts <small id="adCnt"></small></button>
         <div class="ad-scrim" id="adScrim"></div>
         <div class="ad-sheet" id="adSheet">
           <div class="ad-grab" id="adGrab"><i></i></div>
-          <h3>Gifts</h3>
+          <h3>Gifts <small id="adCnt2"></small></h3>
           <div class="ad-grid" id="adGrid"></div>
         </div>
       </div>`;
     openPage('AirDrop', null);
 
     S = { nearby: [], els: new Map(), slots: new Map(), geo: null, target: null, gift: null, gifts: [], pos: null, accState: 'wait', sending: false,
-      armTimer: null, pendingId: null, pendingUser: null, es: null, watch: null, beat: null, guard: null, incoming: null, glowAt: 0, glowOff: null, onResize: null };
+      armTimer: null, high: true, acc: null, lim: { precise: 50, coarse: 500 }, tipShown: false, pendingId: null, pendingUser: null, es: null, watch: null, beat: null, guard: null, incoming: null, glowAt: 0, glowOff: null, onResize: null };
     $('#adChip').onclick = () => $('#adTip').classList.toggle('show');
     $('#adSnd').onclick = e => {
       const on = !soundOn(); try { localStorage.setItem('ad_sound', on ? '1' : '0'); } catch (x) { /* ruxsat yo'q */ }
       e.currentTarget.textContent = on ? '🔊' : '🔇'; if (on) { audio(); ding(); }
     };
     bindPill(); bindSheet();
+    setChip('wait');
     layout(); renderDock(); loadGifts(); startLocation(); startStream();
     S.onResize = () => layout(); window.addEventListener('resize', S.onResize);
     // Sahifa yopilsa yoki boshqa sahifa ochilsa — ulanish va "ko'rinish" o'chadi
@@ -239,8 +280,11 @@
   // ---------- Joylashuv va o'lchamlar ----------
   function layout() {
     const root = document.getElementById('airdropRoot'); if (!root || !S) return;
-    const W = root.clientWidth || 360, Hh = root.clientHeight || 640, base = Math.min(W, 520);
-    const cx = Math.round(W / 2), cy = Math.round(Hh * 0.44);
+    const radar = document.getElementById('adRadar') || root;
+    const W = radar.clientWidth || 360, Hh = radar.clientHeight || 640;
+    const wide = W >= 560 && isDesk();      // noutbuk: radar balandlikka qarab kattalashadi
+    const base = wide ? Math.min(W, Hh * 0.92, 600) : Math.min(W, 520);
+    const cx = Math.round(W / 2), cy = Math.round(Hh * (wide ? 0.43 : 0.44));
     const radii = [base * 0.2, base * 0.335, base * 0.47];
     S.geo = { W, H: Hh, cx, cy, radii };
     root.querySelectorAll('.ad-ring').forEach(r => { const d = Math.round(radii[+r.dataset.r] * 2); r.style.cssText = `width:${d}px;height:${d}px;left:${cx}px;top:${cy}px`; });
@@ -269,42 +313,77 @@
     return best === null ? -Math.PI / 2 : best;
   }
 
-  const CHIP = {
-    wait: ['', '📶 GPS aniqlanmoqda...', 'Telefoningiz joylashuvni aniqlayapti, bir necha soniya kuting.'],
-    good: ['good', '📶 GPS: yaxshi', "Aniqlik yaxshi — yaqin atrofdagilar ko'rinadi."],
-    mid:  ['mid',  "📶 GPS: o'rtacha", "Aniqlik o'rtacha. Ochiq joyda yoki deraza oldida yaxshiroq ishlaydi."],
-    bad:  ['bad',  '📶 GPS: past', "Aniqlik past — hozir hech kim ko'rinmasligi mumkin. Tashqariga yoki deraza oldiga chiqing. Noutbukda GPS bo'lmagani uchun telefondan foydalaning."],
-    deny: ['bad',  '📍 Ruxsat berilmadi', "Joylashuvga ruxsat yo'q. Brauzer sozlamalarida sayt uchun joylashuvni yoqing va sahifani qayta oching."],
-    fail: ['bad',  "📍 Aniqlab bo'lmadi", "Joylashuvni aniqlab bo'lmadi. Internet va GPS yoniqligini tekshiring."],
-  };
+  // Aniqlik holatlari: good (<= 50 m), mid (50..500 m — taxminiy, lekin ishlaydi), bad (> 500 m — ishonchsiz)
+  function chipInfo(state, acc) {
+    const d = isDesk(), n = acc != null ? `±${acc} m` : '';
+    switch (state) {
+      case 'good': return ['good', d ? '📍 Joylashuv: aniq' : '📶 GPS: yaxshi', "Aniqlik yaxshi — yaqin atrofdagilar ko'rinadi."];
+      case 'mid': return ['mid', d ? '📶 Wi-Fi joylashuv' : "📶 GPS: o'rtacha", d
+        ? `Noutbukda GPS yo'q — joylashuv Wi-Fi orqali taxminiy aniqlanadi (${n}), bu normal. Do'stingiz bilan bir Wi-Fi tarmog'ida bo'lsangiz va yaqin tursangiz bir-biringizni ko'rasiz.`
+        : "Aniqlik o'rtacha, lekin taxminiy rejimda ishlaydi. Ochiq joyda yoki deraza oldida yaxshiroq bo'ladi."];
+      case 'bad': return ['bad', d ? '⚠️ Joylashuv juda taxminiy' : '📶 GPS: past', d
+        ? `Aniqlik ${n} — bu juda past, hozir hech kim ko'rinmaydi. 1) Wi-Fi'ga ulaning (kabel yoki telefon internetida joylashuv noto'g'ri bo'ladi). 2) Windows: Sozlamalar → Maxfiylik va xavfsizlik → Joylashuv — yoqing. 3) Brauzerda bu sayt uchun joylashuvga ruxsat bering va «Qayta aniqlash» ni bosing.`
+        : "Aniqlik past — hozir hech kim ko'rinmasligi mumkin. Tashqariga yoki deraza oldiga chiqing."];
+      case 'deny': return ['bad', '📍 Ruxsat berilmadi', "Joylashuvga ruxsat yo'q. Brauzerda manzil satridagi 🔒 belgisini bosing, «Joylashuv» ni «Ruxsat» qiling va «Qayta aniqlash» ni bosing."];
+      case 'fail': return ['bad', "📍 Aniqlab bo'lmadi", d
+        ? "Joylashuvni aniqlab bo'lmadi. Wi-Fi yoniqligini va Windows'da Joylashuv xizmati yoqilganini tekshiring, so'ng «Qayta aniqlash» ni bosing."
+        : "Joylashuvni aniqlab bo'lmadi. Internet va GPS yoniqligini tekshiring."];
+      default: return ['', '📶 Joylashuv aniqlanmoqda...', d ? "Brauzer Wi-Fi orqali joylashuvni aniqlayapti, bir necha soniya kuting." : "Telefoningiz joylashuvni aniqlayapti, bir necha soniya kuting."];
+    }
+  }
+  const accState = a => a <= S.lim.precise ? 'good' : a <= S.lim.coarse ? 'mid' : 'bad';
   function setChip(state, acc) {
     S.accState = state;
     const chip = $('#adChip'), tip = $('#adTip'); if (!chip) return;
-    const c = CHIP[state];
+    const c = chipInfo(state, acc);
     chip.className = 'ad-chip ' + c[0];
     chip.textContent = c[1] + (acc != null && /^(good|mid|bad)$/.test(state) ? ` (±${acc} m)` : '');
-    tip.textContent = c[2];
+    const retry = state !== 'wait' && state !== 'good';
+    tip.innerHTML = `<div>${esc(c[2])}</div>${retry ? '<button class="btn secondary" id="adRetry" type="button">🔄 Qayta aniqlash</button>' : ''}`;
+    const rb = document.getElementById('adRetry'); if (rb) rb.onclick = restartLocation;
+    if (/^(bad|deny|fail)$/.test(state) && !S.tipShown) { S.tipShown = true; tip.classList.add('show'); }   // muammo bo'lsa, izoh o'zi ochiladi
   }
 
+  function pushPos() { if (S && S.pos) post('location', S.pos).catch(() => {}); }
+  function onPos(p) {
+    if (!S) return;
+    S.pos = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy };
+    S.acc = Math.round(p.coords.accuracy);
+    setChip(accState(S.acc), S.acc);
+    pushPos();
+  }
+  function onPosErr(err) {
+    if (!S) return;
+    if (err.code === 1) { setChip('deny'); return; }
+    if (S.high) { S.high = false; watchPos(); return; }      // noutbukda "yuqori aniqlik" ko'pincha kutib qoladi — oddiy rejimga o'tamiz
+    if (!S.pos) setChip('fail');
+  }
+  function watchPos() {
+    if (!S) return;
+    if (S.watch != null) navigator.geolocation.clearWatch(S.watch);
+    S.watch = navigator.geolocation.watchPosition(onPos, onPosErr,
+      { enableHighAccuracy: S.high, maximumAge: 2000, timeout: S.high ? 15000 : 30000 });
+  }
+  function restartLocation() {
+    if (!S || !navigator.geolocation) return;
+    S.high = true; S.pos = null; S.acc = null; setChip('wait'); watchPos();
+  }
   function startLocation() {
     if (!navigator.geolocation) { setChip('fail'); return; }
-    const push = () => { if (S && S.pos) post('location', S.pos).catch(() => {}); };
-    S.watch = navigator.geolocation.watchPosition(p => {
-      if (!S) return;
-      S.pos = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy };
-      const a = Math.round(p.coords.accuracy);
-      setChip(a <= 20 ? 'good' : a <= 50 ? 'mid' : 'bad', a);
-      push();
-    }, err => setChip(err.code === 1 ? 'deny' : 'fail'),
-    { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 });
-    S.beat = setInterval(push, 8000);   // joylashuv o'zgarmasa ham "ko'rinib" turish uchun
+    watchPos();
+    S.beat = setInterval(pushPos, 8000);   // joylashuv o'zgarmasa ham "ko'rinib" turish uchun
   }
 
   // ---------- Real-time ----------
   function startStream() {
     const es = new EventSource(`${API_BASE}/api/airdrop/stream`, { withCredentials: true });
     S.es = es;
-    es.addEventListener('ready', () => { if (S && S.pos) post('location', S.pos).catch(() => {}); });
+    es.addEventListener('ready', e => {
+      if (!S) return;
+      try { const d = JSON.parse(e.data); if (d.precise) S.lim = { precise: d.precise, coarse: d.coarse_max || 500 }; } catch (x) { /* eski server */ }
+      if (S.acc != null) setChip(accState(S.acc), S.acc);
+      pushPos();
+    });
     es.addEventListener('nearby', e => { if (!S) return; S.nearby = JSON.parse(e.data).users || []; syncPeople(); });
     es.addEventListener('glow', e => onGlow(JSON.parse(e.data)));
     es.addEventListener('incoming', e => showIncoming(JSON.parse(e.data)));
@@ -332,7 +411,7 @@
       const slot = { a: pickAngle(), ring: S.slots.size % 2 ? 2 : 1 }; S.slots.set(u.id, slot);
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'ad-person'; b.dataset.id = u.id;
-      b.innerHTML = `${stAvatar(u, 54)}<span>${esc(u.full_name || u.username)}</span>`;
+      b.innerHTML = `${stAvatar(u, isDesk() ? 62 : 54)}<span>${esc(u.full_name || u.username)}</span>${u.same_net ? '<i class="ad-net" title="Bir Wi-Fi tarmog\'ida">📶</i>' : ''}`;
       b.onclick = () => { S.target = S.target === u.id ? null : u.id; paintSelection(); renderDock(); };
       radar.appendChild(b); S.els.set(u.id, b); placePerson(b, slot);
     }
@@ -357,6 +436,7 @@
   function renderGrid() {
     const grid = $('#adGrid'), cnt = $('#adCnt'); if (!grid || !S) return;
     if (cnt) cnt.textContent = S.gifts.length ? `· ${S.gifts.length}` : '';
+    const c2 = $('#adCnt2'); if (c2) c2.textContent = S.gifts.length ? `${S.gifts.length} ta` : '';
     grid.innerHTML = S.gifts.length ? S.gifts.map(g => `
       <button class="ad-gift ${S.gift && S.gift.inventory_id === g.inventory_id ? 'sel' : ''}" data-id="${g.inventory_id}" type="button"><div class="ad-thumb">${giftImg(g)}</div><b>${esc(g.name)}</b></button>`).join('')
       : `<div class="ad-none"><span class="big">🎁</span>Tashlash uchun giftingiz yo'q<br><button class="btn" id="adShop" type="button">🛍️ Do'kondan gift olish</button></div>`;
@@ -440,14 +520,15 @@
       $('#adCancel').onclick = cancelPending; return;
     }
     if (!S.gift) {
-      dock.innerHTML = `<div class="ad-hint">${S.nearby.length ? '👇 Gift tanlash uchun «Gifts» ni tepaga torting' : "Yaqin atrofda odam paydo bo'lishini kuting"}</div>`; return;
+      dock.innerHTML = `<div class="ad-hint">${S.nearby.length ? (isDesk() && window.innerWidth >= 900 ? '👉 O\'ngdagi ro\'yxatdan gift tanlang' : '👇 Gift tanlash uchun «Gifts» ni tepaga torting') : "Yaqin atrofda odam paydo bo'lishini kuting"}</div>`; return;
     }
     if (!S.target) {
       dock.innerHTML = `<div class="ad-hint">Radardan kimga tashlashni tanlang</div><div class="ad-puck dim">${giftImg(S.gift)}</div>`; return;
     }
-    dock.innerHTML = `<div class="ad-hint bob">⬆️ Tepaga suring — qanchalik baland, shunchalik yorqin nur</div>
-      <div class="ad-puck" id="adPuck">${giftImg(S.gift)}</div><div class="ad-to">Kimga: <b>${esc(nameOf(S.target))}</b></div>`;
+    dock.innerHTML = `<div class="ad-hint bob">${isDesk() ? "⬆️ Giftni sichqoncha bilan tepaga torting yoki «Yuborish» ni bosing" : "⬆️ Tepaga suring — qanchalik baland, shunchalik yorqin nur"}</div>
+      <div class="ad-puck" id="adPuck">${giftImg(S.gift)}</div><div class="ad-to">Kimga: <b>${esc(nameOf(S.target))}</b></div><button class="ad-go" id="adGo" type="button">🚀 Yuborish</button>`;
     bindSwipe($('#adPuck'));
+    const go = $('#adGo'); if (go) go.onclick = () => { const pk = $('#adPuck'); if (pk && S && !S.sending) { audio(); setLight(1, 'warm'); sendGlow(1, true); launch(pk, -(LAUNCH_PX + 20)); } };
   }
 
   function sendGlow(level, force) {

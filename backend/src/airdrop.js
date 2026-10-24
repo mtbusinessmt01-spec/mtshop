@@ -6,7 +6,15 @@ const profileSvc = require('./profile');
 
 const RADIUS_KEY = 'airdrop_radius_m';
 const DEFAULT_RADIUS_M = 30;
-const MAX_ACCURACY_M = Number(process.env.AIRDROP_MAX_ACCURACY_M) || 150;   // GPS aniqligi bundan yomon bo'lsa, yaqin deb hisoblanmaydi
+// Aniqlik darajalari:
+//  - aniq   (<= PRECISE_ACC_M): telefon GPS'i — masofa to'g'ridan-to'g'ri radiusga solishtiriladi
+//  - taxminiy (PRECISE..COARSE_MAX_ACC_M): noutbuk/Wi-Fi joylashuvi — aniqlik xatosi hisobga olinadi
+//  - ishonchsiz (> COARSE_MAX_ACC_M): odatda IP bo'yicha joylashuv — hech kim ko'rinmaydi
+const PRECISE_ACC_M = Number(process.env.AIRDROP_MAX_ACCURACY_M) || 50;
+const COARSE_MAX_ACC_M = Number(process.env.AIRDROP_COARSE_MAX_M) || 500;
+const TOL_CAP_SAME_NET_M = 300;   // bir Wi-Fi (bir xil public IP) bo'lsa — xato uchun ruxsat etilgan eng ko'p qo'shimcha masofa
+const TOL_CAP_OTHER_NET_M = 120;  // turli tarmoq bo'lsa — kamroq
+const LEAVE_K = 1.35;             // "yaqin" bo'lib bo'lgach, chiqib ketish chegarasi 35% kengroq (Wi-Fi joylashuvi sakrab turmasligi uchun)
 const LOC_TTL_MS = 20 * 1000;     // joylashuv shu muddatdan eski bo'lsa — foydalanuvchi "ko'rinmaydi"
 const DROP_TTL_MS = 30 * 1000;    // qabul qiluvchi javob berishi uchun vaqt
 const MIN_UPDATE_MS = 1500;       // bitta foydalanuvchidan joylashuv yuborish chastotasi cheklovi
@@ -45,13 +53,45 @@ function distanceM(a, b) {
 
 function isFresh(p) { return p && Date.now() - p.ts <= LOC_TTL_MS; }
 
-// "Yaqin" bo'lishi: ikkalasi yangi joylashuv bergan, aniqligi yetarli va masofa <= radius.
-// Aniqlik xatosi hisobga olinadi: masofa radius + ikkala aniqlikning kichigi doirasidan oshmasin.
-function isNear(a, b, radius) {
+function accMode(acc) { return acc <= PRECISE_ACC_M ? 'precise' : acc <= COARSE_MAX_ACC_M ? 'wifi' : 'weak'; }
+
+// Tarmoq kaliti: bir xil Wi-Fi/router orqasidagi qurilmalar bir xil public IP bilan ko'rinadi (IPv6 uchun /64)
+function expandV6(ip) {
+  const parts = ip.split('::');
+  const head = parts[0] ? parts[0].split(':') : [];
+  const tail = parts.length > 1 && parts[1] ? parts[1].split(':') : [];
+  const fill = parts.length > 1 ? Array(Math.max(0, 8 - head.length - tail.length)).fill('0') : [];
+  return [...head, ...fill, ...tail].map(x => x.padStart(4, '0'));
+}
+function netKey(req) {
+  const ip = String((req && req.ip) || '').replace(/^::ffff:/, '').split('%')[0];
+  if (!ip) return null;
+  return ip.includes(':') ? expandV6(ip).slice(0, 4).join(':') : ip;
+}
+
+// Yaqin juftliklar (hysteresis uchun): "a:b"
+const nearPairs = new Set();
+const pairKey = (x, y) => (x < y ? `${x}:${y}` : `${y}:${x}`);
+function dropPairs(userId) {
+  for (const k of [...nearPairs]) { const [x, y] = k.split(':'); if (+x === userId || +y === userId) nearPairs.delete(k); }
+}
+
+// "Yaqin" bo'lishi: ikkalasi yangi joylashuv bergan va masofa <= radius (+ aniqlik xatosi).
+// Ikkalasi ham aniq (GPS) bo'lsa — faqat radius. Birortasi taxminiy (noutbuk/Wi-Fi) bo'lsa —
+// radiusga ikkala aniqlikning yig'indisi qo'shiladi (bir tarmoqda 300 m, turli tarmoqda 120 m dan oshmaydi).
+function relation(idA, a, idB, b, radius) {
   if (!isFresh(a) || !isFresh(b)) return { near: false };
-  if (a.acc > MAX_ACCURACY_M || b.acc > MAX_ACCURACY_M) return { near: false, lowAccuracy: true };
+  if (a.acc > COARSE_MAX_ACC_M || b.acc > COARSE_MAX_ACC_M) return { near: false, lowAccuracy: true };
   const d = distanceM(a, b);
-  return { near: d <= radius, distance: d };
+  const sameNet = !!a.net && a.net === b.net;
+  const coarse = a.acc > PRECISE_ACC_M || b.acc > PRECISE_ACC_M;
+  let limit = radius;
+  if (coarse) limit += Math.min(a.acc + b.acc, sameNet ? TOL_CAP_SAME_NET_M : TOL_CAP_OTHER_NET_M);
+  const key = pairKey(idA, idB);
+  if (nearPairs.has(key)) limit *= LEAVE_K;
+  const near = d <= limit;
+  if (near) nearPairs.add(key); else nearPairs.delete(key);
+  return { near, distance: d, coarse, sameNet };
 }
 
 function sse(res, event, data) {
@@ -65,9 +105,10 @@ function emitTo(userId, event, data) {
   return p.streams.size > 0;
 }
 
-function addStream(userId, res) {
+function addStream(userId, res, net) {
   let p = presence.get(userId);
-  if (!p) { p = { lat: null, lng: null, acc: Infinity, ts: 0, streams: new Set(), lastUpdate: 0 }; presence.set(userId, p); }
+  if (!p) { p = { lat: null, lng: null, acc: Infinity, ts: 0, streams: new Set(), lastUpdate: 0, net: null }; presence.set(userId, p); }
+  if (net) p.net = net;
   p.streams.add(res);
 }
 
@@ -75,7 +116,7 @@ function removeStream(userId, res) {
   const p = presence.get(userId);
   if (!p) return;
   p.streams.delete(res);
-  if (!p.streams.size) { presence.delete(userId); broadcastNearby(); }
+  if (!p.streams.size) { presence.delete(userId); dropPairs(userId); broadcastNearby(); }
 }
 
 function updateLocation(userId, body) {
@@ -94,20 +135,25 @@ function updateLocation(userId, body) {
 // Berilgan foydalanuvchiga yaqin bo'lganlar (koordinatalarsiz — faqat profil ma'lumoti)
 async function nearbyFor(userId) {
   const me = presence.get(userId);
-  if (!isFresh(me)) return { users: [], myAccuracy: me && isFinite(me.acc) ? Math.round(me.acc) : null, weak: false };
+  const myAcc = me && isFinite(me.acc) ? Math.round(me.acc) : null;
+  if (!isFresh(me)) return { users: [], myAccuracy: myAcc, weak: false, mode: 'wait' };
   const radius = await getRadius();
-  const ids = [];
-  let weak = me.acc > MAX_ACCURACY_M;
+  const rels = new Map();
   for (const [id, p] of presence) {
     if (id === userId) continue;
-    const r = isNear(me, p, radius);
-    if (r.near) ids.push(id);
+    const r = relation(userId, me, id, p, radius);
+    if (r.near) rels.set(id, r);
   }
-  if (!ids.length) return { users: [], myAccuracy: Math.round(me.acc), weak };
+  const mode = accMode(me.acc), weak = mode === 'weak';
+  if (!rels.size) return { users: [], myAccuracy: myAcc, weak, mode };
+  const ids = [...rels.keys()];
   const rows = await db.prepare(
     `SELECT id, username, full_name, avatar_ver FROM users WHERE id IN (${ids.map(() => '?').join(',')}) AND is_blocked = 0`
   ).all(...ids);
-  return { users: rows.map(profileSvc.withAvatar), myAccuracy: Math.round(me.acc), weak };
+  return {
+    users: rows.map(u => ({ ...profileSvc.withAvatar(u), same_net: !!(rels.get(u.id) || {}).sameNet })),
+    myAccuracy: myAcc, weak, mode,
+  };
 }
 
 let broadcastTimer = null;
@@ -143,7 +189,7 @@ async function glow(fromUserId, toUserId, level) {
   if (now - (lastGlow.get(fromUserId) || 0) < 60) return false;      // juda tez-tez yuborilmasin
   lastGlow.set(fromUserId, now);
   const a = presence.get(fromUserId), b = presence.get(toUserId);
-  if (!a || !b || !isNear(a, b, await getRadius()).near) return false;
+  if (!a || !b || !relation(fromUserId, a, toUserId, b, await getRadius()).near) return false;
   emitTo(toUserId, 'glow', { from_id: fromUserId, level: Math.round(lv * 100) / 100 });
   return true;
 }
@@ -155,10 +201,10 @@ async function send(fromUser, toUserId, inventoryId) {
   }
   const radius = await getRadius();
   const a = presence.get(fromUser.id), b = presence.get(toUserId);
-  const rel = isNear(a, b, radius);
+  const rel = relation(fromUser.id, a, toUserId, b, radius);
   if (!rel.near) {
     throw new AirdropError(409, rel.lowAccuracy
-      ? "GPS aniqligi past — ochiq joyga chiqib qayta urinib ko'ring"
+      ? "Joylashuv aniqligi juda past (500 m dan yomon) — Wi-Fi'ga ulaning yoki ochiq joyga chiqib qayta urinib ko'ring"
       : "Foydalanuvchi yaqinda emas yoki AirDrop sahifasida emas");
   }
   const target = await db.prepare('SELECT id, username, is_blocked FROM users WHERE id = ?').get(toUserId);
@@ -258,7 +304,7 @@ function startScheduler() {
   setInterval(async () => {
     try {
       let changed = false;
-      for (const [, p] of presence) if (p.ts && !isFresh(p) && p.lat !== null) { p.lat = p.lng = null; p.acc = Infinity; p.ts = 0; changed = true; }
+      for (const [id, p] of presence) if (p.ts && !isFresh(p) && p.lat !== null) { p.lat = p.lng = null; p.acc = Infinity; p.ts = 0; dropPairs(id); changed = true; }
       if (changed) broadcastNearby();
       for (const [id, ts] of lastGlow) if (Date.now() - ts > 60000) lastGlow.delete(id);
       for (const [id, a] of armed) if (a.until < Date.now()) armed.delete(id);
@@ -268,6 +314,7 @@ function startScheduler() {
 }
 
 module.exports = {
-  AirdropError, getRadius, setRadius, addStream, removeStream, updateLocation,
+  AirdropError, netKey, limits: () => ({ precise: PRECISE_ACC_M, coarse_max: COARSE_MAX_ACC_M }),
+  getRadius, setRadius, addStream, removeStream, updateLocation,
   nearbyFor, broadcastNearby, glow, arm, send, accept, resolveSimple, startScheduler, sse,
 };
