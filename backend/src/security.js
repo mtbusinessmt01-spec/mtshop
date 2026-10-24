@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const db = require('./db');
 const push = require('./push');
 const { parseDevice } = require('./device');
+const biometric = require('./biometric');
 
 const PIN_MAX_ATTEMPTS = 5;                       // ketma-ket xato PIN
 const PIN_LOCK_MS = 15 * 60 * 1000;               // shundan keyin 15 daqiqa bloklanadi
@@ -194,6 +195,7 @@ async function setPin(userId, pin) {
 
 async function clearPin(userId) {
   await db.prepare('UPDATE users SET pin_hash = NULL, pin_failed = 0, pin_locked_until = NULL WHERE id = ?').run(userId);
+  await biometric.remove(userId);   // PIN yo'q — biometrik qulf ham keraksiz
 }
 
 // Middleware: foydalanuvchida PIN o'rnatilgan bo'lsa, "X-Tx-Pin" sarlavhasi to'g'ri bo'lishi shart.
@@ -214,6 +216,12 @@ async function requirePin(req, res, next) {
 
     const pin = String(req.headers['x-tx-pin'] || '');
     if (!pin) return res.status(403).json({ error: 'Tranzaksiya PIN kodi kerak', pin_required: true });
+
+    // Biometrik tasdiq ("bio:<bir martalik token>") — PIN o'rnida; PIN xato urinishlariga sanalmaydi
+    if (pin.startsWith('bio:')) {
+      if (biometric.consumeToken(req.user.id, pin.slice(4))) return next();
+      return res.status(403).json({ error: "Biometrik tasdiq muddati tugadi. Qayta urinib ko'ring yoki PIN kiriting", pin_required: true, bio_expired: true });
+    }
 
     if (!isValidPin(pin) || !bcrypt.compareSync(pin, u.pin_hash)) {
       const failed = (u.pin_failed || 0) + 1;
@@ -284,6 +292,7 @@ async function status(userId) {
   const frozen = isFrozenRow(u);
   return {
     has_pin: !!(u && u.pin_hash),
+    bio_count: await biometric.count(userId),
     pin_locked_until: lockedMs > 0 ? toIso(u.pin_locked_until) : null,
     frozen,
     frozen_until: frozen ? toIso(u.frozen_until) : null,

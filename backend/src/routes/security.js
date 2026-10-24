@@ -1,6 +1,7 @@
 const express = require('express');
 
 const security = require('../security');
+const biometric = require('../biometric');
 const { authMiddleware } = require('../auth');
 
 const router = express.Router();
@@ -39,6 +40,55 @@ router.post('/security/pin/remove', authMiddleware, async (req, res) => {
   if (!pw.ok) return passwordFailure(res, pw);
   await security.clearPin(req.user.id);
   res.json({ ok: true, has_pin: false });
+});
+
+// ---------- Biometrik qulf (Face ID / Touch ID / Windows Hello) ----------
+function bioFail(res, e) {
+  if (e instanceof biometric.BioError) return res.status(e.status).json({ error: e.message, ...e.extra });
+  console.error('Biometrik xato:', e);
+  res.status(500).json({ error: 'Server xatosi' });
+}
+async function needPin(req, res) {
+  const st = await security.status(req.user.id);
+  if (!st.has_pin) { res.status(400).json({ error: "Avval tranzaksiya PIN o'rnating" }); return false; }
+  return true;
+}
+
+router.get('/security/bio', authMiddleware, async (req, res) => {
+  res.json({ credentials: await biometric.publicList(req.user.id) });
+});
+
+// Yoqish: hisob PAROLI talab qilinadi (PIN o'rnatish bilan bir xil himoya)
+router.post('/security/bio/register/options', authMiddleware, async (req, res) => {
+  try {
+    if (!(await needPin(req, res))) return;
+    const pw = await security.checkPassword(req.user.id, (req.body || {}).password);
+    if (!pw.ok) return passwordFailure(res, pw);
+    res.json(await biometric.registerOptions(req.user.id, req));
+  } catch (e) { bioFail(res, e); }
+});
+router.post('/security/bio/register/finish', authMiddleware, async (req, res) => {
+  try { res.json(await biometric.registerFinish(req.user.id, req, req.body)); } catch (e) { bioFail(res, e); }
+});
+
+// PIN o'rnida ishlatish
+router.post('/security/bio/auth/options', authMiddleware, async (req, res) => {
+  try {
+    if (!(await needPin(req, res))) return;
+    res.json(await biometric.authOptions(req.user.id, req));
+  } catch (e) { bioFail(res, e); }
+});
+router.post('/security/bio/auth/verify', authMiddleware, async (req, res) => {
+  try { res.json(await biometric.authVerify(req.user.id, req, req.body)); } catch (e) { bioFail(res, e); }
+});
+
+router.post('/security/bio/remove', authMiddleware, async (req, res) => {
+  try {
+    const pw = await security.checkPassword(req.user.id, (req.body || {}).password);
+    if (!pw.ok) return passwordFailure(res, pw);
+    await biometric.remove(req.user.id, (req.body || {}).id);
+    res.json({ ok: true, bio_count: await biometric.count(req.user.id) });
+  } catch (e) { bioFail(res, e); }
 });
 
 // ---------- Hisobni muzlatish ----------
