@@ -353,6 +353,10 @@
         <input type="file" id="eventWallpaper" accept="image/*">
       </div>
 
+      <label>Lenta rangi</label>
+      <div class="msg" style="margin:0 0 6px;">🎀 Event davomida shu eventning gift/case kartalarida burchak lentasi shu rangda chiqadi (nomi 11 belgidan uzun bo'lsa lentada "Event gift" yoziladi).</div>
+      <input type="color" id="eventRibbonColor" value="#00b0f0" style="width:64px;height:38px;padding:2px;">
+
       <label>Event boshlanishi</label>
       <input type="datetime-local" id="eventStarts" class="send-input" required>
 
@@ -1627,7 +1631,7 @@
           ${e.banner_url ? `<img src="${e.banner_url}" style="width:96px;height:32px;object-fit:cover;">` : `<div class="noimg"></div>`}
           <div class="info" style="min-width:160px;">
             <div class="name">${e.name}</div>
-            <div class="meta">${eventStatusLabel(e)}</div>
+            <div class="meta">${eventStatusLabel(e)} <span style="display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:middle;background:${e.ribbon_color || '#00b0f0'}"></span></div>
             <div class="meta">${fmtEventDate(e.starts_at)} → ${fmtEventDate(e.ends_at)}</div>
             <div class="meta">🎁 ${e.gifts.length ? e.gifts.map(g => g.name).join(', ') : 'gift yo\'q'}</div>
             <div class="meta">📦 ${e.cases.length ? e.cases.map(c => c.name).join(', ') : 'case yo\'q'}</div>
@@ -1662,6 +1666,7 @@
       document.getElementById('eventName').value = e.name;
       document.getElementById('eventStarts').value = toLocalInput(e.starts_at);
       document.getElementById('eventEnds').value = toLocalInput(e.ends_at);
+      document.getElementById('eventRibbonColor').value = e.ribbon_color || '#00b0f0';
       document.getElementById('eventFormTitle').textContent = `"${e.name}" ni tahrirlash`;
       document.getElementById('eventSubmitBtn').textContent = 'Saqlash';
       document.getElementById('eventCancelEdit').style.display = 'inline-block';
@@ -1709,6 +1714,7 @@
       fd.append('name', document.getElementById('eventName').value);
       fd.append('starts_at', new Date(startsVal).toISOString());
       fd.append('ends_at', new Date(endsVal).toISOString());
+      fd.append('ribbon_color', document.getElementById('eventRibbonColor').value);
       const banner = document.getElementById('eventBanner').files[0];
       const wallpaper = document.getElementById('eventWallpaper').files[0];
       if (banner) fd.append('banner', banner);

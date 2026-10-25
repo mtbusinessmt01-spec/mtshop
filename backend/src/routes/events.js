@@ -4,6 +4,7 @@ const multer = require('multer');
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
 const { fileToDataUrl } = require('../imageUpload');
+const { parseRibbonColor } = require('../eventUtil');
 
 const router = express.Router();
 
@@ -36,6 +37,7 @@ function shapeEvent(e) {
     name: e.name,
     starts_at: e.starts_at,
     ends_at: e.ends_at,
+    ribbon_color: e.ribbon_color || '#00b0f0',
     created_at: e.created_at,
     banner_url: imgUrl(e.id, 'banner', e.version, e.has_banner),
     wallpaper_url: imgUrl(e.id, 'wallpaper', e.version, e.has_wallpaper),
@@ -51,7 +53,7 @@ function sendDataUrl(res, dataUrl) {
   res.send(Buffer.from(m[2], 'base64'));
 }
 
-const LIST_COLUMNS = `id, name, starts_at, ends_at, version, created_at,
+const LIST_COLUMNS = `id, name, starts_at, ends_at, ribbon_color, version, created_at,
   (banner_url IS NOT NULL) AS has_banner, (wallpaper_url IS NOT NULL) AS has_wallpaper`;
 
 function parseDates(startsRaw, endsRaw) {
@@ -112,8 +114,8 @@ router.post('/admin/events', authMiddleware, adminMiddleware, handleUpload, asyn
   const wallpaper = fileToDataUrl(req.files?.wallpaper?.[0]);
 
   const result = await db.prepare(
-    'INSERT INTO events (name, banner_url, wallpaper_url, starts_at, ends_at) VALUES (?, ?, ?, ?, ?)'
-  ).run(name, banner, wallpaper, d.starts_at, d.ends_at);
+    'INSERT INTO events (name, banner_url, wallpaper_url, starts_at, ends_at, ribbon_color) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(name, banner, wallpaper, d.starts_at, d.ends_at, parseRibbonColor(req.body.ribbon_color) || '#00b0f0');
 
   const e = await db.prepare(`SELECT ${LIST_COLUMNS} FROM events WHERE id = ?`).get(result.lastInsertRowid);
   res.json(shapeEvent(e));
@@ -133,13 +135,14 @@ router.put('/admin/events/:id', authMiddleware, adminMiddleware, handleUpload, a
   const imagesChanged = !!(newBanner || newWallpaper);
 
   await db.prepare(`
-    UPDATE events SET name = ?, banner_url = ?, wallpaper_url = ?, starts_at = ?, ends_at = ?, version = version + ?
+    UPDATE events SET name = ?, banner_url = ?, wallpaper_url = ?, starts_at = ?, ends_at = ?, ribbon_color = ?, version = version + ?
     WHERE id = ?
   `).run(
     name || existing.name,
     newBanner || existing.banner_url,
     newWallpaper || existing.wallpaper_url,
     d.starts_at, d.ends_at,
+    parseRibbonColor(req.body.ribbon_color) || existing.ribbon_color || '#00b0f0',
     imagesChanged ? 1 : 0,
     id
   );

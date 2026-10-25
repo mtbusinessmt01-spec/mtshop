@@ -154,8 +154,11 @@ function petShopInfo(t) {
 }
 
 router.get('/pets/types', authMiddleware, async (req, res) => {
-  const types = await db.prepare('SELECT * FROM pet_types WHERE stock IS NULL OR stock > 0 ORDER BY price ASC').all();
-  res.json(types.map(t => ({ ...t, ...petShopInfo(t) })));
+  // Soni tugagan petlar ham chiqadi (sold_out: true, "Qolmagan" lentasi bilan) — ro'yxat oxirida
+  const types = await db.prepare(
+    'SELECT * FROM pet_types ORDER BY CASE WHEN stock IS NOT NULL AND stock <= 0 THEN 1 ELSE 0 END, price ASC'
+  ).all();
+  res.json(types.map(t => ({ ...t, ...petShopInfo(t), sold_out: t.stock !== null && t.stock <= 0 })));
 });
 
 router.post('/pets/types/:id/buy', authMiddleware, async (req, res) => {

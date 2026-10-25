@@ -4,7 +4,7 @@ const { upload, fileToDataUrl } = require('../imageUpload');
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
 const { requirePin } = require('../security');
-const { isEventItemLocked, parseEventId } = require('../eventUtil');
+const { isEventItemLocked, parseEventId, eventRibbon } = require('../eventUtil');
 
 const router = express.Router();
 
@@ -134,16 +134,27 @@ router.delete('/admin/gift-variants/:variantId', authMiddleware, adminMiddleware
 
 // ---------- FOYDALANUVCHI: Shop, Inventory, Buy, Sell ----------
 
-// Shop: sotib olsa bo'ladigan giftlar (soni 0 bo'lmaganlar)
+// Shop: barcha giftlar. Soni tugaganlar ham chiqadi (sold_out: true, "Qolmagan" lentasi bilan) — ular ro'yxat oxirida.
 router.get('/gifts', authMiddleware, async (req, res) => {
+  const nowIso = new Date().toISOString();
   // Event'i hali boshlanmagan giftlar Shopda ko'rinmaydi
-  const gifts = await db.prepare(`
-    SELECT g.* FROM gifts g
+  const rows = await db.prepare(`
+    SELECT g.*, e.name AS event_name, e.ribbon_color AS event_ribbon_color,
+           e.starts_at AS event_starts_at, e.ends_at AS event_ends_at
+    FROM gifts g
     LEFT JOIN events e ON e.id = g.event_id
-    WHERE (g.quantity IS NULL OR g.quantity > 0)
-      AND (g.event_id IS NULL OR e.id IS NULL OR e.starts_at <= ?)
-    ORDER BY g.price ASC
-  `).all(new Date().toISOString());
+    WHERE (g.event_id IS NULL OR e.id IS NULL OR e.starts_at <= ?)
+    ORDER BY CASE WHEN g.quantity IS NOT NULL AND g.quantity <= 0 THEN 1 ELSE 0 END, g.price ASC
+  `).all(nowIso);
+  // Event davom etayotgan bo'lsagina lenta chiqadi; tugagach gift oddiy gift bo'lib qoladi
+  const gifts = rows.map(r => {
+    const { event_name, event_ribbon_color, event_starts_at, event_ends_at, ...g } = r;
+    return {
+      ...g,
+      sold_out: g.quantity !== null && g.quantity <= 0,
+      event_ribbon: eventRibbon(r, nowIso),
+    };
+  });
 
   // Har bir giftga uning turlarini biriktiramiz
   const variantsByGift = {};

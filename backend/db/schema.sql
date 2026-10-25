@@ -180,6 +180,7 @@ CREATE TABLE IF NOT EXISTS events (
   wallpaper_url TEXT,
   starts_at TEXT NOT NULL,
   ends_at TEXT NOT NULL,
+  ribbon_color TEXT NOT NULL DEFAULT '#00b0f0',
   version INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

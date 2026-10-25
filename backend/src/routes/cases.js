@@ -4,7 +4,7 @@ const { upload, fileToDataUrl } = require('../imageUpload');
 const db = require('../db');
 const push = require('../push');
 const { authMiddleware, adminMiddleware } = require('../auth');
-const { isEventItemLocked, parseEventId } = require('../eventUtil');
+const { isEventItemLocked, parseEventId, eventRibbon } = require('../eventUtil');
 
 const router = express.Router();
 
@@ -129,13 +129,20 @@ router.delete('/admin/cases/:id', authMiddleware, adminMiddleware, async (req, r
 
 router.get('/cases', authMiddleware, async (req, res) => {
   // Event'i hali boshlanmagan case'lar Shopda ko'rinmaydi
+  const nowIso = new Date().toISOString();
   const cases = await db.prepare(`
-    SELECT c.* FROM cases c
+    SELECT c.*, e.name AS event_name, e.ribbon_color AS event_ribbon_color,
+           e.starts_at AS event_starts_at, e.ends_at AS event_ends_at
+    FROM cases c
     LEFT JOIN events e ON e.id = c.event_id
     WHERE c.event_id IS NULL OR e.id IS NULL OR e.starts_at <= ?
     ORDER BY c.price ASC
-  `).all(new Date().toISOString());
-  res.json(await Promise.all(cases.map(c => getCaseWithItems(c.id))));
+  `).all(nowIso);
+  // Event davom etayotgan bo'lsagina lenta chiqadi
+  res.json(await Promise.all(cases.map(async c => ({
+    ...(await getCaseWithItems(c.id)),
+    event_ribbon: eventRibbon(c, nowIso),
+  }))));
 });
 
 router.post('/cases/:id/buy', authMiddleware, async (req, res) => {

@@ -173,6 +173,22 @@
   }
   .gift-name { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
   .gift-qty { color: var(--muted); font-size: 11px; margin-bottom: 10px; }
+  /* Burchak lentasi: "Qolmagan" (qizil) va "Event gift" / event nomi (admin tanlagan rang) */
+  .gift-card.has-ribbon { position: relative; overflow: hidden; }
+  .rb-wrap {
+    position: absolute; top: 0; left: 0; width: 104px; height: 104px;
+    overflow: hidden; pointer-events: none; z-index: 3; border-top-left-radius: 16px;
+  }
+  .rb {
+    position: absolute; top: 24px; left: -36px; width: 150px; padding: 6px 0;
+    text-align: center; transform: rotate(-45deg);
+    background: #ff0000; color: #fff;
+    font-size: 11px; font-weight: 700; line-height: 1.2; letter-spacing: .2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    box-shadow: 0 1px 4px rgba(0,0,0,.3);
+  }
+  .gift-card.sold-out > img, .gift-card.sold-out > .gift-img-fallback { filter: grayscale(.7) brightness(.6); }
+  .gift-card.sold-out .gift-price { opacity: .6; }
   .gift-price { color: var(--coin); font-weight: 700; font-size: 13px; margin-bottom: 10px; }
   .btn {
     width: 100%;
@@ -1551,6 +1567,24 @@ window.MTP = (function () {
         : `<div class="gift-img-fallback">🎁</div>`;
     }
 
+    // Kartadagi burchak lentasi. Qolmagan (qizil) event lentasidan ustun turadi.
+    // Event nomi uzun bo'lsa kartada "Event gift" yoziladi (to'liq nom oynada ko'rinadi).
+    function ribbonTextColor(hex) {
+      const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+      if (!m) return '#fff';
+      const n = parseInt(m[1], 16);
+      const lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+      return lum > 0.65 ? '#111' : '#fff';
+    }
+    function ribbonHTML(item) {
+      if (item.sold_out) return '<div class="rb-wrap"><span class="rb">Qolmagan</span></div>';
+      const ev = item.event_ribbon;
+      if (!ev) return '';
+      const color = /^#[0-9a-f]{6}$/i.test(ev.color || '') ? ev.color : '#00b0f0';
+      const label = [...String(ev.name || '')].length > 11 || !ev.name ? 'Event gift' : ev.name;
+      return `<div class="rb-wrap"><span class="rb" style="background:${color};color:${ribbonTextColor(color)}">${esc(label)}</span></div>`;
+    }
+
     async function renderTab(tab) {
       if (eventTicker) { clearInterval(eventTicker); eventTicker = null; }
       stopTradeRoom();
@@ -2725,10 +2759,11 @@ window.MTP = (function () {
       }
       petShopCache = types;
       el.innerHTML = types.map(t => `
-        <div class="gift-card">
+        <div class="gift-card has-ribbon${t.sold_out ? ' sold-out' : ''}">
+          ${ribbonHTML(t)}
           ${giftImg({ image_url: t.image_url, name: t.name })}
           <div class="gift-name">${t.name}</div>
-          <div class="gift-qty">${t.stock === null ? 'Cheksiz' : 'Qoldi: ' + t.stock}</div>
+          <div class="gift-qty">${t.stock === null ? 'Cheksiz' : (t.sold_out ? 'Tugagan' : 'Qoldi: ' + t.stock)}</div>
           <div class="gift-price"><img class="cn" src="icons/coin.png" alt="coin"> ${t.price}</div>
           <button class="btn" onclick="openPetPreview(${t.id})">Ko'rish</button>
         </div>
@@ -2750,7 +2785,7 @@ window.MTP = (function () {
           ${t.image_url ? `<img src="${t.image_url}" alt="${t.name}" style="width:96px;height:96px;border-radius:18px;object-fit:cover;">` : `<div class="gift-img-fallback">🐾</div>`}
         </div>
         <div class="modal-title" style="text-align:center;">${t.name}</div>
-        <div class="modal-sub" style="text-align:center;">${t.stock === null ? 'Cheksiz' : 'Shopda qoldi: ' + t.stock}</div>
+        <div class="modal-sub" style="text-align:center;">${t.stock === null ? 'Cheksiz' : (t.sold_out ? 'Tugagan' : 'Shopda qoldi: ' + t.stock)}</div>
 
         <div class="modal-sub" style="margin:4px 0 6px; font-weight:700;">Nima beradi</div>
         ${row('Daromad (LV 1)', `<img class="cn" src="icons/coin.png" alt="coin"> ${t.coin_per_3h} / 3 soat (≈ ${t.coin_per_day} / kun)`)}
@@ -2767,8 +2802,8 @@ window.MTP = (function () {
         ${row('Saytga sotish narxi', `<img class="cn" src="icons/coin.png" alt="coin"> ${t.sell_price_lv1} (LV 1). LV ${r.bonus_cap_level} dan keyin oshadi, eng ko'pi <img class="cn" src="icons/coin.png" alt="coin"> ${t.sell_price_max}`)}
         ${row('Limit', `Bir vaqtda ko'pi bilan ${r.max_pets} ta tirik pet`)}
 
-        <button class="btn" style="margin-top:16px" ${enough ? '' : 'disabled'} onclick="buyPet(${t.id})">Sotib olish — <img class="cn" src="icons/coin.png" alt="coin"> ${t.price}</button>
-        ${enough ? '' : `<div style="font-size:12px; color:var(--muted); margin-top:8px; text-align:center;">Balansingiz yetarli emas (sizda <img class="cn" src="icons/coin.png" alt="coin"> ${currentUser ? currentUser.coin_balance : 0})</div>`}
+        <button class="btn" style="margin-top:16px" ${enough && !t.sold_out ? '' : 'disabled'} onclick="buyPet(${t.id})">${t.sold_out ? 'Qolmagan' : `Sotib olish — <img class="cn" src="icons/coin.png" alt="coin"> ${t.price}`}</button>
+        ${enough || t.sold_out ? '' : `<div style="font-size:12px; color:var(--muted); margin-top:8px; text-align:center;">Balansingiz yetarli emas (sizda <img class="cn" src="icons/coin.png" alt="coin"> ${currentUser ? currentUser.coin_balance : 0})</div>`}
       `;
       openModal();
     }
@@ -4559,10 +4594,11 @@ window.MTP = (function () {
         return;
       }
       grid.innerHTML = gifts.map(g => `
-        <div class="gift-card">
+        <div class="gift-card has-ribbon${g.sold_out ? ' sold-out' : ''}">
+          ${ribbonHTML(g)}
           ${giftImg(g)}
           <div class="gift-name">${g.name}</div>
-          <div class="gift-qty">${g.quantity === null ? 'Cheksiz' : 'Qoldi: ' + g.quantity}${(g.variants && g.variants.length) ? ' &middot; ' + (g.variants.length + 1) + ' tur' : ''}</div>
+          <div class="gift-qty">${g.quantity === null ? 'Cheksiz' : (g.sold_out ? 'Tugagan' : 'Qoldi: ' + g.quantity)}${(g.variants && g.variants.length) ? ' &middot; ' + (g.variants.length + 1) + ' tur' : ''}</div>
           <div class="gift-price"><img class="cn" src="icons/coin.png" alt="coin"> ${g.price}</div>
           <button class="btn" onclick="openGiftInfoModal(${g.id})">Ko'rish</button>
         </div>
@@ -4598,9 +4634,13 @@ window.MTP = (function () {
         <div class="buy-pop">
           ${media}
           <div class="win-title">${cur.name}</div>
-          <div class="modal-sub"><img class="cn" src="icons/coin.png" alt="coin"> ${cur.price} &middot; ${g.quantity === null ? 'Cheksiz' : 'Qoldi: ' + g.quantity}</div>
+          ${g.event_ribbon && g.event_ribbon.name ? `<div class="modal-sub" style="font-weight:700;">🎉 ${esc(g.event_ribbon.name)}</div>` : ''}
+          <div class="modal-sub"><img class="cn" src="icons/coin.png" alt="coin"> ${cur.price} &middot; ${g.quantity === null ? 'Cheksiz' : (g.sold_out ? 'Tugagan' : 'Qoldi: ' + g.quantity)}</div>
         </div>
         ${chips}
+        ${g.sold_out ? `
+        <button class="btn" style="margin-top:14px" disabled>Qolmagan</button>
+        ` : `
         <div class="qty-row">
           <button class="qty-btn" onclick="changeGiftQty(-1, ${maxQty})">−</button>
           <div class="qty-value" id="giftQtyValue">1</div>
@@ -4608,6 +4648,7 @@ window.MTP = (function () {
         </div>
         <div class="modal-sub" style="text-align:center; margin-top:6px;" id="giftQtyTotal">Jami: <img class="cn" src="icons/coin.png" alt="coin"> ${cur.price}</div>
         <button class="btn" style="margin-top:14px" onclick="confirmBuyGift(${g.id})">Sotib olish</button>
+        `}
       `;
       window.__giftUnitPrice = cur.price;
       if (!document.getElementById('modalOverlay').classList.contains('open')) openModal();
@@ -4829,7 +4870,8 @@ window.MTP = (function () {
         return;
       }
       grid.innerHTML = list.map(c => `
-        <div class="gift-card">
+        <div class="gift-card has-ribbon">
+          ${ribbonHTML(c)}
           ${giftImg(c)}
           <div class="gift-name">${c.name}</div>
           <div class="gift-qty">${c.items.length} ta narsa</div>
@@ -4863,6 +4905,7 @@ window.MTP = (function () {
 
       document.getElementById('modalBody').innerHTML = `
         <div class="modal-title">${c.name}</div>
+        ${c.event_ribbon && c.event_ribbon.name ? `<div class="modal-sub" style="font-weight:700;">🎉 ${esc(c.event_ribbon.name)}</div>` : ''}
         <div class="modal-sub">Ichida chiqishi mumkin bo'lgan narsalar:</div>
         ${rows}
         <button class="btn" style="margin-top:14px" onclick="buyCase(${c.id}, true)">Sotib olish — <img class="cn" src="icons/coin.png" alt="coin"> ${c.price}</button>

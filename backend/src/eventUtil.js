@@ -19,4 +19,19 @@ async function parseEventId(raw) {
   return e ? id : undefined;
 }
 
-module.exports = { isEventItemLocked, parseEventId };
+// Faqat event DAVOM ETAYOTGAN paytda lenta qaytaradi (boshlanmagan yoki tugagan bo'lsa null).
+// `r` — gifts/cases qatori bo'lib, unga LEFT JOIN events dan event_name, event_ribbon_color,
+// event_starts_at, event_ends_at maydonlari qo'shilgan bo'lishi kerak.
+function eventRibbon(r, nowIso) {
+  if (!r || !r.event_id || !r.event_name) return null;
+  if (r.event_starts_at > nowIso || r.event_ends_at < nowIso) return null;
+  return { name: r.event_name, color: r.event_ribbon_color || '#00b0f0' };
+}
+
+// '#rrggbb' bo'lmasa — undefined (o'zgartirilmagan/xato)
+function parseRibbonColor(raw) {
+  if (raw === undefined || raw === null || raw === '') return undefined;
+  return /^#[0-9a-fA-F]{6}$/.test(String(raw)) ? String(raw).toLowerCase() : undefined;
+}
+
+module.exports = { isEventItemLocked, parseEventId, eventRibbon, parseRibbonColor };

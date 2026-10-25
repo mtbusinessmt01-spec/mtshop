@@ -157,6 +157,8 @@ async function initDb() {
   // Event'ga tegishli gift/case (NULL = oddiy, event'siz)
   await ensureColumn('gifts', 'event_id', 'INTEGER');
   await ensureColumn('cases', 'event_id', 'INTEGER');
+  // Event lentasi rangi (shopdagi gift/case kartalaridagi burchak lentasi)
+  await ensureColumn('events', 'ribbon_color', "TEXT NOT NULL DEFAULT '#00b0f0'");
   // Kredit uchun kafil
   await ensureColumn('user_credits', 'guarantor_id', 'INTEGER');
   // Trade tizimi: gift qaysi trade'da band ekani, oxirgi request vaqti (20 daqiqalik cooldown), tarix bog'lanishi
