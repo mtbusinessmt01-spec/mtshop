@@ -157,6 +157,8 @@ async function initDb() {
   // Event'ga tegishli gift/case (NULL = oddiy, event'siz)
   await ensureColumn('gifts', 'event_id', 'INTEGER');
   await ensureColumn('cases', 'event_id', 'INTEGER');
+  // Daily Case: bitta case "kunlik" deb belgilanadi (Shopda sotilmaydi, Inventor tepasida bepul ochiladi)
+  await ensureColumn('cases', 'is_daily', 'INTEGER NOT NULL DEFAULT 0');
   // Event lentasi rangi (shopdagi gift/case kartalaridagi burchak lentasi)
   await ensureColumn('events', 'ribbon_color', "TEXT NOT NULL DEFAULT '#00b0f0'");
   // Kredit uchun kafil

@@ -287,6 +287,12 @@
       <label>Narxi (coin)</label>
       <input type="number" id="casePrice" min="0" step="0.01" required>
 
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="caseIsDaily" style="width:auto;margin:0;">
+        <span>🎁 Daily case (har foydalanuvchi 24 soatda bir marta bepul ochadi)</span>
+      </label>
+      <div class="msg" style="margin-top:6px;">Belgilansa: case Shopda sotilmaydi, foydalanuvchi Inventori tepasida chiqadi, narxi 0 bo'ladi. Bir vaqtda faqat bitta daily case bo'ladi (yangisini belgilasangiz eskisi oddiy case'ga qaytadi). Itemlarda 0 coin ham, 0.2 / 0.3 / 0.5 kabi kasr coinlar ham bo'lishi mumkin.</div>
+
       <label>Event (ixtiyoriy)</label>
       <select id="caseEvent" class="send-input"><option value="">Event'siz (oddiy case)</option></select>
       <div class="msg" style="margin-top:6px;">Event tanlansa, case event boshlanguncha Shopda ko'rinmaydi. Event tugagach oddiy case'larga qo'shiladi.</div>
@@ -308,6 +314,8 @@
       <div class="msg" id="caseFormMsg"></div>
     </form>
   </div>
+
+  <div id="dailyStatsBox"></div>
 
   <div class="card">
     <h2>Mavjud case'lar</h2>
@@ -1195,6 +1203,23 @@
       const res = await fetch(`${API_BASE}/api/admin/cases`, { credentials: 'include' });
       cases = await res.json();
       renderCaseList();
+      loadDailyStats();
+    }
+
+    async function loadDailyStats() {
+      const el = document.getElementById('dailyStatsBox');
+      if (!el) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/daily-case/stats`, { credentials: 'include' });
+        const d = await res.json();
+        if (!res.ok || !d.case) { el.innerHTML = ''; return; }
+        el.innerHTML = `
+          <div class="card">
+            <h2>🎁 Daily case statistikasi — ${d.case.name}</h2>
+            <div class="meta">Oxirgi 24 soat: <b>${d.last_24h.opens}</b> marta ochildi, jami <b>${d.last_24h.coins}</b> coin berildi</div>
+            <div class="meta">Hammasi: <b>${d.total.opens}</b> marta &middot; <b>${d.total.users}</b> ta foydalanuvchi &middot; <b>${d.total.coins}</b> coin &middot; <b>${d.total.gifts}</b> ta gift &middot; <b>${d.total.empty}</b> marta bo'sh (0 coin)</div>
+          </div>`;
+      } catch (e) { el.innerHTML = ''; }
     }
 
     function renderCaseList() {
@@ -1204,8 +1229,8 @@
         <div class="gift-item">
           ${c.image_url ? `<img src="${c.image_url}">` : `<div class="noimg"></div>`}
           <div class="info">
-            <div class="name">${c.name}${eventBadge(c.event_id)}</div>
-            <div class="meta">${c.price} coin &middot; ${c.items.length} ta narsa</div>
+            <div class="name">${c.name}${c.is_daily ? ' <span style="font-size:11px;background:#ff9800;color:#111;border-radius:6px;padding:1px 6px;font-weight:700;">DAILY</span>' : ''}${eventBadge(c.event_id)}</div>
+            <div class="meta">${c.is_daily ? 'Kunlik bepul' : c.price + ' coin'} &middot; ${c.items.length} ta narsa</div>
           </div>
           <button class="btn-secondary" onclick="editCase(${c.id})">Tahrirlash</button>
           <button class="btn-danger" onclick="deleteCase(${c.id})">O'chirish</button>
@@ -1218,6 +1243,7 @@
       document.getElementById('caseEditId').value = c.id;
       document.getElementById('caseName').value = c.name;
       document.getElementById('casePrice').value = c.price;
+      document.getElementById('caseIsDaily').checked = !!c.is_daily;
       document.getElementById('caseEvent').value = c.event_id ? String(c.event_id) : '';
       document.getElementById('caseFormTitle').textContent = `"${c.name}" ni tahrirlash`;
       document.getElementById('caseSubmitBtn').textContent = 'Saqlash';
@@ -1240,6 +1266,9 @@
     }
 
     document.getElementById('caseCancelEdit').addEventListener('click', resetCaseForm);
+    document.getElementById('caseIsDaily').addEventListener('change', (ev) => {
+      if (ev.target.checked) document.getElementById('casePrice').value = '0';
+    });
 
     async function deleteCase(id) {
       if (!confirm("Rostdan o'chirilsinmi?")) return;
@@ -1263,6 +1292,7 @@
       const fd = new FormData();
       fd.append('name', document.getElementById('caseName').value);
       fd.append('price', document.getElementById('casePrice').value);
+      fd.append('is_daily', document.getElementById('caseIsDaily').checked ? '1' : '0');
       fd.append('items', JSON.stringify(items));
       fd.append('event_id', document.getElementById('caseEvent').value);
       const imageFile = document.getElementById('caseImage').files[0];
