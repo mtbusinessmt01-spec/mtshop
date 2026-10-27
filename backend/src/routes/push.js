@@ -87,7 +87,7 @@ router.post('/admin/push/send', authMiddleware, adminMiddleware, upload.single('
     imageUrl = `${proto}://${req.get('host')}/api/push/image/${r.lastInsertRowid}`;
   }
 
-  const payload = { title, body, url, image: imageUrl, tag: 'admin-message' };
+  const payload = { title, body, url, image: imageUrl, tag: 'admin-message', category: 'news' };
   let result;
 
   if (target === 'all') {

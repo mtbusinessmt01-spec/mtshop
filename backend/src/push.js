@@ -3,6 +3,7 @@ const db = require('./db');
 
 const HOUR_MS = 60 * 60 * 1000;
 const R = require('./petRules');
+const N = require('./notifications');
 
 // Muddatlar petRules.js dan olinadi (bitta joyda o'zgartiriladi)
 const PET_HUNGRY_HOURS = R.HUNGRY_AFTER_MS / HOUR_MS;      // 8  — och bo'ldi
@@ -109,19 +110,35 @@ async function sendToSubscriptions(subs, payload) {
   return { sent, failed, removed };
 }
 
+// Har bir bildirishnoma: 1) markazga (inbox) yoziladi, 2) foydalanuvchi shu kategoriyani o'chirmagan va
+// tinch rejimda bo'lmasa — push yuboriladi. payload.category: pet | gifts | credit | news | security
 async function sendToUsers(userIds, payload) {
   const ids = [...new Set(userIds.map(Number).filter(Boolean))];
-  if (!ids.length) return { sent: 0, failed: 0, removed: 0, users: 0 };
+  if (!ids.length) return { sent: 0, failed: 0, removed: 0, users: 0, muted: 0 };
+  const category = N.normCategory(payload.category);
+  const p = { ...payload, category };
+
+  try { await N.addInbox(ids, p); } catch (e) { console.error('Inbox xatosi:', e.message); }
+
   const marks = ids.map(() => '?').join(',');
-  const subs = await db.prepare(`SELECT * FROM push_subscriptions WHERE user_id IN (${marks})`).all(...ids);
-  const result = await sendToSubscriptions(subs, payload);
-  return { ...result, users: new Set(subs.map(s => s.user_id)).size };
+  const all = await db.prepare(`${N.SUBS_WITH_PREFS_SQL} WHERE ps.user_id IN (${marks})`).all(category, ...ids);
+  const subs = N.filterSubs(all, category);
+  const result = await sendToSubscriptions(subs, p);
+  const users = new Set(subs.map(s => s.user_id)).size;
+  return { ...result, users, muted: new Set(all.map(s => s.user_id)).size - users };
 }
 
 async function sendToAll(payload) {
-  const subs = await db.prepare('SELECT * FROM push_subscriptions').all();
-  const result = await sendToSubscriptions(subs, payload);
-  return { ...result, users: new Set(subs.map(s => s.user_id)).size };
+  const category = N.normCategory(payload.category);
+  const p = { ...payload, category };
+
+  try { await N.addInboxForAll(p); } catch (e) { console.error('Inbox xatosi:', e.message); }
+
+  const all = await db.prepare(N.SUBS_WITH_PREFS_SQL).all(category);
+  const subs = N.filterSubs(all, category);
+  const result = await sendToSubscriptions(subs, p);
+  const users = new Set(subs.map(s => s.user_id)).size;
+  return { ...result, users, muted: new Set(all.map(s => s.user_id)).size - users };
 }
 
 // Hodisalar (transfer, case ochilishi va h.k.) uchun: xato bo'lsa ham asosiy jarayonni to'xtatmaydi
@@ -151,9 +168,9 @@ async function runScheduledChecks() {
   if (!ready || running) return;
   running = true;
   try {
-    const subRows = await db.prepare('SELECT DISTINCT user_id FROM push_subscriptions').all();
-    const subscribed = new Set(subRows.map(r => r.user_id));
-    if (!subscribed.size) return;
+    try { await N.prune(); } catch (e) { console.error('Bildirishnomalarni tozalashda xato:', e.message); }
+    // Eslatmalar hamma bloklanmagan foydalanuvchi uchun markazga yoziladi; push esa faqat obunasi bor
+    // va shu kategoriyani o'chirmagan foydalanuvchilarga ketadi (sendToUsers hal qiladi).
     const now = Date.now();
 
     // 1) Pet'lar: och (8s) -> kasal bo'lishiga 4s -> kasal (24s) -> o'lishiga 12s -> o'ldi (72s, 7 kun tiriltirish mumkin)
@@ -161,16 +178,15 @@ async function runScheduledChecks() {
     const pets = await db.prepare(`
       SELECT up.id, up.user_id, up.name, up.last_fed_at, pt.name AS type_name, pt.price AS type_price
       FROM user_pets up JOIN pet_types pt ON pt.id = up.pet_type_id
-      WHERE up.status != 'dead'
+      WHERE up.status != 'dead' AND up.user_id NOT IN (SELECT id FROM users WHERE is_blocked = 1)
     `).all();
 
     for (const p of pets) {
-      if (!subscribed.has(p.user_id)) continue;
       const hours = (now - parseDate(p.last_fed_at)) / HOUR_MS;
       if (!(hours >= PET_HUNGRY_HOURS)) continue;
       if (hours >= PET_DEATH_HOURS + PET_REVIVE_HOURS) continue;   // tiriltirish muddati ham o'tgan
       const petName = p.name || p.type_name;
-      const base = { url: '/index.html#mypet', tag: `pet-${p.id}` };
+      const base = { url: '/index.html#mypet', tag: `pet-${p.id}`, category: 'pet', replace: true };
 
       let kind, payload;
       if (hours >= PET_DEATH_HOURS) {
@@ -214,11 +230,10 @@ async function runScheduledChecks() {
     const credits = await db.prepare(`
       SELECT uc.id, uc.user_id, uc.next_payment_at, uc.weekly_payment, uc.remaining_amount, ct.name AS type_name
       FROM user_credits uc JOIN credit_types ct ON ct.id = uc.credit_type_id
-      WHERE uc.status = 'active'
+      WHERE uc.status = 'active' AND uc.user_id NOT IN (SELECT id FROM users WHERE is_blocked = 1)
     `).all();
 
     for (const c of credits) {
-      if (!subscribed.has(c.user_id)) continue;
       const due = parseDate(c.next_payment_at);
       if (Number.isNaN(due)) continue;
       const diff = due - now;
@@ -231,6 +246,8 @@ async function runScheduledChecks() {
             body: `"${c.type_name}" bo'yicha ${amount} coin to'lov muddati o'tdi. Jarima yozilishi mumkin — tezroq to'lang.`,
             url: '/index.html#kreditlar',
             tag: `credit-${c.id}`,
+            category: 'credit',
+            replace: true,
           });
         }
       } else if (diff <= CREDIT_WARN_MS) {
@@ -241,6 +258,8 @@ async function runScheduledChecks() {
             body: `"${c.type_name}" bo'yicha ${amount} coin to'lovga taxminan ${hoursLeft} soat qoldi.`,
             url: '/index.html#kreditlar',
             tag: `credit-${c.id}`,
+            category: 'credit',
+            replace: true,
           });
         }
       }

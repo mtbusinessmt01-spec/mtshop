@@ -22,7 +22,13 @@ self.addEventListener('push', (event) => {
     data: { url: data.url || '/index.html' },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(Promise.all([
+    self.registration.showNotification(title, options),
+    // Ilova ochiq bo'lsa, qo'ng'iroqcha belgisi darrov yangilansin
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      list.forEach((c) => c.postMessage({ type: 'mt-push' }));
+    }),
+  ]));
 });
 
 self.addEventListener('notificationclick', (event) => {

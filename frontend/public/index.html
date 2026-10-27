@@ -1217,6 +1217,30 @@
     .modal-overlay.page.split #modalBody { max-width: 760px; }
     .more-sheet { bottom: calc(100px + env(safe-area-inset-bottom)); }
   }
+  /* ===== Bildirishnomalar markazi ===== */
+  .hdr-right { display: flex; align-items: center; gap: 10px; }
+  .bell-btn { position: relative; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--surface); color: inherit; display: grid; place-items: center; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform .15s ease, filter .15s ease; }
+  .bell-btn:active { transform: scale(.92); filter: brightness(1.12); }
+  .bell-btn svg { width: 20px; height: 20px; }
+  .bell-badge { position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; background: #e25563; color: #fff; font-size: 11px; font-weight: 800; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px var(--bg, #0e0f14); display: none; }
+  .bell-badge.show { display: block; }
+  html[data-theme="light"] .bell-btn { background: var(--surface); }
+  .nc-bar { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 2px 4px; }
+  .nc-link { border: 0; background: none; color: var(--accent-2); font: inherit; font-size: 13px; font-weight: 700; padding: 6px 0; cursor: pointer; }
+  .nc-item { display: flex; align-items: flex-start; gap: 12px; background: var(--surface); border-radius: 16px; padding: 12px 8px 12px 12px; margin-bottom: 8px; opacity: .72; }
+  .nc-item.unread { opacity: 1; box-shadow: inset 3px 0 0 var(--accent); }
+  .nc-ico { font-size: 22px; line-height: 1; flex: none; width: 28px; text-align: center; padding-top: 2px; }
+  .nc-main { flex: 1; min-width: 0; cursor: pointer; }
+  .nc-t { font-weight: 700; font-size: 14px; word-break: break-word; }
+  .nc-b { color: var(--muted); font-size: 13px; margin-top: 2px; word-break: break-word; }
+  .nc-time { color: var(--muted); font-size: 11px; margin-top: 4px; }
+  .nc-x { flex: none; border: 0; background: none; color: var(--muted); font-size: 15px; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; }
+  .nc-x:active { background: var(--w60); }
+  .pz-switch input:disabled + i { opacity: .55; }
+  .np-times { display: flex; align-items: center; gap: 10px; width: 100%; }
+  .np-times label { display: flex; align-items: center; gap: 8px; flex: 1; font-size: 13px; color: var(--muted); }
+  .np-time { flex: 1; min-width: 0; padding: 9px 10px; border-radius: 12px; border: 1px solid var(--w60); background: var(--card); color: inherit; font: inherit; font-size: 15px; }
+  .np-saved { text-align: center; font-size: 12px; color: var(--muted); min-height: 16px; margin-top: 8px; }
 </style>
 <script>
 // MTshop Personalizm: sozlamalar qurilmada saqlanadi, sahifa chizilishidan oldin qo'llanadi
@@ -1294,7 +1318,10 @@ window.MTP = (function () {
   <div id="app">
     <header>
       <div class="brand"><img src="logo.jpg" alt="MTshop" class="logo-icon"> <span>MTshop</span></div>
-      <button class="coin-badge" id="coinBadge" type="button" aria-label="Coin balansi" onclick="openCoinSheet()"><span id="coinBalance">0</span><img class="coin-ico" src="icons/coin.png" alt="" width="30" height="30"></button>
+      <div class="hdr-right">
+        <button class="bell-btn" id="bellBtn" type="button" aria-label="Bildirishnomalar" onclick="openNotificationCenter()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="bell-badge" id="bellBadge"></span></button>
+        <button class="coin-badge" id="coinBadge" type="button" aria-label="Coin balansi" onclick="openCoinSheet()"><span id="coinBalance">0</span><img class="coin-ico" src="icons/coin.png" alt="" width="30" height="30"></button>
+      </div>
     </header>
 
     <main id="main">
@@ -1562,6 +1589,7 @@ window.MTP = (function () {
         nextNotice();
         setInterval(pollGuarantorRequests, 30000);
         startTradePolling();
+        startNotificationBell();
       } catch (e) {
         window.location.href = 'login.html';
       }
@@ -3608,17 +3636,240 @@ window.MTP = (function () {
       }
     }
 
-    // ---------- Notification ----------
-    function openNotificationsPage() {
+    // ---------- Notification (sozlamalar) ----------
+    function openNotificationsPage(back) {
+      const backFn = (typeof back === 'function') ? back : openSettingsPage;
       document.getElementById('modalBody').innerHTML = `
         <div class="st-card" style="padding:16px;">
           <div class="modal-sub" id="pushStatusText" style="margin-bottom:12px;">Tekshirilmoqda...</div>
           <button class="btn" id="pushToggleBtn" onclick="togglePush()" disabled>...</button>
         </div>
         <div class="send-hint" style="text-align:center;">Bildirishnomalar har qurilmada alohida yoqiladi.</div>
+        <button class="btn secondary" type="button" style="margin-top:12px;" onclick="openNotificationCenter(openNotificationsPage)">🔔 Bildirishnomalar markazi</button>
+        <div class="st-section">Nimalar haqida xabar olish</div>
+        <div class="pz-list" id="npCats"><div class="empty-msg" style="padding:14px 0;">Yuklanmoqda...</div></div>
+        <div class="st-section">Tinch rejim</div>
+        <div class="pz-list" id="npQuiet"></div>
+        <div class="np-saved" id="npSaved"></div>
+        <div class="send-hint" style="text-align:center;">O'chirilgan turdagi xabarlar telefonga kelmaydi, lekin bildirishnomalar markazida saqlanadi. Xavfsizlik ogohlantirishlari doim keladi.</div>
       `;
-      openPage('Notification', openSettingsPage);
+      openPage('Notification', backFn);
       initPushUI();
+      npLoad();
+    }
+
+    let npSaveTimer = null;
+    async function npLoad() {
+      const catBox = document.getElementById('npCats');
+      const qBox = document.getElementById('npQuiet');
+      if (!catBox || !qBox) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/notifications/prefs`, { credentials: 'include' });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error || 'Xatolik');
+        catBox.innerHTML = d.categories.map(c => `
+          <div class="pz-row"><span class="pz-l">${esc(c.label)}</span>
+            <label class="pz-switch"><input type="checkbox" data-cat="${esc(c.key)}" ${c.push ? 'checked' : ''} ${c.locked ? 'disabled' : ''}><i></i></label>
+            <div class="pz-sub">${esc(c.desc)}</div></div>`).join('');
+        qBox.innerHTML = `
+          <div class="pz-row"><span class="pz-l">Tinch rejim</span>
+            <label class="pz-switch"><input type="checkbox" id="npQuietOn" ${d.quiet.enabled ? 'checked' : ''}><i></i></label>
+            <div class="pz-sub">Shu vaqtda telefonga xabar kelmaydi (markazda saqlanadi). Xavfsizlik bundan mustasno.</div>
+            <div class="np-times" id="npTimes" style="${d.quiet.enabled ? '' : 'display:none;'}">
+              <label>Dan <input type="time" class="np-time" id="npFrom" value="${esc(d.quiet.start)}"></label>
+              <label>Gacha <input type="time" class="np-time" id="npTo" value="${esc(d.quiet.end)}"></label>
+            </div></div>`;
+        catBox.querySelectorAll('input[data-cat]').forEach(i => i.addEventListener('change', npSaveSoon));
+        document.getElementById('npQuietOn').addEventListener('change', (e) => {
+          document.getElementById('npTimes').style.display = e.target.checked ? '' : 'none';
+          npSaveSoon();
+        });
+        document.getElementById('npFrom').addEventListener('change', npSaveSoon);
+        document.getElementById('npTo').addEventListener('change', npSaveSoon);
+      } catch (e) {
+        catBox.innerHTML = `<div class="empty-msg" style="padding:14px 0;">${esc(e.message || 'Yuklanmadi')}</div>`;
+      }
+    }
+
+    function npSaveSoon() {
+      clearTimeout(npSaveTimer);
+      const saved = document.getElementById('npSaved');
+      if (saved) saved.textContent = 'Saqlanmoqda...';
+      npSaveTimer = setTimeout(npSave, 400);
+    }
+
+    async function npSave() {
+      const saved = document.getElementById('npSaved');
+      const on = document.getElementById('npQuietOn');
+      if (!on) return;
+      const prefs = {};
+      document.querySelectorAll('#npCats input[data-cat]:not(:disabled)').forEach(i => { prefs[i.dataset.cat] = i.checked; });
+      const body = {
+        prefs,
+        quiet: { enabled: on.checked, start: document.getElementById('npFrom').value || '23:00', end: document.getElementById('npTo').value || '07:00' },
+        tz_offset: -new Date().getTimezoneOffset(),
+      };
+      try {
+        const res = await fetch(`${API_BASE}/api/notifications/prefs`, {
+          method: 'PUT', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) { if (saved) saved.textContent = ''; showToast(d.error || 'Saqlanmadi'); return; }
+        if (saved) saved.textContent = 'Saqlandi ✓';
+      } catch (e) {
+        if (saved) saved.textContent = '';
+        showToast('Tarmoq xatosi');
+      }
+    }
+
+    // ---------- Bildirishnomalar markazi (qo'ng'iroqcha) ----------
+    const NC_ICONS = { pet: '🐾', gifts: '🎁', credit: '💳', news: '📣', security: '🔐' };
+    let ncItems = [];
+    let ncMore = false;
+
+    function setBellBadge(n) {
+      const el = document.getElementById('bellBadge');
+      if (!el) return;
+      el.textContent = n > 99 ? '99+' : String(n);
+      el.classList.toggle('show', n > 0);
+    }
+
+    async function refreshUnread() {
+      if (document.hidden || !currentUser) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/notifications/unread-count`, { credentials: 'include' });
+        if (res.ok) setBellBadge((await res.json()).unread || 0);
+      } catch (e) { /* tarmoq xatosi — keyingi safar */ }
+    }
+
+    function startNotificationBell() {
+      refreshUnread();
+      setInterval(refreshUnread, 45000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshUnread(); });
+      // Ilova ochiq paytda push kelsa, belgi darrov yangilanadi (sw.js xabar yuboradi)
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.type === 'mt-push') refreshUnread(); });
+      }
+    }
+
+    function ncDayLabel(iso) {
+      const d = new Date(iso), now = new Date();
+      const day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+      const diff = Math.round((day(now) - day(d)) / 86400000);
+      return diff <= 0 ? 'Bugun' : diff === 1 ? 'Kecha' : 'Oldinroq';
+    }
+
+    function ncTime(iso) {
+      const d = new Date(iso), p = (n) => String(n).padStart(2, '0');
+      return d.toDateString() === new Date().toDateString() ? `${p(d.getHours())}:${p(d.getMinutes())}` : secDateTime(iso);
+    }
+
+    function openNotificationCenter(back) {
+      document.getElementById('modalBody').innerHTML = `
+        <div class="nc-bar">
+          <button class="nc-link" id="ncReadAll" type="button">Hammasini o'qilgan qil</button>
+          <button class="nc-link" id="ncClear" type="button">Tozalash</button>
+          <button class="nc-link" id="ncSettings" type="button">⚙️ Sozlash</button>
+        </div>
+        <div id="ncList"><div class="empty-msg">Yuklanmoqda...</div></div>
+      `;
+      openPage('Bildirishnomalar', (typeof back === 'function') ? back : null);
+      document.getElementById('ncReadAll').onclick = ncReadAll;
+      document.getElementById('ncClear').onclick = ncClear;
+      document.getElementById('ncSettings').onclick = () => openNotificationsPage(openNotificationCenter);
+      ncItems = []; ncMore = false;
+      ncLoad();
+    }
+
+    async function ncLoad() {
+      const box = document.getElementById('ncList');
+      try {
+        const before = ncItems.length ? `&before=${ncItems[ncItems.length - 1].id}` : '';
+        const res = await fetch(`${API_BASE}/api/notifications?limit=40${before}`, { credentials: 'include' });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error || 'Xatolik');
+        ncItems = ncItems.concat(d.items);
+        ncMore = d.items.length >= 40;
+        setBellBadge(d.unread || 0);
+        ncRender();
+      } catch (e) {
+        if (box) box.innerHTML = `<div class="empty-msg">${esc(e.message || 'Yuklanmadi')}</div>`;
+      }
+    }
+
+    function ncRender() {
+      const box = document.getElementById('ncList');
+      if (!box) return;
+      if (!ncItems.length) { box.innerHTML = '<div class="empty-msg">Hozircha bildirishnoma yo\'q</div>'; return; }
+      let last = '', html = '';
+      ncItems.forEach(n => {
+        const label = ncDayLabel(n.created_at);
+        if (label !== last) { html += `<div class="st-section">${label}</div>`; last = label; }
+        // Sarlavha emoji bilan boshlansa, o'sha emoji belgi bo'ladi (ikki marta chiqmasligi uchun sarlavhadan olinadi)
+        const em = String(n.title).match(/^(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s*([\s\S]*)$/u);
+        const icon = em ? em[1] : (NC_ICONS[n.category] || '🔔');
+        const titleText = em && em[2] ? em[2] : n.title;
+        html += `<div class="nc-item${n.is_read ? '' : ' unread'}" data-id="${n.id}">
+          <div class="nc-ico">${icon}</div>
+          <div class="nc-main"><div class="nc-t">${esc(titleText)}</div><div class="nc-b">${esc(n.body)}</div><div class="nc-time">${esc(ncTime(n.created_at))}</div></div>
+          <button class="nc-x" type="button" aria-label="O'chirish">✕</button></div>`;
+      });
+      if (ncMore) html += '<button class="btn secondary" type="button" id="ncMoreBtn" style="margin-top:6px;">Yana yuklash</button>';
+      box.innerHTML = html;
+      box.onclick = (e) => {
+        if (e.target.closest('#ncMoreBtn')) { ncLoad(); return; }
+        const item = e.target.closest('.nc-item');
+        if (!item) return;
+        const id = Number(item.dataset.id);
+        if (e.target.closest('.nc-x')) ncDelete(id); else ncOpen(id);
+      };
+    }
+
+    async function ncOpen(id) {
+      const n = ncItems.find(x => x.id === id);
+      if (!n) return;
+      if (!n.is_read) {
+        n.is_read = true;
+        ncRender();
+        fetch(`${API_BASE}/api/notifications/read`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [id] }),
+        }).then(r => r.json()).then(d => setBellBadge(d.unread || 0)).catch(() => {});
+      }
+      const hash = String(n.url || '').split('#')[1] || '';
+      const tabs = ['shops', 'inventor', 'jonatmoq', 'mypet', 'kreditlar', 'trade'];
+      if (tabs.includes(hash)) { closeModal(); renderTab(hash); }
+      else if (hash === 'profils') { openProfilePage(); }
+      else { closeModal(); }
+    }
+
+    async function ncDelete(id) {
+      ncItems = ncItems.filter(x => x.id !== id);
+      ncRender();
+      try {
+        const res = await fetch(`${API_BASE}/api/notifications/${id}`, { method: 'DELETE', credentials: 'include' });
+        const d = await res.json();
+        setBellBadge(d.unread || 0);
+      } catch (e) { /* keyingi yuklashda tiklanadi */ }
+    }
+
+    async function ncReadAll() {
+      ncItems.forEach(n => { n.is_read = true; });
+      ncRender(); setBellBadge(0);
+      try {
+        await fetch(`${API_BASE}/api/notifications/read`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ all: true }),
+        });
+      } catch (e) {}
+    }
+
+    async function ncClear() {
+      if (!ncItems.length || !confirm("Hamma bildirishnomalar o'chirilsinmi?")) return;
+      ncItems = []; ncMore = false;
+      ncRender(); setBellBadge(0);
+      try { await fetch(`${API_BASE}/api/notifications`, { method: 'DELETE', credentials: 'include' }); } catch (e) {}
     }
 
     // ---------- Promocodelarim: kod kiritish + ishlatilganlar tarixi (7 kun) ----------

@@ -264,6 +264,7 @@ router.post('/inventory/cases/:inventoryId/open', authMiddleware, async (req, re
           body: `Case'dan "${gift.name}" chiqdi! Inventoringizni tekshiring.`,
           url: '/index.html',
           tag: 'rare-gift',
+          category: 'gifts',
         });
       }, 4000);
     }
@@ -365,17 +366,7 @@ router.post('/daily-case/open', authMiddleware, async (req, res) => {
   } else {
     const gift = await db.prepare('SELECT * FROM gifts WHERE id = ?').get(won.gift_id);
     wonDisplay = { item_type: 'gift', gift_id: won.gift_id, name: gift?.name, image_url: gift?.image_url, rarity: gift?.rarity || 'common' };
-    if (gift && (gift.rarity === 'rare' || gift.rarity === 'legendary')) {
-      const legendary = gift.rarity === 'legendary';
-      setTimeout(() => {
-        push.notifyUser(req.user.id, {
-          title: legendary ? '🌟 AFSONAVIY gift yutdingiz!' : '💎 Noyob gift yutdingiz!',
-          body: `Kunlik case'dan "${gift.name}" chiqdi! Inventoringizni tekshiring.`,
-          url: '/index.html',
-          tag: 'rare-gift',
-        });
-      }, 4000);
-    }
+    // Daily Case bildirishnoma yubormaydi (egasining qarori)
   }
 
   res.json({

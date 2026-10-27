@@ -83,6 +83,7 @@ async function notify(tx, after, userId, tradeId, type, text, opts) {
     body: text,
     url: '/index.html#trade',
     tag: `trade-${tradeId}-${type}`,
+    category: 'gifts',
   }));
 }
 

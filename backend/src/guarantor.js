@@ -86,6 +86,7 @@ async function createOverdue(credit, dueIso, weekAmount) {
     body: `@${borrower?.username || 'qarzdor'} kredit to'lovini kechiktirdi. 2 sutka ichida unga to'lash haqida xabar bering, aks holda hisobingizdan ${penalty} coin (to'lovning 50%) yechiladi.`,
     url: '/index.html#kreditlar',
     tag: `guarantor-overdue-${r.lastInsertRowid}`,
+    category: 'credit',
   });
 }
 
@@ -144,6 +145,7 @@ async function resolveOverdue(o) {
     body: `@${borrower?.username || 'qarzdor'} 2 sutkada to'lamadi. Hisobingizdan ${charged} coin (shu hafta to'lovining 50%) yechildi.`,
     url: '/index.html#kreditlar',
     tag: `guarantor-charged-${o.id}`,
+    category: 'credit',
   });
 }
 

@@ -14,6 +14,7 @@ function notifyTransfer(fromUsername, toUserId, isAnonymous, itemText) {
     body: `${who} sizga ${itemText} yubordi.`,
     url: '/index.html',
     tag: 'transfer',
+    category: 'gifts',
   });
 }
 

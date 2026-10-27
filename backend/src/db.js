@@ -11,7 +11,10 @@ if (!url) {
   process.exit(1);
 }
 
-const client = createClient({ url, authToken });
+// Mahalliy fayl bazasida (file:) qulf band bo'lsa darhol "database is locked" bermasdan 5 soniyagacha kutadi.
+// (Aks holda band paytdagi SELECT xato bilan to'xtab, o'qish qulfini qo'yib yubormay qolishi mumkin.)
+// Turso (libsql://) uchun bu sozlama ta'sir qilmaydi.
+const client = createClient({ url, authToken, ...(String(url).startsWith('file:') ? { timeout: 5000 } : {}) });
 
 // Qatorni {ustun: qiymat} formatiga o'giradi (libsql Row proxy o'rniga oddiy JS obyekt)
 function toObj(columns, row) {

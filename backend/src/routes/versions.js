@@ -118,6 +118,7 @@ router.put('/admin/versions/:id', authMiddleware, adminMiddleware, async (req, r
       body: "Profils bo'limidan yuklab oling.",
       url: '/index.html#profils',
       tag: `version-${row.version}`,
+      category: 'news',
     }).catch(e => console.error('Versiya push xatosi:', e.message));
   }
   res.json({ ok: true });

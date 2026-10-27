@@ -127,6 +127,7 @@ async function recordLogin(userId, req) {
       body: `${d.label}${d.ip ? ' (IP: ' + d.ip + ')' : ''}. Bu siz bo'lmasangiz, Profils > Xavfsizlik bo'limida boshqa qurilmalardan chiqing.`,
       url: '/index.html',
       tag: 'security-login',
+      category: 'security',
     });
   }
   return { suspicious: !!suspicious };
@@ -147,6 +148,7 @@ async function recordFailedLogin(userId, req) {
       body: `So'nggi 15 daqiqada ${row.c} marta noto'g'ri parol kiritildi (${d.label}${d.ip ? ', IP: ' + d.ip : ''}).`,
       url: '/index.html',
       tag: 'security-failed-login',
+      category: 'security',
     });
   }
   return row.c;
@@ -231,7 +233,7 @@ async function requirePin(req, res, next) {
         push.notifyUser(req.user.id, {
           title: '⚠️ PIN ko\'p marta xato kiritildi',
           body: "Hisobingizda PIN 5 marta noto'g'ri kiritildi, 15 daqiqaga bloklandi. Bu siz bo'lmasangiz, boshqa qurilmalardan chiqing.",
-          url: '/index.html', tag: 'security-pin-locked',
+          url: '/index.html', tag: 'security-pin-locked', category: 'security',
         });
         return res.status(429).json({
           error: "PIN ko'p marta xato kiritildi. 15 daqiqadan keyin urinib ko'ring",

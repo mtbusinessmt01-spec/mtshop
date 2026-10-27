@@ -111,6 +111,7 @@ router.post('/credits/take', authMiddleware, async (req, res) => {
     body: `@${req.user.username} sizni ${type.name} krediti (${amt} coin) uchun kafil qilmoqchi. Saytga kirib javob bering.`,
     url: '/index.html#kreditlar',
     tag: 'guarantor-request',
+    category: 'credit',
   });
 
   res.json({ ok: true, pending: true, guarantor_username: guarantor.username });
@@ -170,6 +171,7 @@ router.post('/credits/requests/:id/respond', authMiddleware, async (req, res) =>
         body: `@${req.user.username} kreditingiz uchun kafil bo'lishdan bosh tortdi.`,
         url: '/index.html#kreditlar',
         tag: 'guarantor-response',
+        category: 'credit',
       });
     }
     return res.json({ ok: true, status: 'rejected' });
@@ -200,6 +202,7 @@ router.post('/credits/requests/:id/respond', authMiddleware, async (req, res) =>
     body: `@${req.user.username} kafil bo'ldi. ${reqRow.amount} coin hisobingizga tushdi!`,
     url: '/index.html#kreditlar',
     tag: 'guarantor-response',
+        category: 'credit',
   });
 
   res.json({ ok: true, status: 'approved' });
@@ -331,6 +334,7 @@ router.post('/credits/guarantor/overdues/:id/remind', authMiddleware, async (req
     body: `@${req.user.username} sizga kredit to'lovini to'lashni eslatdi (${o.week_payment} coin). To'lamasangiz, kafilingiz jarimaga tortiladi.`,
     url: '/index.html#kreditlar',
     tag: `guarantor-remind-${o.id}`,
+    category: 'credit',
   });
 
   res.json({ ok: true });
