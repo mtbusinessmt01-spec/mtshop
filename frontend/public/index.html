@@ -227,49 +227,40 @@
     background: var(--surface-2);
   }
   .empty-msg { color: var(--muted); text-align: center; padding: 40px 0; }
-  /* ===== Bildirishnoma: tepadan keladigan "orol" (kichik -> o'rta -> keng) ===== */
-  #diWrap { position: fixed; left: 0; right: 0; top: calc(10px + env(safe-area-inset-top)); z-index: 1300; display: flex; justify-content: center; pointer-events: none; }
-  .di {
-    --di-w: 92px; --di-h: 30px; --di-r: 999px;
-    --di-t: calc(520ms * var(--anim-k));
-    --di-spring: cubic-bezier(.34,1.42,.5,1);
-    position: relative; box-sizing: border-box; overflow: hidden;
-    width: var(--di-w); height: var(--di-h); border-radius: var(--di-r);
-    background: #000; color: #fff;
-    border: 1px solid rgba(255,255,255,0.09);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
-    opacity: 0; transform: translateY(-38px) scale(.45);
-    transition:
-      width var(--di-t) var(--di-spring),
-      height var(--di-t) var(--di-spring),
-      border-radius var(--di-t) var(--di-spring),
-      transform var(--di-t) var(--di-spring),
-      opacity calc(260ms * var(--anim-k)) ease;
-    will-change: width, height, transform;
+  /* ===== Bildirishnoma: tepadan tushadi, avval kichik, keyin kattalashadi ===== */
+  .toast {
+    position: fixed;
+    top: calc(18px + env(safe-area-inset-top)); left: 50%;
+    transform: translateX(-50%);
+    background: var(--g-b);
+    backdrop-filter: blur(calc(20px * var(--blur-k)));
+    -webkit-backdrop-filter: blur(calc(20px * var(--blur-k)));
+    border: 1px solid var(--w80);
+    color: var(--text);
+    padding: 12px 20px;
+    border-radius: 999px;
+    font-size: 13px;
+    max-width: calc(100% - 32px);
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    z-index: 200;
+    box-sizing: border-box; overflow: hidden; width: max-content;
+    display: flex; align-items: center; justify-content: center;
+    animation: toastDrop calc(320ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) both;
+    transition: width calc(460ms * var(--anim-k)) cubic-bezier(.22,1,.36,1),
+                height calc(460ms * var(--anim-k)) cubic-bezier(.22,1,.36,1),
+                border-radius calc(460ms * var(--anim-k)) cubic-bezier(.22,1,.36,1),
+                padding calc(460ms * var(--anim-k)) cubic-bezier(.22,1,.36,1);
   }
-  .di[data-s="1"], .di[data-s="2"], .di[data-s="3"] { opacity: 1; transform: none; }
-  .di[data-s="1"] { --di-w: 92px;  --di-h: 30px; --di-r: 999px; }
-  .di[data-s="2"] { --di-w: 172px; --di-h: 42px; --di-r: 999px; }
-  .di[data-s="0"] { --di-w: 60px;  --di-h: 24px; --di-r: 999px; }
-  .di-in { position: absolute; inset: 0; display: flex; align-items: center; gap: 10px; padding: 0 14px; }
-  .di-ic { flex: none; width: 22px; height: 22px; display: grid; place-items: center; font-size: 17px; line-height: 1; color: var(--accent-2, #a29bfe);
-    opacity: 0; transform: scale(.3); transition: opacity calc(240ms * var(--anim-k)) ease, transform calc(420ms * var(--anim-k)) cubic-bezier(.34,1.56,.64,1); }
-  .di-ic svg { width: 19px; height: 19px; }
-  .di[data-s="2"] .di-ic, .di[data-s="3"] .di-ic { opacity: 1; transform: none; }
-  .di-tx { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; line-height: 1.3; text-align: left; word-break: break-word;
-    opacity: 0; filter: blur(7px); transform: translateY(3px);
-    transition: opacity calc(300ms * var(--anim-k)) ease, filter calc(360ms * var(--anim-k)) ease, transform calc(360ms * var(--anim-k)) ease; }
-  .di[data-s="3"] .di-tx { opacity: 1; filter: none; transform: none; transition-delay: calc(110ms * var(--anim-k)); }
-  .di.swap .di-tx { opacity: 0; filter: blur(7px); transition-delay: 0ms; }
-  .di-bars { position: absolute; right: 16px; top: 50%; height: 14px; margin-top: -7px; display: flex; align-items: center; gap: 3px; opacity: 0; transition: opacity calc(200ms * var(--anim-k)) ease; }
-  .di[data-s="2"] .di-bars { opacity: 1; }
-  .di-bars i { display: block; width: 3px; height: 5px; border-radius: 2px; background: var(--accent-2, #a29bfe); animation: diBar calc(640ms * var(--anim-k)) ease-in-out infinite alternate; }
-  .di-bars i:nth-child(2) { animation-delay: calc(120ms * var(--anim-k)); }
-  .di-bars i:nth-child(3) { animation-delay: calc(240ms * var(--anim-k)); }
-  .di-bars i:nth-child(4) { animation-delay: calc(60ms * var(--anim-k)); }
-  @keyframes diBar { from { height: 4px; } to { height: 14px; } }
-  .di-measure { position: fixed; left: -9999px; top: 0; visibility: hidden; width: max-content; font-size: 13px; font-weight: 600; line-height: 1.3; word-break: break-word; }
-  @media (prefers-reduced-motion: reduce) { .di, .di * { transition-duration: 1ms !important; animation: none !important; } }
+  .toast .t-tx { flex: 0 1 auto; min-width: 0; opacity: 1; transition: opacity calc(300ms * var(--anim-k)) ease; }
+  .toast.small { padding: 0; }
+  .toast.small .t-tx { opacity: 0; }
+  @keyframes toastDrop {
+    from { transform: translate(-50%, -34px) scale(.6); opacity: 0; }
+    to { transform: translate(-50%, 0) scale(1); opacity: 1; }
+  }
+  .toast.out { animation: toastOut calc(300ms * var(--anim-k)) ease forwards; }
+  @keyframes toastOut { to { transform: translate(-50%, -14px); opacity: 0; } }
 
   /* ---- Gift Trade ---- */
   .tr-card { background: var(--glass-bg, var(--w75)); border: 1px solid var(--glass-border, var(--w130)); border-radius: 18px; padding: 14px; margin-bottom: 14px; backdrop-filter: blur(calc(18px * var(--blur-k))); -webkit-backdrop-filter: blur(calc(18px * var(--blur-k))); box-shadow: var(--glass-shadow, none); }
@@ -1620,106 +1611,32 @@ window.MTP = (function () {
       if (sb) sb.textContent = currentUser.coin_balance;
     }
 
-    // ---------- Bildirishnoma: tepadan keladigan "orol" ----------
-    // 1) kichik pill tushadi -> 2) o'rta pill (ikonka) -> 3) keng, matn bilan. Keyin teskari yig'ilib tepaga ketadi.
-    // Yangi xabar kelsa, orol yopilmasdan ichida yangilanadi (hajmi silliq o'zgaradi).
-    const DI = { wrap: null, el: null, ic: null, tx: null, state: 'idle', timers: [], cur: null };
-    function diK() {
-      const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--anim-k'));
-      return isNaN(v) ? 1 : v;
-    }
-    function diLater(fn, ms) { const id = setTimeout(fn, ms); DI.timers.push(id); return id; }
-    function diClear() { DI.timers.forEach(clearTimeout); DI.timers = []; }
-    function diEnsure() {
-      if (DI.wrap && document.body.contains(DI.wrap)) return;
-      const w = document.createElement('div');
-      w.id = 'diWrap';
-      w.setAttribute('role', 'status');
-      w.setAttribute('aria-live', 'polite');
-      w.innerHTML = '<div class="di" data-s="0"><div class="di-in"><span class="di-ic"></span><span class="di-tx"></span><span class="di-bars"><i></i><i></i><i></i><i></i></span></div></div>';
-      document.body.appendChild(w);
-      DI.wrap = w; DI.el = w.firstChild;
-      DI.ic = DI.el.querySelector('.di-ic'); DI.tx = DI.el.querySelector('.di-tx');
-    }
-    const DI_BELL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
-    function diParse(msg) {
-      let text = String(msg == null ? '' : msg).trim();
-      let icon = '';
-      try {
-        const lead = text.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*/u);
-        const tail = text.match(/\s*(\p{Extended_Pictographic}\uFE0F?)$/u);
-        if (lead) { icon = lead[1]; text = text.slice(lead[0].length); }
-        else if (tail) { icon = tail[1]; text = text.slice(0, text.length - tail[0].length); }
-      } catch (e) {}
-      if (!icon && /xato|saqlanmadi|noto'g'ri|noto‘g‘ri|kiriting|yetarli emas|mumkin emas/i.test(text)) icon = '⚠️';
-      return { text: text || String(msg), icon };
-    }
-    function diFill() {
-      DI.ic.innerHTML = DI.cur.icon ? DI.cur.icon : DI_BELL;
-      DI.tx.textContent = DI.cur.text;
-    }
-    // Keng holat o'lchamini matnga qarab hisoblaydi
-    function diMeasure() {
-      const maxW = Math.min(400, window.innerWidth - 24);
-      const padX = 14 * 2, gap = 10, icW = 22;
-      const m = document.createElement('div');
-      m.className = 'di-measure';
-      m.style.maxWidth = (maxW - padX - gap - icW) + 'px';
-      m.textContent = DI.cur.text;
-      DI.wrap.appendChild(m);
-      const tw = Math.ceil(m.offsetWidth), th = Math.ceil(m.offsetHeight);
-      m.remove();
-      const w = Math.max(190, Math.min(maxW, tw + padX + gap + icW + 10));
-      const h = Math.max(46, th + 26);
-      DI.el.style.setProperty('--di-w', w + 'px');
-      DI.el.style.setProperty('--di-h', h + 'px');
-      DI.el.style.setProperty('--di-r', (h <= 52 ? 999 : 24) + 'px');
-    }
-    function diHold() { const n = DI.cur.text.length; return Math.min(5200, 2100 + n * 38); }
-    function diOpen() {          // 3-bosqich: keng
-      diMeasure();
-      DI.el.classList.remove('swap');
-      DI.el.dataset.s = '3';
-      DI.state = 'open';
-      diLater(diClose, diHold());
-    }
-    function diClose() {         // keng -> o'rta -> kichik -> tepaga ketadi
-      const k = diK();
-      DI.state = 'out';
-      DI.el.style.removeProperty('--di-w'); DI.el.style.removeProperty('--di-h'); DI.el.style.removeProperty('--di-r');
-      DI.el.dataset.s = '2';
-      diLater(() => { DI.el.dataset.s = '1'; }, 260 * k);
-      diLater(() => { DI.el.dataset.s = '0'; }, 520 * k);
-      diLater(() => { DI.state = 'idle'; DI.tx.textContent = ''; }, 900 * k + 20);
-    }
+    // Bildirishnoma: tepadan kichik bo'lib tushadi, keyin to'liq kattalikka ochiladi
     function showToast(msg) {
-      diEnsure();
-      const k = diK();
-      DI.cur = diParse(msg);
-      diClear();
-      if (DI.state === 'open') {   // allaqachon ochiq: ichida almashtiramiz
-        DI.el.classList.add('swap');
-        diLater(() => { diFill(); diOpen(); }, 170 * k);
-        return;
+      const kv = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--anim-k'));
+      const k = isNaN(kv) ? 1 : kv;
+      const t = document.createElement('div');
+      t.className = 'toast';
+      const tx = document.createElement('span');
+      tx.className = 't-tx';
+      tx.textContent = msg;
+      t.appendChild(tx);
+      document.body.appendChild(t);
+      if (k > 0) {
+        const w = t.offsetWidth, h = t.offsetHeight;       // to'liq o'lcham
+        if (h <= 46) tx.style.whiteSpace = 'nowrap';         // bir qatorli matn hech qachon sinmasin
+        tx.style.width = (tx.offsetWidth + 2) + 'px';                   // matn qayta o'ralib sakramasin
+        t.classList.add('small');
+        t.style.width = '84px'; t.style.height = '34px';
+        void t.offsetWidth;
+        setTimeout(() => {
+          t.classList.remove('small');
+          t.style.width = w + 'px'; t.style.height = h + 'px';
+          t.style.borderRadius = (h <= 46 ? 999 : 22) + 'px';
+        }, 340 * k);
       }
-      diFill();
-      if (DI.state === 'in') {     // kirish davom etyapti: oxirigacha davom ettiramiz
-        diLater(() => { DI.state = 'in'; diOpen(); }, 380 * k);
-        return;
-      }
-      if (DI.state === 'out') {    // yopilayotgan edi: o'rta holatdan qayta ochamiz
-        DI.state = 'in';
-        DI.el.dataset.s = '2';
-        diLater(diOpen, 320 * k);
-        return;
-      }
-      // idle: boshidan
-      DI.state = 'in';
-      DI.el.dataset.s = '0';
-      void DI.el.offsetWidth;
-      DI.el.dataset.s = '1';
-      diLater(() => { DI.el.dataset.s = '2'; }, 380 * k);
-      diLater(diOpen, 800 * k);
+      setTimeout(() => t.classList.add('out'), 2000);
+      setTimeout(() => t.remove(), 2300);
     }
 
     function giftImg(g) {
