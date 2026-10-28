@@ -227,40 +227,43 @@
     background: var(--surface-2);
   }
   .empty-msg { color: var(--muted); text-align: center; padding: 40px 0; }
-  /* ===== Bildirishnoma: tepadan tushadi, avval kichik, keyin kattalashadi ===== */
+  /* ===== Bildirishnoma: telefon notificationi kabi, tepadan tushib kattalashadi ===== */
   .toast {
     position: fixed;
-    top: calc(18px + env(safe-area-inset-top)); left: 50%;
-    transform: translateX(-50%);
+    top: calc(8px + env(safe-area-inset-top)); left: 0; right: 0; margin: 0 auto;
+    width: min(calc(100% - 16px), 440px);
+    box-sizing: border-box;
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 14px;
     background: var(--g-b);
-    backdrop-filter: blur(calc(20px * var(--blur-k)));
-    -webkit-backdrop-filter: blur(calc(20px * var(--blur-k)));
+    backdrop-filter: blur(calc(24px * var(--blur-k)));
+    -webkit-backdrop-filter: blur(calc(24px * var(--blur-k)));
     border: 1px solid var(--w80);
+    border-radius: 26px;
     color: var(--text);
-    padding: 12px 20px;
-    border-radius: 999px;
-    font-size: 13px;
-    max-width: calc(100% - 32px);
-    text-align: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    box-shadow: 0 12px 34px rgba(0,0,0,0.30);
     z-index: 200;
-    box-sizing: border-box; overflow: hidden; width: max-content;
-    display: flex; align-items: center; justify-content: center;
-    animation: toastDrop calc(320ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) both;
-    transition: width calc(460ms * var(--anim-k)) cubic-bezier(.22,1,.36,1),
-                height calc(460ms * var(--anim-k)) cubic-bezier(.22,1,.36,1),
-                border-radius calc(460ms * var(--anim-k)) cubic-bezier(.22,1,.36,1),
-                padding calc(460ms * var(--anim-k)) cubic-bezier(.22,1,.36,1);
+    text-align: left;
+    cursor: pointer;
+    touch-action: pan-x;
+    transform-origin: 50% 0;
+    animation: toastDrop calc(620ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) both;
   }
-  .toast .t-tx { flex: 0 1 auto; min-width: 0; opacity: 1; transition: opacity calc(300ms * var(--anim-k)) ease; }
-  .toast.small { padding: 0; }
-  .toast.small .t-tx { opacity: 0; }
+  .toast .t-ic { flex: none; width: 38px; height: 38px; border-radius: 10px; object-fit: cover; }
+  .toast .t-body { flex: 1; min-width: 0; }
+  .toast .t-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .toast .t-title { font-size: 14px; font-weight: 700; }
+  .toast .t-time { font-size: 12px; opacity: .55; flex: none; }
+  .toast .t-tx { margin-top: 2px; font-size: 13.5px; line-height: 1.35; opacity: .92; word-break: break-word;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  /* tepadan (ekrandan tashqaridan) tushadi va tushgani sari kattalashadi */
   @keyframes toastDrop {
-    from { transform: translate(-50%, -34px) scale(.6); opacity: 0; }
-    to { transform: translate(-50%, 0) scale(1); opacity: 1; }
+    0%   { transform: translateY(-150%) scale(.55); }
+    60%  { transform: translateY(5px) scale(1.015); }
+    100% { transform: none; }
   }
-  .toast.out { animation: toastOut calc(300ms * var(--anim-k)) ease forwards; }
-  @keyframes toastOut { to { transform: translate(-50%, -14px); opacity: 0; } }
+  .toast.out { animation: toastOut calc(320ms * var(--anim-k)) ease-in forwards; pointer-events: none; }
+  @keyframes toastOut { to { transform: translateY(-140%) scale(.9); opacity: 0; } }
 
   /* ---- Gift Trade ---- */
   .tr-card { background: var(--glass-bg, var(--w75)); border: 1px solid var(--glass-border, var(--w130)); border-radius: 18px; padding: 14px; margin-bottom: 14px; backdrop-filter: blur(calc(18px * var(--blur-k))); -webkit-backdrop-filter: blur(calc(18px * var(--blur-k))); box-shadow: var(--glass-shadow, none); }
@@ -1611,32 +1614,39 @@ window.MTP = (function () {
       if (sb) sb.textContent = currentUser.coin_balance;
     }
 
-    // Bildirishnoma: tepadan kichik bo'lib tushadi, keyin to'liq kattalikka ochiladi
+    // Bildirishnoma: ekran tepasidan tushadi (telefon notificationi kabi). Bosilsa yoki tepaga surilsa yopiladi.
     function showToast(msg) {
-      const kv = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--anim-k'));
-      const k = isNaN(kv) ? 1 : kv;
+      document.querySelectorAll('.toast:not(.out)').forEach(o => o._close && o._close());
       const t = document.createElement('div');
       t.className = 'toast';
-      const tx = document.createElement('span');
-      tx.className = 't-tx';
-      tx.textContent = msg;
-      t.appendChild(tx);
+      t.setAttribute('role', 'status');
+      t.innerHTML = '<img class="t-ic" src="/apple-touch-icon.png" alt=""><div class="t-body"><div class="t-row"><b class="t-title">MTshop</b><span class="t-time">hozir</span></div><div class="t-tx"></div></div>';
+      const text = String(msg == null ? '' : msg);
+      t.querySelector('.t-tx').textContent = text;
       document.body.appendChild(t);
-      if (k > 0) {
-        const w = t.offsetWidth, h = t.offsetHeight;       // to'liq o'lcham
-        if (h <= 46) tx.style.whiteSpace = 'nowrap';         // bir qatorli matn hech qachon sinmasin
-        tx.style.width = (tx.offsetWidth + 2) + 'px';                   // matn qayta o'ralib sakramasin
-        t.classList.add('small');
-        t.style.width = '84px'; t.style.height = '34px';
-        void t.offsetWidth;
-        setTimeout(() => {
-          t.classList.remove('small');
-          t.style.width = w + 'px'; t.style.height = h + 'px';
-          t.style.borderRadius = (h <= 46 ? 999 : 22) + 'px';
-        }, 340 * k);
-      }
-      setTimeout(() => t.classList.add('out'), 2000);
-      setTimeout(() => t.remove(), 2300);
+      let gone = false, timer = null;
+      const close = () => {
+        if (gone) return; gone = true; clearTimeout(timer);
+        t.style.transition = ''; t.style.transform = ''; t.style.animation = '';
+        t.classList.add('out');
+        setTimeout(() => t.remove(), 340);
+      };
+      t._close = close;
+      timer = setTimeout(close, Math.min(4200, 2200 + text.length * 20));
+      t.addEventListener('click', close);
+      let y0 = null, dy = 0;
+      t.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; dy = 0; clearTimeout(timer); }, { passive: true });
+      t.addEventListener('touchmove', e => {
+        if (y0 == null) return;
+        dy = Math.min(0, e.touches[0].clientY - y0);
+        t.style.animation = 'none'; t.style.transform = 'translateY(' + dy + 'px)';
+      }, { passive: true });
+      t.addEventListener('touchend', () => {
+        if (y0 == null) return; y0 = null;
+        if (dy < -28) { close(); return; }
+        t.style.transition = 'transform .2s ease'; t.style.transform = '';
+        timer = setTimeout(close, 1800);
+      });
     }
 
     function giftImg(g) {
