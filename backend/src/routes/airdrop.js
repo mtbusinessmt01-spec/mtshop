@@ -1,6 +1,7 @@
 const express = require('express');
 const { authMiddleware, adminMiddleware } = require('../auth');
 const { requirePin, requireNotFrozen } = require('../security');
+const { requireNoCreditLock } = require('../creditRules');   // kredit coini qulflangan vaqtda gift yuborish mumkin emas
 const airdrop = require('../airdrop');
 
 const router = express.Router();
@@ -47,7 +48,7 @@ router.post('/airdrop/glow', authMiddleware, async (req, res) => {
 });
 
 // Giftni tanlash paytida PIN so'raladi (PIN o'rnatilgan bo'lsa) — keyin swipe'da qayta so'ralmaydi
-router.post('/airdrop/arm', authMiddleware, requireNotFrozen, requirePin, async (req, res) => {
+router.post('/airdrop/arm', authMiddleware, requireNotFrozen, requireNoCreditLock, requirePin, async (req, res) => {
   try {
     const { inventory_id } = req.body || {};
     if (!inventory_id) return res.status(400).json({ error: 'Gift tanlanishi kerak' });
@@ -55,7 +56,7 @@ router.post('/airdrop/arm', authMiddleware, requireNotFrozen, requirePin, async 
   } catch (e) { fail(res, e); }
 });
 
-router.post('/airdrop/send', authMiddleware, requireNotFrozen, async (req, res) => {
+router.post('/airdrop/send', authMiddleware, requireNotFrozen, requireNoCreditLock, async (req, res) => {
   try {
     const { to_user_id, inventory_id } = req.body || {};
     if (!to_user_id || !inventory_id) return res.status(400).json({ error: 'Foydalanuvchi va gift tanlanishi kerak' });

@@ -166,6 +166,17 @@ async function initDb() {
   await ensureColumn('events', 'ribbon_color', "TEXT NOT NULL DEFAULT '#00b0f0'");
   // Kredit uchun kafil
   await ensureColumn('user_credits', 'guarantor_id', 'INTEGER');
+  // Kredit qoidalari (015): bosqichli tasdiqlash, garov, kredit coinini qulflash, sovutish davri
+  await ensureColumn('credit_requests', 'stage', "TEXT NOT NULL DEFAULT 'guarantor'");   // guarantor -> admin -> borrower
+  await ensureColumn('credit_requests', 'stage_expires_at', 'TEXT');
+  await ensureColumn('credit_requests', 'collateral_user_gift_id', 'INTEGER');
+  await ensureColumn('credit_requests', 'interest_percent', 'REAL');
+  await ensureColumn('user_credits', 'collateral_user_gift_id', 'INTEGER');
+  await ensureColumn('user_credits', 'collateral_status', 'TEXT');                        // locked | released | forfeited
+  await ensureColumn('user_credits', 'closed_at', 'TEXT');
+  await ensureColumn('user_credits', 'last_fine_at', 'TEXT');
+  await ensureColumn('users', 'credit_lock_until', 'TEXT');
+  await client.execute('CREATE INDEX IF NOT EXISTS idx_credit_requests_stage ON credit_requests(status, stage)');
   // Trade tizimi: gift qaysi trade'da band ekani, oxirgi request vaqti (20 daqiqalik cooldown), tarix bog'lanishi
   await ensureColumn('user_gifts', 'trade_id', 'INTEGER');
   await ensureColumn('users', 'last_trade_request_at', 'TEXT');

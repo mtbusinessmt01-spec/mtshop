@@ -46,13 +46,18 @@ async function applyOverdueFines(userId) {
 
     if (changed) {
       const newStatus = fineCount >= MAX_FINES ? 'defaulted' : 'active';
+      const nowStamp = new Date().toISOString();
       await db.prepare(`
-        UPDATE user_credits SET remaining_amount = ?, fine_count = ?, next_payment_at = ?, status = ?
+        UPDATE user_credits SET remaining_amount = ?, fine_count = ?, next_payment_at = ?, status = ?,
+          last_fine_at = ?, closed_at = CASE WHEN ? = 'defaulted' THEN ? ELSE closed_at END
         WHERE id = ?
-      `).run(remaining, fineCount, new Date(next).toISOString(), newStatus, credit.id);
+      `).run(remaining, fineCount, new Date(next).toISOString(), newStatus, nowStamp, newStatus, nowStamp, credit.id);
 
       if (fineCount >= MAX_FINES) {
         await db.prepare('UPDATE users SET is_blocked = 1 WHERE id = ?').run(userId);
+        // To'lanmagan kredit: garovdagi gift saytga o'tadi
+        try { await require('./creditRules').forfeitCollateral(credit); }
+        catch (e) { console.error('Garovni olishda xato:', e.message); }
       }
 
       if (credit.guarantor_id) {
@@ -164,6 +169,9 @@ async function runGuarantorChecks() {
     `).all(new Date().toISOString());
     for (const r of overdueUsers) await applyOverdueFines(r.user_id);
 
+    // 1b) Qabul qilish vaqti o'tgan kredit so'rovlarini bekor qilamiz (garov bo'shatiladi)
+    await require('./creditRules').sweepExpired();
+
     // 2) Kutilayotgan kechikishlarni hal qilamiz
     const waiting = await db.prepare("SELECT * FROM guarantor_overdues WHERE status = 'waiting'").all();
     for (const o of waiting) await resolveOverdue(o);
@@ -188,4 +196,5 @@ function startScheduler() {
 
 module.exports = {
   applyOverdueFines, runGuarantorChecks, maybeRunChecks, startScheduler, REMIND_COOLDOWN_MS,
+  FINE_RATE, MAX_FINES, GUARANTOR_PENALTY_RATE,
 };

@@ -389,6 +389,19 @@
 
   <div class="admin-section" data-section="credits" style="display:none">
   <div class="card">
+    <h2>🛡️ Admin tasdig'ini kutayotgan kreditlar</h2>
+    <div class="gift-list" id="creditApprovalList">Yuklanmoqda...</div>
+  </div>
+
+  <div class="card">
+    <h2>⚙️ Kredit olish qoidalari</h2>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Kredit olishni qiyinlashtiruvchi shartlar. O'zgarishlar darrov kuchga kiradi.</div>
+    <div id="creditRulesForm">Yuklanmoqda...</div>
+    <div class="row"><button type="button" class="btn-primary" id="creditRulesSave">Qoidalarni saqlash</button></div>
+    <div class="msg" id="creditRulesMsg"></div>
+  </div>
+
+  <div class="card">
     <h2 id="creditFormTitle">Yangi kredit turi yaratish</h2>
     <form id="creditForm">
       <input type="hidden" id="creditEditId">
@@ -1346,6 +1359,66 @@
       loadTransfers();
     }
 
+    // ---------- Kredit qoidalari va admin tasdig'i ----------
+    let creditRuleDefs = [];
+
+    async function loadCreditRules() {
+      const res = await fetch(`${API_BASE}/api/admin/credit-settings`, { credentials: 'include' });
+      if (!res.ok) { document.getElementById('creditRulesForm').textContent = 'Yuklab bo\'lmadi'; return; }
+      creditRuleDefs = await res.json();
+      document.getElementById('creditRulesForm').innerHTML = creditRuleDefs.map(d => `
+        <div style="margin-bottom:10px">
+          <label for="cr_${d.key}">${d.label} <span style="color:var(--muted);font-weight:400">(standart: ${d.default})</span></label>
+          <input type="number" id="cr_${d.key}" data-key="${d.key}" min="${d.min}" max="${d.max}" step="0.01" value="${d.value}">
+          <div style="font-size:12px;color:var(--muted)">${d.hint}</div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('creditRulesSave').addEventListener('click', async () => {
+      const msg = document.getElementById('creditRulesMsg');
+      msg.textContent = ''; msg.className = 'msg';
+      const settings = {};
+      document.querySelectorAll('#creditRulesForm input[data-key]').forEach(i => { settings[i.dataset.key] = i.value; });
+      const res = await fetch(`${API_BASE}/api/admin/credit-settings`, {
+        method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings }),
+      });
+      const data = await res.json();
+      if (!res.ok) { msg.textContent = data.error || 'Xatolik'; msg.classList.add('error'); return; }
+      msg.textContent = 'Saqlandi ✅'; msg.classList.add('success');
+      creditRuleDefs = data;
+    });
+
+    async function loadCreditApprovals() {
+      const el = document.getElementById('creditApprovalList');
+      const res = await fetch(`${API_BASE}/api/admin/credit-requests`, { credentials: 'include' });
+      if (!res.ok) { el.textContent = 'Yuklab bo\'lmadi'; return; }
+      const list = await res.json();
+      if (!list.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Tasdiq kutayotgan kredit yo\'q</div>'; return; }
+      el.innerHTML = list.map(r => `
+        <div class="gift-item">
+          <div class="info">
+            <div class="name">@${r.borrower_username} &middot; ${r.amount} coin</div>
+            <div class="meta">${r.credit_name} &middot; ${r.installments_weeks} hafta &middot; foiz ${r.interest_percent ?? '-'}% &middot; kafil @${r.guarantor_username}${r.collateral_name ? ' &middot; 🔒 garov: ' + r.collateral_name : ' &middot; garovsiz'}</div>
+          </div>
+          <button class="btn-primary" onclick="respondCreditApproval(${r.id}, true)">Tasdiqlash</button>
+          <button class="btn-danger" onclick="respondCreditApproval(${r.id}, false)">Rad etish</button>
+        </div>
+      `).join('');
+    }
+
+    async function respondCreditApproval(id, approve) {
+      if (!confirm(approve ? 'Kredit tasdiqlansinmi? Qarzdorga "Qabul qilaman" bosish uchun vaqt beriladi.' : 'Kredit rad etilsinmi?')) return;
+      const res = await fetch(`${API_BASE}/api/admin/credit-requests/${id}/respond`, {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approve }),
+      });
+      const data = await res.json();
+      if (!res.ok) alert(data.error || 'Xatolik');
+      loadCreditApprovals();
+    }
+
     async function loadCreditTypes() {
       const res = await fetch(`${API_BASE}/api/admin/credit-types`, { credentials: 'include' });
       creditTypes = await res.json();
@@ -2248,6 +2321,8 @@
       await loadCases();
       await loadTransfers();
       await loadCreditTypes();
+      loadCreditRules();
+      loadCreditApprovals();
       await loadPetTypes();
       await loadPushStats();
       await loadVersions();

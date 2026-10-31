@@ -1601,6 +1601,8 @@ window.MTP = (function () {
         noticeSteps = [checkGuarantorRequests, checkGuarantorOverdues, checkGuarantorCharged, checkBorrowerReminders, checkIncomingTransfers];
         nextNotice();
         setInterval(pollGuarantorRequests, 30000);
+        setInterval(pollBorrowerAccept, 30000);
+        pollBorrowerAccept();
         startTradePolling();
         startNotificationBell();
       } catch (e) {
@@ -1792,6 +1794,7 @@ window.MTP = (function () {
         <div class="case-item-row"><div class="ci-name">Kredit foizi</div><div class="ci-chance">${c.interest_percent}%</div></div>
         <div class="case-item-row"><div class="ci-name">Qolgan qarz</div><div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${c.remaining_amount}</div></div>
         <div class="case-item-row"><div class="ci-name">Keyingi to'lov</div><div class="ci-chance" style="font-size:12px;">${formatUzDate(c.next_payment_at)}</div></div>
+        ${c.collateral_status ? `<div class="case-item-row"><div class="ci-name">Garov</div><div class="ci-chance" style="font-size:12px;">${c.collateral_name ? esc(c.collateral_name) + ' &middot; ' : ''}${c.collateral_status === 'locked' ? "🔒 qulflangan" : c.collateral_status === 'released' ? "qaytarilgan" : "saytga o'tgan"}</div></div>` : ''}
 
         <div class="modal-sub" style="margin-top:16px">Oxirgi to'lovlarim</div>
         ${paymentsHtml}
@@ -1861,69 +1864,268 @@ window.MTP = (function () {
       `;
     }
 
+    let creditElCache = null;         // /credits/eligibility javobi
+    let creditForm = { typeId: null, amount: '', guarantor: '', collateralId: '', gifts: [], guarOk: null };
+
+    function creditFmtLeft(ms) {
+      const h = Math.ceil(ms / 3600000);
+      if (h >= 48) return `${Math.ceil(h / 24)} kun`;
+      if (h >= 1) return `${h} soat`;
+      return `${Math.max(1, Math.ceil(ms / 60000))} daqiqa`;
+    }
+
     async function loadCreditTypesForUser() {
       const el = document.getElementById('creditTypesList');
       el.innerHTML = '<div class="empty-msg">Yuklanmoqda...</div>';
-      const res = await fetch(`${API_BASE}/api/credits/types`, { credentials: 'include' });
-      const types = await res.json();
-      creditTypesCache = types;
-      if (!types.length) {
+      const res = await fetch(`${API_BASE}/api/credits/eligibility`, { credentials: 'include' });
+      if (!res.ok) { el.innerHTML = '<div class="empty-msg">Yuklab bo\'lmadi. Qayta urinib ko\'ring</div>'; return; }
+      const d = await res.json();
+      creditElCache = d;
+      creditTypesCache = d.types;
+      if (!d.types.length) {
         el.innerHTML = '<div class="empty-msg">Hozircha kredit turlari yo\'q</div>';
         return;
       }
-      el.innerHTML = types.map(t => `
-        <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:10px;">
-          <div style="font-weight:700; margin-bottom:6px;">${t.name}</div>
-          <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">
-            ${t.min_amount}–${t.max_amount} coin &middot; ${t.interest_percent}% foiz
-          </div>
-          <button class="btn" onclick="openCreditTypeModal(${t.id})">Ko'rish</button>
-        </div>
+
+      const lockMs = d.credit_lock_until ? new Date(d.credit_lock_until).getTime() - Date.now() : 0;
+      const lockHtml = lockMs > 0 ? `
+        <div class="gift-card" style="text-align:left; padding:14px; margin-bottom:10px; border:1px solid #ffb300;">
+          <div style="font-weight:700; margin-bottom:4px;">🔒 Kredit coinlari qulflangan</div>
+          <div style="font-size:13px; color:var(--muted);">Yana ${creditFmtLeft(lockMs)} davomida coin, gift va case jo'natib, trade qilib bo'lmaydi. Do'konda xarid qilish mumkin.</div>
+        </div>` : '';
+
+      const checksHtml = d.checks.map(c => `
+        <div style="padding:5px 0; font-size:14px;">${c.ok ? '✅' : '❌'} ${esc(c.label)}</div>
+        ${c.ok ? '' : `<div style="font-size:12px; color:#ff6b6b; margin:-2px 0 6px 24px;">${esc(c.detail)}</div>`}
       `).join('');
+      const noPin = d.checks.some(c => c.key === 'has_pin' && !c.ok);
+
+      const typesHtml = d.types.map(t => {
+        const interest = t.interest_effective;
+        const withCol = t.interest_with_collateral < interest ? ` (garov bilan ${t.interest_with_collateral}%)` : '';
+        let btn;
+        if (!t.unlocked) btn = `<button class="btn secondary" disabled>🔒 Yopiq</button><div style="font-size:12px; color:var(--muted); margin-top:6px;">${esc(t.unlock_hint)}</div>`;
+        else if (!d.all_ok) btn = `<button class="btn secondary" disabled>Shartlar bajarilmagan</button>`;
+        else btn = `<button class="btn" onclick="openCreditTypeModal(${t.id})">Ko'rish</button>`;
+        return `
+          <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:10px; ${t.unlocked ? '' : 'opacity:.75;'}">
+            <div style="font-weight:700; margin-bottom:6px;">${esc(t.name)}</div>
+            <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">
+              ${t.min_amount}–${t.max_amount} coin &middot; sizga ${interest}% foiz${withCol} &middot; ${t.installments_weeks} hafta
+            </div>
+            ${btn}
+          </div>`;
+      }).join('');
+
+      el.innerHTML = `
+        ${lockHtml}
+        <div class="gift-card" style="text-align:left; padding:14px; margin-bottom:10px;">
+          <div style="font-weight:700; margin-bottom:2px;">⭐ Kredit reytingi: ${esc(d.rating.name)}</div>
+          <div style="font-size:13px; color:var(--muted);">${d.rating.level}-daraja &middot; o'z vaqtida yopilgan kreditlar: ${d.rating.clean_paid}. Har bir o'z vaqtida yopilgan kredit keyingi kredit turini ochadi.</div>
+        </div>
+        <div class="gift-card" style="text-align:left; padding:14px; margin-bottom:10px;">
+          <div style="font-weight:700; margin-bottom:8px;">📋 Kredit olish shartlari</div>
+          ${checksHtml}
+          ${noPin ? `<button class="btn" style="margin-top:8px" onclick="openPinSetup()">PIN o'rnatish</button>` : ''}
+        </div>
+        ${typesHtml}
+      `;
     }
 
     function openCreditTypeModal(typeId) {
       const t = creditTypesCache.find(x => x.id === typeId);
-      if (!t) return;
+      const d = creditElCache;
+      if (!t || !d || !t.unlocked || !d.all_ok) return;
+      if (creditForm.typeId !== typeId) creditForm = { typeId, amount: '', guarantor: '', collateralId: '', gifts: [], guarOk: null };
+      const r = d.rules;
       document.getElementById('modalBody').innerHTML = `
-        <div class="modal-title">${t.name}</div>
-        <div class="case-item-row"><div class="ci-name">Minimal summa</div><div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${t.min_amount}</div></div>
-        <div class="case-item-row"><div class="ci-name">Maksimal summa</div><div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${t.max_amount}</div></div>
-        <div class="case-item-row"><div class="ci-name">Foizi</div><div class="ci-chance">${t.interest_percent}%</div></div>
+        <div class="modal-title">${esc(t.name)}</div>
+        <div class="case-item-row"><div class="ci-name">Summa oralig'i</div><div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${t.min_amount}–${t.max_amount}</div></div>
+        <div class="case-item-row"><div class="ci-name">Sizga foiz</div><div class="ci-chance">${t.interest_effective}%</div></div>
         <div class="case-item-row"><div class="ci-name">To'lash muddati</div><div class="ci-chance">${t.installments_weeks} hafta</div></div>
 
         <label class="send-label">Qancha coin olmoqchisiz?</label>
-        <input type="number" class="send-input" id="takeCreditAmt" min="${t.min_amount}" max="${t.max_amount}" step="0.01" placeholder="${t.min_amount} - ${t.max_amount}">
+        <input type="number" class="send-input" id="takeCreditAmt" min="${t.min_amount}" max="${t.max_amount}" step="0.01" placeholder="${t.min_amount} - ${t.max_amount}" value="${esc(creditForm.amount)}" oninput="creditAmountChanged()">
+
         <label class="send-label">Kafil username</label>
-        <input type="text" class="send-input" id="takeCreditGuarantor" placeholder="Kafil bo'ladigan foydalanuvchi username" autocapitalize="none" autocomplete="off">
-        <div class="send-hint">Kredit darhol berilmaydi: kafil saytga kirib tasdiqlagandan keyingina coin hisobingizga tushadi.</div>
+        <input type="text" class="send-input" id="takeCreditGuarantor" placeholder="Kafil bo'ladigan foydalanuvchi username" autocapitalize="none" autocomplete="off" value="${esc(creditForm.guarantor)}" oninput="creditGuarantorInput()">
+        <div id="takeGuarChecks" style="font-size:13px; margin:6px 0;"></div>
+        <div class="send-hint">Kafil kamida ${r.guarantor_min_days} kunlik akkauntli, balansida kredit summasining ${r.guarantor_min_balance_percent}% idan kam bo'lmagan coin va PIN o'rnatilgan, siz bilan bir IP dan kirmagan bo'lishi kerak.</div>
+
+        <div id="takeCollWrap" style="margin-top:12px;"><div class="send-hint">Garov uchun giftlar yuklanmoqda...</div></div>
+
         <div class="msg" id="takeCreditMsg"></div>
-        <button class="btn" style="margin-top:14px" onclick="submitTakeCredit(${t.id})">Kafilga yuborish</button>
+        <button class="btn" style="margin-top:14px" onclick="creditGoTerms(${t.id})">Davom etish</button>
       `;
       openModal();
+      if (creditForm.guarantor) creditGuarantorInput(true);
+      loadCollateralOptions();
     }
 
-    async function submitTakeCredit(typeId) {
+    async function loadCollateralOptions() {
+      try {
+        const res = await fetch(`${API_BASE}/api/inventory/gifts`, { credentials: 'include' });
+        const items = res.ok ? await res.json() : [];
+        creditForm.gifts = items.filter(g => !g.trade_id).sort((a, b) => b.current_price - a.current_price);
+      } catch (e) { creditForm.gifts = []; }
+      renderCollateral();
+    }
+
+    function creditAmountChanged() {
+      creditForm.amount = document.getElementById('takeCreditAmt').value;
+      renderCollateral();
+      if (creditForm.guarantor) creditGuarantorInput();
+    }
+
+    function renderCollateral() {
+      const wrap = document.getElementById('takeCollWrap');
+      if (!wrap || !creditElCache) return;
+      const r = creditElCache.rules;
+      const amt = parseFloat(creditForm.amount) || 0;
+      const required = r.collateral_required_amount > 0 && amt >= r.collateral_required_amount;
+      const need = Math.round(amt * r.collateral_value_percent) / 100;
+      const head = required
+        ? `<div style="font-weight:700;">🔒 Garov majburiy</div><div class="send-hint">${r.collateral_required_amount} coin va undan katta kreditlarda giftingizni garovga qo'yasiz${amt ? `: kamida ${need} coin narxli gift kerak` : ''}. To'lamasangiz, gift saytga o'tadi. Kredit yopilgach qaytariladi.</div>`
+        : `<div style="font-weight:700;">🔒 Garov (ixtiyoriy)</div><div class="send-hint">Giftni garovga qo'ysangiz, foizdan ${r.collateral_discount_percent}% ayriladi. Kredit yopilgach gift qaytariladi, to'lamasangiz saytga o'tadi.</div>`;
+      if (!creditForm.gifts.length) {
+        wrap.innerHTML = head + `<div class="send-hint">Inventaringizda garovga qo'yish mumkin bo'lgan gift yo'q.</div>`;
+        return;
+      }
+      const sel = String(creditForm.collateralId || '');
+      const rows = creditForm.gifts.map(g => {
+        const ok = !amt || g.current_price + 0.005 >= need;
+        return `
+          <label class="case-item-row" style="cursor:${ok ? 'pointer' : 'not-allowed'}; opacity:${ok ? 1 : .45};">
+            <input type="radio" name="collGift" value="${g.inventory_id}" ${sel === String(g.inventory_id) ? 'checked' : ''} ${ok ? '' : 'disabled'} onchange="creditForm.collateralId = this.value">
+            <div class="ci-name" style="margin-left:8px;">${esc(g.name)}</div>
+            <div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${g.current_price}</div>
+          </label>`;
+      }).join('');
+      const none = required ? '' : `
+        <label class="case-item-row" style="cursor:pointer;">
+          <input type="radio" name="collGift" value="" ${sel === '' ? 'checked' : ''} onchange="creditForm.collateralId = ''">
+          <div class="ci-name" style="margin-left:8px;">Garovsiz</div>
+        </label>`;
+      wrap.innerHTML = head + `<div style="max-height:190px; overflow:auto; margin-top:6px;">${none}${rows}</div>`;
+    }
+
+    let guarTimer = null;
+    function creditGuarantorInput(now) {
+      creditForm.guarantor = document.getElementById('takeCreditGuarantor').value.trim();
+      const box = document.getElementById('takeGuarChecks');
+      clearTimeout(guarTimer);
+      creditForm.guarOk = null;
+      if (!creditForm.guarantor) { box.innerHTML = ''; return; }
+      box.innerHTML = '<span style="color:var(--muted)">Tekshirilmoqda...</span>';
+      guarTimer = setTimeout(async () => {
+        const amt = parseFloat(creditForm.amount) || 0;
+        const uname = creditForm.guarantor;
+        try {
+          const res = await fetch(`${API_BASE}/api/credits/guarantor-check?username=${encodeURIComponent(uname)}&amount=${amt}`, { credentials: 'include' });
+          const d = await res.json();
+          if (uname !== creditForm.guarantor || !document.getElementById('takeGuarChecks')) return;
+          if (!d.found || d.error) { creditForm.guarOk = false; box.innerHTML = `<div style="color:#ff6b6b">❌ ${esc(d.error || 'Topilmadi')}</div>`; return; }
+          creditForm.guarOk = d.ok;
+          box.innerHTML = d.checks.map(c => `<div>${c.ok ? '✅' : '❌'} ${esc(c.label)}</div>${c.ok ? '' : `<div style="font-size:12px; color:#ff6b6b; margin:0 0 4px 22px;">${esc(c.detail)}</div>`}`).join('');
+        } catch (e) { box.innerHTML = ''; }
+      }, now ? 0 : 500);
+    }
+
+    // 2-qadam: kredit shartlari oynasi
+    async function creditGoTerms(typeId) {
+      const msg = document.getElementById('takeCreditMsg');
+      msg.textContent = ''; msg.className = 'msg';
+      const t = creditTypesCache.find(x => x.id === typeId);
+      const amount = parseFloat(document.getElementById('takeCreditAmt').value);
+      const guarantor = document.getElementById('takeCreditGuarantor').value.trim();
+      const r = creditElCache.rules;
+      if (!amount) { msg.textContent = 'Miqdorni kiriting'; msg.classList.add('error'); return; }
+      if (amount < t.min_amount || amount > t.max_amount) { msg.textContent = `Miqdor ${t.min_amount} - ${t.max_amount} orasida bo'lishi kerak`; msg.classList.add('error'); return; }
+      if (!guarantor) { msg.textContent = 'Kafil username kiriting'; msg.classList.add('error'); return; }
+      if (creditForm.guarOk === false) { msg.textContent = 'Tanlangan kafil talablarga javob bermaydi. Boshqa kafil tanlang'; msg.classList.add('error'); return; }
+      const required = r.collateral_required_amount > 0 && amount >= r.collateral_required_amount;
+      if (required && !creditForm.collateralId) { msg.textContent = 'Bu summadagi kredit uchun garov (gift) tanlang'; msg.classList.add('error'); return; }
+      creditForm.amount = String(amount); creditForm.guarantor = guarantor;
+
+      const res = await fetch(`${API_BASE}/api/credits/preview`, {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credit_type_id: typeId, amount, collateral_user_gift_id: creditForm.collateralId || null }),
+      });
+      const p = await res.json();
+      if (!res.ok) { msg.textContent = p.error || 'Xatolik'; msg.classList.add('error'); return; }
+      const col = creditForm.gifts.find(g => String(g.inventory_id) === String(creditForm.collateralId));
+      const coin = '<img class="cn" src="icons/coin.png" alt="coin">';
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-title">Kredit shartlari</div>
+        <div class="receipt">
+          <div class="receipt-row"><span>Kredit</span><span>${esc(p.credit_name)}</span></div>
+          <div class="receipt-row"><span>Olinadigan summa</span><span>${coin} ${p.amount}</span></div>
+          <div class="receipt-row"><span>Foiz</span><span>${p.interest_percent}%${p.interest_percent !== p.base_interest_percent ? ` (asosiy ${p.base_interest_percent}%)` : ''}</span></div>
+          <div class="receipt-row"><span>Jami qaytarasiz</span><span>${coin} ${p.total_to_pay}</span></div>
+          <div class="receipt-row"><span>Haftalik to'lov</span><span>${coin} ${p.weekly_payment} &times; ${p.weeks} hafta</span></div>
+          <div class="receipt-row"><span>Kafil</span><span>@${esc(guarantor)}</span></div>
+          <div class="receipt-row"><span>Garov</span><span>${col ? '🔒 ' + esc(col.name) : "yo'q"}</span></div>
+        </div>
+        <div style="font-size:13px; line-height:1.5; margin:12px 0; color:var(--muted);">
+          <div>⚠️ To'lov kechiksa, har kechikkan hafta uchun ${coin} ${p.fine_amount} (${p.fine_percent}%) jarima qo'shiladi. ${p.max_fines} marta kechiksangiz, hisobingiz bloklanadi${col ? ' va garovdagi gift saytga o\'tadi' : ''}.</div>
+          <div>🤝 Kafilingiz ham jarimaga tortilishi mumkin (haftalik to'lovning ${p.guarantor_penalty_percent}% i, ${coin} ${p.guarantor_penalty_amount}).</div>
+          ${p.lock_hours > 0 ? `<div>🔒 Kredit coini tushgandan keyin ${p.lock_hours} soat davomida coin, gift va case jo'natib, trade qilib bo'lmaydi (do'konda xarid qilish mumkin).</div>` : ''}
+          <div>⏱️ Kafil${p.needs_admin ? ' va admin' : ''} tasdiqlagandan keyin ${p.accept_minutes} daqiqa ichida "Qabul qilaman" tugmasini bosishingiz kerak.</div>
+        </div>
+        <label style="display:flex; gap:8px; align-items:flex-start; font-size:14px; margin-bottom:10px;">
+          <input type="checkbox" id="termsCheck" onchange="creditTermsUpdate()" style="margin-top:3px;">
+          <span>Kredit shartlarini o'qidim va qabul qilaman</span>
+        </label>
+        <label class="send-label">Tasdiqlash uchun summani yozing: <b>${p.amount}</b></label>
+        <input type="text" inputmode="decimal" class="send-input" id="termsTyped" placeholder="${p.amount}" autocomplete="off" oninput="creditTermsUpdate()">
+        <div class="msg" id="takeCreditMsg"></div>
+        <button class="btn" id="termsBtn" style="margin-top:14px" disabled onclick="creditSubmitTake(${typeId})">Kafilga yuborish</button>
+        <button class="btn secondary" style="margin-top:8px" onclick="openCreditTypeModal(${typeId})">Orqaga</button>
+      `;
+      creditForm.termsLeft = p.terms_seconds;
+      creditTermsUpdate();
+      const iv = setInterval(() => {
+        if (!document.getElementById('termsBtn')) { clearInterval(iv); return; }
+        creditForm.termsLeft = Math.max(0, creditForm.termsLeft - 1);
+        creditTermsUpdate();
+        if (creditForm.termsLeft <= 0) clearInterval(iv);
+      }, 1000);
+    }
+
+    function creditTermsUpdate() {
+      const btn = document.getElementById('termsBtn');
+      if (!btn) return;
+      const checked = document.getElementById('termsCheck').checked;
+      const typed = parseFloat(String(document.getElementById('termsTyped').value).replace(',', '.'));
+      const okTyped = typed === parseFloat(creditForm.amount);
+      btn.disabled = !(checked && okTyped && creditForm.termsLeft <= 0);
+      btn.textContent = creditForm.termsLeft > 0 ? `Kafilga yuborish (${creditForm.termsLeft})` : 'Kafilga yuborish';
+    }
+
+    async function creditSubmitTake(typeId) {
       if (actionInProgress) return;
       const msg = document.getElementById('takeCreditMsg');
       msg.textContent = ''; msg.className = 'msg';
-      const amount = parseFloat(document.getElementById('takeCreditAmt').value);
-      const guarantor = document.getElementById('takeCreditGuarantor').value.trim();
-      if (!amount) { msg.textContent = "Miqdorni kiriting"; msg.classList.add('error'); return; }
-      if (!guarantor) { msg.textContent = "Kafil username kiriting"; msg.classList.add('error'); return; }
-
       actionInProgress = true;
       try {
         const res = await fetch(`${API_BASE}/api/credits/take`, {
           method: 'POST', credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ credit_type_id: typeId, amount, guarantor_username: guarantor }),
+          body: JSON.stringify({
+            credit_type_id: typeId, amount: parseFloat(creditForm.amount), guarantor_username: creditForm.guarantor,
+            collateral_user_gift_id: creditForm.collateralId || null,
+            terms_accepted: true, confirm_amount: String(parseFloat(creditForm.amount)),
+          }),
         });
         const data = await res.json();
-        if (!res.ok) { msg.textContent = data.error || 'Xatolik'; msg.classList.add('error'); return; }
-
+        if (!res.ok) {
+          msg.textContent = data.error || 'Xatolik';
+          msg.classList.add('error');
+          return;
+        }
+        creditForm = { typeId: null, amount: '', guarantor: '', collateralId: '', gifts: [], guarOk: null };
         closeModal();
-        showToast(`So'rov @${data.guarantor_username} ga yuborildi. Kafil tasdiqlasa kredit beriladi 🤝`);
+        showToast(`So'rov @${data.guarantor_username} ga yuborildi. Kafil tasdiqlasa, qabul qilishingiz so'raladi 🤝`);
         loadMyRequests();
         loadCreditTypesForUser();
       } finally {
@@ -2213,7 +2415,9 @@ window.MTP = (function () {
             <div class="receipt-row"><span>Kredit nomi</span><span>${esc(r.credit_name)}</span></div>
             <div class="receipt-row"><span>Miqdori</span><span><img class="cn" src="icons/coin.png" alt="coin"> ${r.amount}</span></div>
             <div class="receipt-row"><span>To'lash muddati</span><span>${r.installments_weeks} hafta</span></div>
+            ${r.has_collateral ? `<div class="receipt-row"><span>Garov</span><span>🔒 gift bor</span></div>` : ''}
           </div>
+          <div class="send-hint" style="text-align:center">Tasdiqlash uchun tranzaksiya PIN kerak. Qarzdor to'lamasa, hisobingizdan haftalik to'lovning 50% yechilishi mumkin.</div>
           <div class="guar-btn-row">
             <button class="btn secondary" onclick="respondGuarantor(${r.id}, false, ${index})">Rad etish</button>
             <button class="btn" onclick="respondGuarantor(${r.id}, true, ${index})">Tasdiqlash</button>
@@ -2270,26 +2474,88 @@ window.MTP = (function () {
     }
 
     // Kreditlar sahifasida: men yuborgan so'rovlar (kutilayotgan va rad etilganlar)
+    let acceptTimerIv = null;
     async function loadMyRequests() {
       const wrap = document.getElementById('myRequestsWrap');
       if (!wrap) return;
       const res = await fetch(`${API_BASE}/api/credits/requests/mine`, { credentials: 'include' });
       if (!res.ok) return;
-      const list = (await res.json()).filter(r => r.status === 'pending' || r.status === 'rejected');
+      const all = await res.json();
+      const list = all.filter(r => r.status === 'pending' || r.status === 'rejected');
+      clearInterval(acceptTimerIv);
       if (!list.length) { wrap.innerHTML = ''; return; }
+      const offset = all.length ? all[0].server_now - Date.now() : 0;
+      const stageText = (r) => {
+        if (r.status === 'rejected') return '❌ Rad etildi';
+        if (r.stage === 'admin') return "🛡️ Admin tasdig'i kutilmoqda";
+        if (r.stage === 'borrower') return `✅ Tasdiqlandi. Qabul qilish uchun <b class="accept-timer" data-exp="${r.stage_expires_at ? new Date(r.stage_expires_at).getTime() : 0}"></b> qoldi`;
+        return '⏳ Kafil javobi kutilmoqda';
+      };
       wrap.innerHTML = `
-        <div class="section-title" style="margin-top:24px">📨 Kafil so'rovlarim</div>
+        <div class="section-title" style="margin-top:24px">📨 Kredit so'rovlarim</div>
         ${list.map(r => `
           <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:10px;">
             <div style="font-weight:700; margin-bottom:6px;">${esc(r.credit_name)} &middot; <img class="cn" src="icons/coin.png" alt="coin"> ${r.amount}</div>
             <div style="font-size:13px; color:var(--muted); margin-bottom:${r.status === 'pending' ? '10px' : '0'};">
-              Kafil: @${esc(r.guarantor_username)} &middot;
-              ${r.status === 'pending' ? '⏳ Javob kutilmoqda' : '❌ Rad etildi'}
+              Kafil: @${esc(r.guarantor_username)}${r.interest_percent != null ? ` &middot; ${r.interest_percent}% foiz` : ''}${r.has_collateral ? ' &middot; 🔒 garov bilan' : ''}<br>
+              ${stageText(r)}
             </div>
+            ${r.status === 'pending' && r.stage === 'borrower' ? `<button class="btn" style="margin-bottom:8px" onclick="acceptCreditRequest(${r.id})">Qabul qilaman</button>` : ''}
             ${r.status === 'pending' ? `<button class="btn secondary" onclick="cancelMyRequest(${r.id})">Bekor qilish</button>` : ''}
           </div>
         `).join('')}
       `;
+      const tick = () => {
+        const els = document.querySelectorAll('.accept-timer');
+        if (!els.length) { clearInterval(acceptTimerIv); return; }
+        let expired = false;
+        els.forEach(e => {
+          const left = Number(e.dataset.exp) - (Date.now() + offset);
+          if (left <= 0) { expired = true; e.textContent = '0:00'; return; }
+          const sec = Math.ceil(left / 1000);
+          e.textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+        });
+        if (expired) { clearInterval(acceptTimerIv); loadMyRequests(); loadCreditTypesForUser(); }
+      };
+      tick();
+      acceptTimerIv = setInterval(tick, 1000);
+    }
+
+    // Qarzdor "Qabul qilaman" tugmasini bosadi: PIN so'raladi va kredit shu yerda beriladi
+    async function acceptCreditRequest(id) {
+      if (actionInProgress) return;
+      actionInProgress = true;
+      try {
+        const res = await fetch(`${API_BASE}/api/credits/requests/${id}/accept`, {
+          method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: '{}',
+        });
+        const data = await res.json();
+        if (!res.ok) { showToast(data.error || 'Xatolik'); }
+        else {
+          showToast(data.lock_hours > 0 ? `Kredit hisobingizga tushdi 🎉 ${data.lock_hours} soat jo'natish va trade yopiq` : 'Kredit hisobingizga tushdi 🎉');
+          refreshMe();
+        }
+      } finally {
+        actionInProgress = false;
+      }
+      loadMyRequests();
+      loadMyCredits();
+      loadCreditTypesForUser();
+    }
+
+    // Kredit tasdiqlanganda (kafil/admin) qarzdorga xabar: qabul qilish uchun cheklangan vaqt bor
+    const acceptNoticeShown = new Set();
+    async function pollBorrowerAccept() {
+      try {
+        const res = await fetch(`${API_BASE}/api/credits/requests/mine`, { credentials: 'include' });
+        if (!res.ok) return;
+        const list = await res.json();
+        const ready = list.filter(r => r.status === 'pending' && r.stage === 'borrower' && !acceptNoticeShown.has(r.id));
+        if (!ready.length) return;
+        ready.forEach(r => acceptNoticeShown.add(r.id));
+        showToast('✅ Kredit tasdiqlandi. Kreditlar bo\'limida "Qabul qilaman" tugmasini bosing (vaqt cheklangan)');
+        if (document.getElementById('myRequestsWrap')) loadMyRequests();
+      } catch (e) {}
     }
 
     async function cancelMyRequest(id) {
@@ -5038,7 +5304,7 @@ window.MTP = (function () {
           <div class="gift-name">${it.name}</div>
           <div class="gift-price"><img class="cn" src="icons/coin.png" alt="coin"> ${Math.round(it.current_price * 0.8 * 100) / 100} (sotish narxi)</div>
           ${it.trade_id
-            ? `<button class="btn secondary" disabled>🔒 Trade'da band</button>`
+            ? `<button class="btn secondary" disabled>🔒 ${it.trade_id < 0 ? 'Kredit garovida' : "Trade'da band"}</button>`
             : `<button class="btn secondary" onclick="sellGift(${it.inventory_id})">Sotish</button>`}
         </div>
       `).join('');

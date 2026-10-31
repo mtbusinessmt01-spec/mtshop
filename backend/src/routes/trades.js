@@ -5,6 +5,7 @@ const trades = require('../trades');
 const { authMiddleware, adminMiddleware } = require('../auth');
 const security = require('../security');
 const { requirePin, requireNotFrozen } = security;
+const { requireNoCreditLock } = require('../creditRules');   // kredit coini qulflangan vaqtda trade mumkin emas
 
 const router = express.Router();
 const { TradeError } = trades;
@@ -63,7 +64,7 @@ router.get('/trades/available-gifts', authMiddleware, h(async (req, res) => {
 }));
 
 // Trade Request yuborish (oldindan gift/coin tanlash shart emas)
-router.post('/trades/request', authMiddleware, requireNotFrozen, h(async (req, res) => {
+router.post('/trades/request', authMiddleware, requireNotFrozen, requireNoCreditLock, h(async (req, res) => {
   // Sherik hisobini muzlatgan bo'lsa unga trade so'rovi yuborib bo'lmaydi
   const uname = req.body && req.body.username;
   if (uname) {
@@ -80,7 +81,7 @@ router.get('/trades/:id', authMiddleware, h(async (req, res) => {
   res.json(await trades.viewTrade(req.user.id, req.params.id, req.query.after));
 }));
 
-router.post('/trades/:id/accept', authMiddleware, requireNotFrozen, h(async (req, res) => {
+router.post('/trades/:id/accept', authMiddleware, requireNotFrozen, requireNoCreditLock, h(async (req, res) => {
   res.json(await trades.acceptRequest(req.user.id, req.params.id));
 }));
 
@@ -116,7 +117,7 @@ router.post('/trades/:id/unlock', authMiddleware, h(async (req, res) => {
   res.json(await trades.unlockOffer(req.user.id, req.params.id));
 }));
 
-router.post('/trades/:id/confirm', authMiddleware, requireNotFrozen, requirePin, h(async (req, res) => {
+router.post('/trades/:id/confirm', authMiddleware, requireNotFrozen, requireNoCreditLock, requirePin, h(async (req, res) => {
   res.json(await trades.confirmTrade(req.user.id, req.params.id));
 }));
 
