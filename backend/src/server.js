@@ -18,7 +18,6 @@ const petsRouter = require('./routes/pets');
 const pushRouter = require('./routes/push');
 const notificationsRouter = require('./routes/notifications');
 const eventsRouter = require('./routes/events');
-const versionsRouter = require('./routes/versions');
 const tradesRouter = require('./routes/trades');
 const profileRouter = require('./routes/profile');
 const promocodesRouter = require('./routes/promocodes');
@@ -29,7 +28,6 @@ const profileSvc = require('./profile');
 const cardStyleSvc = require('./cardStyles');
 const cardStylesRouter = require('./routes/cardStyles');
 const trades = require('./trades');
-const { pageMiddleware } = require('./versions');
 const push = require('./push');
 const guarantor = require('./guarantor');
 
@@ -45,7 +43,6 @@ app.use(cors({ origin: true, credentials: true }));
 // "cross-site" deb hisoblamaydi (mobil Safari'dagi bloklash muammosi yo'qoladi).
 const frontendDir = path.join(__dirname, '..', '..', 'frontend', 'public');
 // Foydalanuvchi versiyasiga mos index.html (static'dan OLDIN turishi shart)
-app.use(pageMiddleware);
 app.use(express.static(frontendDir));
 
 app.use('/api', giftsRouter);
@@ -57,7 +54,6 @@ app.use('/api', petsRouter);
 app.use('/api', pushRouter);
 app.use('/api', notificationsRouter);
 app.use('/api', eventsRouter);
-app.use('/api', versionsRouter);
 app.use('/api', tradesRouter);
 app.use('/api', profileRouter);
 app.use('/api', promocodesRouter);

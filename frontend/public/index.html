@@ -334,9 +334,6 @@
   .pe-cur .tr-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tr-pick-row .tr-price { color: var(--coin); font-size: 11px; flex-shrink: 0; }
   /* ---- Versiya yuklab olish (Profils) ---- */
-  .ver-bar { height: 10px; border-radius: 999px; background: var(--w80); overflow: hidden; margin: 14px 0 8px; }
-  .ver-bar > div { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
-  .ver-tag { font-size: 10px; padding: 2px 8px; border-radius: 999px; margin-left: 6px; background: rgba(255,209,102,0.18); color: var(--coin); vertical-align: middle; }
   .admin-link {
     display: block;
     width: 100%;
@@ -457,14 +454,22 @@
     animation: tallIn calc(340ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards;
   }
   .modal-overlay.tall.closing .modal-wrap { animation: none; }
-  .modal-overlay.tall.closing .modal-box::before { animation: tallOut calc(240ms * var(--anim-k)) cubic-bezier(.4,0,1,1) forwards; }
-  .modal-overlay.open.tall .cw-foot, .modal-overlay.open.tall .cw-head-title,
-  .modal-overlay.open.tall .cw-scroll:not(.fwd):not(.back) { animation: tallFadeIn calc(340ms * var(--anim-k)) ease backwards; }
-  .modal-overlay.open.tall.closing .cw-foot, .modal-overlay.open.tall.closing .cw-scroll, .modal-overlay.open.tall.closing .cw-prog-wrap { animation: tallFadeOut calc(240ms * var(--anim-k)) ease forwards; }
-  @keyframes tallIn { from { transform: translateY(40px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
-  @keyframes tallOut { to { transform: translateY(40px) scale(.97); opacity: 0; } }
-  @keyframes tallFadeIn { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes tallFadeOut { to { opacity: 0; } }
+  /* Kirish: karta ekran pastidan chiqadi. Chiqish: pastga kirib ketadi. Shaffoflik 0% — karta doim to'liq quyuq (xiralashmaydi).
+     Orqaga tugmasi va progress joyida qoladi: kattalashib chiqadi / kattalashib yo'qoladi. */
+  .modal-overlay.tall .modal-box::before { animation: tallIn calc(420ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards; }
+  .modal-overlay.open.tall .cw-open .cw-scroll, .modal-overlay.open.tall .cw-open .cw-foot, .modal-overlay.open.tall .cw-open .cw-head-title {
+    animation: tallIn calc(420ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards;
+  }
+  .modal-overlay.open.tall.closing .modal-box::before,
+  .modal-overlay.open.tall.closing .cw-scroll, .modal-overlay.open.tall.closing .cw-foot, .modal-overlay.open.tall.closing .cw-head-title {
+    animation: tallOut calc(260ms * var(--anim-k)) cubic-bezier(.5,0,1,.6) forwards;
+  }
+  .modal-overlay.open.tall .cw-prog { animation: progIn calc(420ms * var(--anim-k)) cubic-bezier(.34,1.56,.64,1) backwards; }
+  .modal-overlay.open.tall.closing .cw-prog { animation: progOut calc(290ms * var(--anim-k)) ease-in-out forwards; }
+  @keyframes tallIn { from { transform: translateY(100dvh); } to { transform: none; } }
+  @keyframes tallOut { from { transform: none; } to { transform: translateY(100dvh); } }
+  @keyframes progIn { from { transform: scale(0); } 60% { transform: scale(1.1); } to { transform: scale(1); } }
+  @keyframes progOut { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(0); } }
   .modal-overlay.tall .modal-grab-zone { display: none; }
   .modal-overlay.tall #modalBody { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .cw { display: flex; flex-direction: column; flex: 1; min-height: 0; position: relative; }
@@ -480,12 +485,11 @@
   .cw-amt::-webkit-outer-spin-button, .cw-amt::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .cw-amt { -moz-appearance: textfield; }
   /* Progress: kartaning tepasidagi xira joyda, qora yo'lak ichida (yashil = o'tgan, ko'k = hozirgi, kulrang = qolgan) */
-  .cw-prog-wrap { position: absolute; left: 0; right: 0; bottom: calc(100% + 15px); padding-bottom: 20px; display: flex; justify-content: center; pointer-events: none; animation: cwProgIn calc(.4s * var(--anim-k)) ease backwards; }
+  .cw-prog-wrap { position: absolute; left: 0; right: 0; bottom: calc(100% + 15px); padding-bottom: 20px; display: flex; justify-content: center; pointer-events: none; }
   .cw-prog { display: flex; gap: 5px; width: min(300px, 74%); padding: 5px; border-radius: 999px; background: rgba(70,70,70,.88); box-shadow: 0 4px 14px rgba(0,0,0,.3); }
   .cw-seg { flex: 1; height: 17px; border-radius: 999px; background: #a6a6a6; transition: background .3s ease; }
   .cw-seg.done { background: #00b050; }
   .cw-seg.cur { background: var(--cw-accent); }
-  @keyframes cwProgIn { from { opacity: 0; transform: translateY(8px); } }
   .cw-title { font-size: 22px; font-weight: 800; margin: 0 0 14px; }
   .cw-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 13px 14px; border-radius: 14px; background: var(--w50); margin-bottom: 8px; font-size: 14px; }
   .cw-row > span:first-child { color: var(--muted); }
@@ -1046,7 +1050,6 @@
   .modal-overlay.open.tall .cw-back { animation: backIn calc(420ms * var(--anim-k)) cubic-bezier(.34,1.56,.64,1) backwards; }
   .modal-overlay.open.tall:not(.closing) .cw-back.pop { animation: backPop calc(340ms * var(--anim-k)) cubic-bezier(.34,1.56,.64,1); }
   .modal-overlay.open.tall.closing .cw-back { animation: backOut calc(290ms * var(--anim-k)) ease-in-out forwards; }
-  .modal-overlay.open.tall.closing .cw-head-title { animation: titleOut calc(200ms * var(--anim-k)) ease forwards; }
 
   /* Orqaga tugmasi: bosilganda bir marta kattalashib, o'z holiga qaytadi */
   .page-back-btn.pop { animation: backPop calc(340ms * var(--anim-k)) cubic-bezier(.34,1.56,.64,1); }
@@ -1308,6 +1311,20 @@
     .modal-overlay.page #modalBody { max-width: 680px; }
     .modal-overlay.page.split #modalBody { max-width: 760px; }
     .more-sheet { bottom: calc(100px + env(safe-area-inset-bottom)); }
+  }
+  /* Kredit olish: kompyuterda markazdagi oyna (progress kartaning tepasida to'liq ko'rinadi) */
+  @media (min-width: 1000px) {
+    .modal-overlay.tall { align-items: center; justify-content: center; padding: 24px; }
+    .modal-overlay.tall .modal-wrap { max-width: 580px; height: min(740px, calc(100dvh - 170px)); margin: 56px 0 0; }
+    .modal-overlay.tall .modal-box { padding: 16px 22px 0; }
+    .modal-overlay.tall .modal-box::before { border-radius: 30px; border-bottom: 1px solid var(--w80); }
+    .modal-overlay.tall .cw-foot { left: -22px; right: -22px; padding: 56px 22px 22px; border-radius: 0 0 30px 30px; }
+    .modal-overlay.tall .cw-scroll { padding-bottom: 130px; }
+    .modal-overlay.tall .cw-head { margin-bottom: 18px; }
+    .modal-overlay.tall .cw-title { font-size: 26px; }
+    .modal-overlay.tall .cw-row { padding: 15px 16px; font-size: 15px; }
+    .modal-overlay.tall .cw-list li { font-size: 15px; }
+    .modal-overlay.tall .cw-prog { width: min(340px, 74%); }
   }
   /* ===== Bildirishnomalar markazi ===== */
   .hdr-right { display: flex; align-items: center; gap: 10px; }
@@ -2102,7 +2119,7 @@ window.MTP = (function () {
         cwMsg('');
       } else {
         document.getElementById('modalBody').innerHTML = `
-          <div class="cw">
+          <div class="cw cw-open">
             <div class="cw-prog-wrap"><div class="cw-prog">${CW_STEPS.map((_, i) => `<div class="cw-seg ${segCls(i)}"></div>`).join('')}</div></div>
             <div class="cw-head">
               <button class="page-back-btn cw-back" onclick="cwBack()" aria-label="Orqaga"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
@@ -2117,6 +2134,8 @@ window.MTP = (function () {
               <button class="cw-next" id="cwNext" onclick="cwNext()">${nextLabel}</button>
             </div>
           </div>`;
+        clearTimeout(cw.openT);
+        cw.openT = setTimeout(() => { const c = document.querySelector('.cw'); if (c) c.classList.remove('cw-open'); }, Math.round(480 * MTP.animK()) + 60);
       }
 
       cw.dir = 'none';
@@ -4062,8 +4081,6 @@ window.MTP = (function () {
           <button class="st-row" type="button" onclick="openPinGifts()"><span class="st-emo">📌</span><span>Qadalgan giftlar</span><span class="st-chev">›</span></button>
         </div>
 
-        <div class="st-section">Profile versiyasi</div>
-        <div id="versionWrap"><div class="empty-msg" style="padding:12px 0;">Yuklanmoqda...</div></div>
 
         <button class="btn secondary" type="button" style="margin-top:26px;" onclick="logout()">Hisobdan chiqish</button>
       `;
@@ -4099,7 +4116,6 @@ window.MTP = (function () {
         openProfilePage();
       });
 
-      loadVersionCard();
     }
 
     // Rasm brauzerda 320x320 JPEG ga kichraytiriladi (odatda 20-50 KB), keyin serverga yuboriladi
@@ -4494,87 +4510,6 @@ window.MTP = (function () {
       if (stSearchQuery) runUserSearch(stSearchQuery);
     }
 
-
-    // ---------- SAYT VERSIYASI (Profils) ----------
-    // "Yuklab olish" — chiroyli animatsiya (12-15 soniya). Haqiqiy almashtirish animatsiya
-    // oxirida serverda bo'ladi; ruxsatni server tekshiradi.
-    function verEsc(t) {
-      return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    }
-
-    async function loadVersionCard() {
-      const wrap = document.getElementById('versionWrap');
-      if (!wrap) return;
-      try {
-        const res = await fetch(`${API_BASE}/api/versions/me`, { credentials: 'include' });
-        if (!res.ok) { wrap.innerHTML = ''; return; }
-        const data = await res.json();
-        const curCard = `<div class="st-card"><div style="font-weight:700;">Hozirgi versiya: V${verEsc(data.current)}</div>${data.available.length ? '' : '<div class="send-hint">Yangi versiya yo\'q.</div>'}</div>`;
-        wrap.innerHTML = curCard + `
-          ${data.available.map(v => `
-            <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:12px;" id="verCard-${verEsc(v.version)}">
-              <div style="font-weight:700; margin-bottom:4px;">
-                MTshop V${verEsc(v.version)}${v.title ? ' — ' + verEsc(v.title) : ''}
-                ${v.status !== 'public' ? `<span class="ver-tag">${v.status === 'beta' ? 'BETA' : 'DRAFT'}</span>` : ''}
-              </div>
-              ${v.changelog ? `<div class="modal-sub" style="white-space:pre-line; margin-bottom:12px;">${verEsc(v.changelog)}</div>` : ''}
-              <div id="verAction-${verEsc(v.version)}">
-                <button class="btn" onclick="startVersionDownload('${verEsc(v.version)}')">⬇️ Yuklab olish</button>
-              </div>
-            </div>
-          `).join('')}
-        `;
-      } catch (e) { wrap.innerHTML = ''; /* tarmoq xatosi — kartani ko'rsatmaymiz */ }
-    }
-
-    let versionDownloading = false;
-
-    function startVersionDownload(version) {
-      if (versionDownloading) return;
-      versionDownloading = true;
-
-      const box = document.getElementById('verAction-' + version);
-      box.innerHTML = `
-        <div class="modal-sub" id="verStage-${version}" style="margin:0;">Fayllar tayyorlanmoqda...</div>
-        <div class="ver-bar"><div id="verFill-${version}"></div></div>
-        <div class="modal-sub" id="verPct-${version}" style="margin:0;">0%</div>
-      `;
-      const fill = document.getElementById('verFill-' + version);
-      const pct = document.getElementById('verPct-' + version);
-      const stage = document.getElementById('verStage-' + version);
-
-      const duration = 12000 + Math.random() * 3000; // 12-15 soniya
-      const t0 = performance.now();
-
-      function tick(now) {
-        const p = Math.min((now - t0) / duration, 1);
-        fill.style.width = (p * 100) + '%';
-        pct.textContent = Math.floor(p * 100) + '%';
-        stage.textContent = p < 0.55 ? 'Fayllar tayyorlanmoqda...' : (p < 0.9 ? "O'rnatilmoqda..." : 'Yakunlanmoqda...');
-        if (p < 1) { requestAnimationFrame(tick); return; }
-        finishVersionDownload(version, box);
-      }
-      requestAnimationFrame(tick);
-    }
-
-    // Animatsiya tugagach — faqat shu yerda serverga so'rov ketadi (sahifa yopilsa versiya o'zgarmaydi)
-    async function finishVersionDownload(version, box) {
-      try {
-        const res = await fetch(`${API_BASE}/api/versions/switch`, {
-          method: 'POST', credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ version }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Xatolik');
-        box.innerHTML = '<div style="font-weight:700;">✅ Tayyor! Sahifa yangilanmoqda...</div>';
-        setTimeout(() => location.reload(), 700);
-      } catch (e) {
-        versionDownloading = false;
-        showToast(e.message || 'Xatolik');
-        box.innerHTML = `<button class="btn" onclick="startVersionDownload('${version}')">⬇️ Qayta urinish</button>`;
-      }
-    }
 
     // =====================================================================
     // GIFT TRADE
