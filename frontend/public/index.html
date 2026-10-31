@@ -440,7 +440,27 @@
   .page-head-spacer { width: 40px; flex-shrink: 0; }
   /* ---- Kredit olish: bosqichma-bosqich sahifa (maket bo'yicha: yumaloq orqaga tugmasi, sarlavha, pastda katta "Keyingisi") ---- */
   :root { --cw-accent: #03b2f1; }
-  .cw { display: flex; flex-direction: column; height: calc(100dvh - 116px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  /* Tall sheet: ekranning ~90% i, tepasida orqadagi sahifa xiralashib ko'rinib turadi */
+  .modal-overlay.tall { padding: 0; }
+  .modal-overlay.tall .modal-wrap { max-width: 540px; margin: 0; height: calc(100dvh - max(calc(env(safe-area-inset-top) + 24px), 9.5dvh)); }
+  .modal-overlay.tall .modal-box {
+    height: 100%; max-height: none; overflow: hidden; display: flex; flex-direction: column;
+    background: var(--card); backdrop-filter: none; -webkit-backdrop-filter: none;
+    border: 1px solid var(--w80); border-bottom: none; border-radius: 30px 30px 0 0;
+    padding: 14px 18px 0;
+    box-shadow: 0 -12px 40px rgba(0,0,0,0.45);
+  }
+  .modal-overlay.tall .modal-grab-zone { display: none; }
+  .modal-overlay.tall #modalBody { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .cw { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .cw-head { display: flex; align-items: center; gap: 12px; margin: 2px 0 14px; }
+  .cw-head-title { flex: 1; text-align: center; font-size: 17px; font-weight: 800; }
+  .cw-head-sp { width: 40px; flex-shrink: 0; }
+  .cw-back { border: none; cursor: pointer; }
+  .cw-scroll.fwd { animation: cwInFwd calc(.26s * var(--anim-k)) ease-out; }
+  .cw-scroll.back { animation: cwInBack calc(.26s * var(--anim-k)) ease-out; }
+  @keyframes cwInFwd { from { transform: translateX(22px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes cwInBack { from { transform: translateX(-22px); opacity: 0; } to { transform: none; opacity: 1; } }
   .cw-scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 2px 2px 8px; margin: 0 -2px; }
   .cw-amt::-webkit-outer-spin-button, .cw-amt::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .cw-amt { -moz-appearance: textfield; }
@@ -465,7 +485,7 @@
   .cw-check { display: flex; gap: 8px; align-items: center; font-size: 14px; padding: 4px 2px; }
   .cw-check.bad { color: #ff6b6b; }
   .cw-check-d { font-size: 12px; color: #ff6b6b; margin: 0 0 4px 24px; }
-  .cw-foot { flex-shrink: 0; padding: 10px 0 calc(6px + env(safe-area-inset-bottom)); }
+  .cw-foot { flex-shrink: 0; padding: 10px 0 calc(14px + env(safe-area-inset-bottom)); }
   .cw-next { width: 100%; height: 56px; border: 0; border-radius: 999px; background: var(--cw-accent); color: #fff; font: inherit; font-size: 18px; font-weight: 600; cursor: pointer; transition: transform .12s ease, opacity .2s ease; }
   .cw-next:disabled { opacity: .45; cursor: not-allowed; }
   .cw-next:active:not(:disabled) { transform: scale(.98); }
@@ -1975,8 +1995,10 @@ window.MTP = (function () {
       const t = creditTypesCache.find(x => x.id === typeId);
       const d = creditElCache;
       if (!t || !d || !t.unlocked || !d.all_ok) return;
-      cw = { typeId, step: 0, amount: '', guarantor: '', guarOk: null, guarHtml: '', collateralId: '', gifts: [], preview: null, termsLeft: 0 };
+      cw = { typeId, step: 0, dir: 'none', amount: '', guarantor: '', guarOk: null, guarHtml: '', collateralId: '', gifts: [], preview: null, termsLeft: 0 };
       clearInterval(cwTimer);
+      openModal();
+      document.getElementById('modalOverlay').classList.add('tall');
       cwRender();
       cwLoadGifts();
     }
@@ -1995,7 +2017,6 @@ window.MTP = (function () {
     function cwRender() {
       const t = cwType(), r = creditElCache.rules, step = CW_STEPS[cw.step];
       clearInterval(cwTimer);
-      openPage('Kredit olish', cw.step > 0 ? () => { cw.step--; cwRender(); } : null);
       const prog = CW_STEPS.map((_, i) => `<div class="cw-seg ${i <= cw.step ? 'on' : ''}"></div>`).join('');
       let title = '', body = '';
 
@@ -2040,8 +2061,12 @@ window.MTP = (function () {
 
       document.getElementById('modalBody').innerHTML = `
         <div class="cw">
+          <div class="cw-head">
+            <button class="page-back-btn cw-back" onclick="cwBack()" aria-label="Orqaga"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <div class="cw-head-title">Kredit olish</div><div class="cw-head-sp"></div>
+          </div>
           <div class="cw-prog">${prog}</div>
-          <div class="cw-scroll">
+          <div class="cw-scroll ${cw.dir === 'none' ? '' : cw.dir}">
             <div class="cw-title">${title}</div>
             ${body}
           </div>
@@ -2049,10 +2074,18 @@ window.MTP = (function () {
           <div class="cw-foot"><button class="cw-next" id="cwNext" onclick="cwNext()">${step === 'confirm' ? 'Kafilga yuborish' : 'Keyingisi'}</button></div>
         </div>`;
 
+      cw.dir = 'none';
       if (step === 'amount') cwAmtInput();
       if (step === 'guarantor' && cw.guarantor) cwCheckGuarantor(true);
       if (step === 'collateral') cwRenderColl();
       if (step === 'confirm') { document.getElementById('cwNext').disabled = true; cwLoadPreview(); }
+    }
+
+    function cwBack() {
+      const btn = document.querySelector('.cw-back');
+      if (btn) { btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); }
+      if (cw.step > 0) { cw.step--; cw.dir = 'back'; cwRender(); }
+      else { clearInterval(cwTimer); closeModal(); }
     }
 
     // ----- 2-bosqich: summa -----
@@ -2200,6 +2233,7 @@ window.MTP = (function () {
     async function cwNext() {
       const step = CW_STEPS[cw.step], t = cwType();
       cwMsg('');
+      cw.dir = 'fwd';
       if (step === 'info') { cw.step = 1; return cwRender(); }
       if (step === 'amount') {
         const amount = parseFloat(document.getElementById('cwAmt').value);
@@ -2241,7 +2275,7 @@ window.MTP = (function () {
         if (!res.ok) {
           // Xato qaysi bosqichga tegishli bo'lsa, o'sha bosqichga qaytaramiz
           const back = (data.check && data.check.startsWith('g_')) ? 2 : (data.collateral_required || data.collateral_invalid) ? 3 : null;
-          if (back !== null) { cw.step = back; cwRender(); }
+          if (back !== null) { cw.step = back; cw.dir = 'back'; cwRender(); }
           cwMsg(data.error || 'Xatolik');
           return;
         }
@@ -5626,7 +5660,7 @@ window.MTP = (function () {
       const ov = document.getElementById('modalOverlay');
       _cancelModalClose(ov);
       destroyCoin3D();
-      ov.classList.remove('page', 'split', 'coin-sheet-ov'); ov.classList.add('open');
+      ov.classList.remove('page', 'split', 'coin-sheet-ov', 'tall'); ov.classList.add('open');
     }
     function closeModal(instant) {
       const ov = document.getElementById('modalOverlay');
@@ -5634,7 +5668,7 @@ window.MTP = (function () {
       pageNavDir = 'fwd';
       const finish = () => {
         _modalCloseTimer = null;
-        ov.classList.remove('open', 'page', 'closing', 'split', 'coin-sheet-ov');
+        ov.classList.remove('open', 'page', 'closing', 'split', 'coin-sheet-ov', 'tall');
         destroyCoin3D();
         const sd = document.getElementById('stSide'); if (sd) sd.innerHTML = '';
         const w = ov.querySelector('.modal-wrap');

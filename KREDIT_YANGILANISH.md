@@ -34,8 +34,8 @@ Katta kreditlar: admin panel -> Kredit -> "Admin tasdig'ini kutayotgan kreditlar
 - Kredit coini qulfi paytida do'konda sarflangan coin ham qulf hisobiga kiradi (qulf vaqt bilan ishlaydi, summa bilan emas).
 
 ## Yangi dizayn (bosqichma-bosqich kredit olish)
-Faqat frontend/public/index.html o'zgargan. "Kredit olish" tugmasi endi to'liq ekran sahifa ochadi
-(yumaloq orqaga tugmasi, sarlavha, pastda katta "Keyingisi"), 5 bosqich:
+Faqat frontend/public/index.html o'zgargan. "Kredit olish" tugmasi endi bosqichli oyna ochadi
+(balandligi ~90% bo'lgan pastki oyna: tepasida orqadagi sahifa xiralashib ko'rinadi, oyna ichida yumaloq orqaga tugmasi va sarlavha, pastda katta "Keyingisi"), 5 bosqich:
 1) Kredit haqida  2) Summa  3) Kafil  4) Garov  5) Shartlar va tasdiqlash.
 Orqaga bosilsa, kiritilgan ma'lumotlar saqlanib qoladi. Backend o'zgarmagan.
 Tugma rangi: index.html ichida `--cw-accent: #03b2f1;` (bitta joyda o'zgartiriladi).
