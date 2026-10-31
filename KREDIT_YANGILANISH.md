@@ -32,3 +32,10 @@ Katta kreditlar: admin panel -> Kredit -> "Admin tasdig'ini kutayotgan kreditlar
 ## Eslatma
 - Bir IP tekshiruvi: bir wifi/uydagi ikki odam bir-biriga kafil bo'la olmaydi. Xalaqit bersa, "Bir IP dan kirganlarni rad etish" ni 0 qiling.
 - Kredit coini qulfi paytida do'konda sarflangan coin ham qulf hisobiga kiradi (qulf vaqt bilan ishlaydi, summa bilan emas).
+
+## Yangi dizayn (bosqichma-bosqich kredit olish)
+Faqat frontend/public/index.html o'zgargan. "Kredit olish" tugmasi endi to'liq ekran sahifa ochadi
+(yumaloq orqaga tugmasi, sarlavha, pastda katta "Keyingisi"), 5 bosqich:
+1) Kredit haqida  2) Summa  3) Kafil  4) Garov  5) Shartlar va tasdiqlash.
+Orqaga bosilsa, kiritilgan ma'lumotlar saqlanib qoladi. Backend o'zgarmagan.
+Tugma rangi: index.html ichida `--cw-accent: #03b2f1;` (bitta joyda o'zgartiriladi).

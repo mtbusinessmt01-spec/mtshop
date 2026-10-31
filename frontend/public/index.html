@@ -438,6 +438,37 @@
   }
   .page-head-title { flex: 1; text-align: center; font-size: 17px; font-weight: 800; }
   .page-head-spacer { width: 40px; flex-shrink: 0; }
+  /* ---- Kredit olish: bosqichma-bosqich sahifa (maket bo'yicha: yumaloq orqaga tugmasi, sarlavha, pastda katta "Keyingisi") ---- */
+  :root { --cw-accent: #03b2f1; }
+  .cw { display: flex; flex-direction: column; height: calc(100dvh - 116px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  .cw-scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 2px 2px 8px; margin: 0 -2px; }
+  .cw-amt::-webkit-outer-spin-button, .cw-amt::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .cw-amt { -moz-appearance: textfield; }
+  .cw-prog { display: flex; gap: 6px; margin: 0 0 18px; }
+  .cw-seg { flex: 1; height: 4px; border-radius: 999px; background: var(--w90); transition: background .25s ease; }
+  .cw-seg.on { background: var(--cw-accent); }
+  .cw-title { font-size: 22px; font-weight: 800; margin: 0 0 14px; }
+  .cw-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 13px 14px; border-radius: 14px; background: var(--w50); margin-bottom: 8px; font-size: 14px; }
+  .cw-row > span:first-child { color: var(--muted); }
+  .cw-row > b { font-weight: 700; text-align: right; display: inline-flex; align-items: center; gap: 4px; }
+  .cw-list { list-style: none; margin: 16px 0 0; padding: 0; }
+  .cw-list li { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; line-height: 1.45; margin-bottom: 12px; }
+  .cw-list li > i { flex: 0 0 24px; height: 24px; border-radius: 50%; background: var(--cw-accent); color: #fff; font-style: normal; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .cw-input { width: 100%; padding: 15px 16px; border-radius: 16px; border: 1px solid var(--w130); background: var(--surface); color: var(--text); font: inherit; font-size: 16px; outline: none; }
+  .cw-input:focus { border-color: var(--cw-accent); }
+  .cw-amt { text-align: center; font-size: 34px; font-weight: 800; padding: 18px 12px; }
+  .cw-chips { display: flex; gap: 8px; margin: 10px 0 16px; }
+  .cw-chip { flex: 1; padding: 10px 6px; border-radius: 999px; border: 1px solid var(--w130); background: transparent; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .cw-chip:active { background: var(--w90); }
+  .cw-note { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 8px 2px; }
+  .cw-note.warn { color: #ffb300; }
+  .cw-check { display: flex; gap: 8px; align-items: center; font-size: 14px; padding: 4px 2px; }
+  .cw-check.bad { color: #ff6b6b; }
+  .cw-check-d { font-size: 12px; color: #ff6b6b; margin: 0 0 4px 24px; }
+  .cw-foot { flex-shrink: 0; padding: 10px 0 calc(6px + env(safe-area-inset-bottom)); }
+  .cw-next { width: 100%; height: 56px; border: 0; border-radius: 999px; background: var(--cw-accent); color: #fff; font: inherit; font-size: 18px; font-weight: 600; cursor: pointer; transition: transform .12s ease, opacity .2s ease; }
+  .cw-next:disabled { opacity: .45; cursor: not-allowed; }
+  .cw-next:active:not(:disabled) { transform: scale(.98); }
   @keyframes pageIn {
     from { transform: translateX(24px); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
@@ -1865,7 +1896,6 @@ window.MTP = (function () {
     }
 
     let creditElCache = null;         // /credits/eligibility javobi
-    let creditForm = { typeId: null, amount: '', guarantor: '', collateralId: '', gifts: [], guarOk: null };
 
     function creditFmtLeft(ms) {
       const h = Math.ceil(ms / 3600000);
@@ -1906,7 +1936,7 @@ window.MTP = (function () {
         let btn;
         if (!t.unlocked) btn = `<button class="btn secondary" disabled>🔒 Yopiq</button><div style="font-size:12px; color:var(--muted); margin-top:6px;">${esc(t.unlock_hint)}</div>`;
         else if (!d.all_ok) btn = `<button class="btn secondary" disabled>Shartlar bajarilmagan</button>`;
-        else btn = `<button class="btn" onclick="openCreditTypeModal(${t.id})">Ko'rish</button>`;
+        else btn = `<button class="btn" onclick="openCreditTypeModal(${t.id})">Kredit olish</button>`;
         return `
           <div class="gift-card" style="text-align:left; padding:16px; margin-bottom:10px; ${t.unlocked ? '' : 'opacity:.75;'}">
             <div style="font-weight:700; margin-bottom:6px;">${esc(t.name)}</div>
@@ -1932,198 +1962,291 @@ window.MTP = (function () {
       `;
     }
 
-    function openCreditTypeModal(typeId) {
+    // ====== Kredit olish: 5 bosqichli sahifa ======
+    // 1) Kredit haqida  2) Summa  3) Kafil  4) Garov  5) Shartlar va tasdiqlash
+    const CW_STEPS = ['info', 'amount', 'guarantor', 'collateral', 'confirm'];
+    let cw = null;
+    let cwTimer = null, cwGuarTimer = null, cwGuarToken = 0;
+    const cwR2 = (n) => Math.round(n * 100) / 100;
+    const cwType = () => creditTypesCache.find(x => x.id === cw.typeId);
+    const cwCoin = '<img class="cn" src="icons/coin.png" alt="coin">';
+
+    function openCreditTypeModal(typeId) {          // "Kredit olish" tugmasi shu funksiyani chaqiradi
       const t = creditTypesCache.find(x => x.id === typeId);
       const d = creditElCache;
       if (!t || !d || !t.unlocked || !d.all_ok) return;
-      if (creditForm.typeId !== typeId) creditForm = { typeId, amount: '', guarantor: '', collateralId: '', gifts: [], guarOk: null };
-      const r = d.rules;
-      document.getElementById('modalBody').innerHTML = `
-        <div class="modal-title">${esc(t.name)}</div>
-        <div class="case-item-row"><div class="ci-name">Summa oralig'i</div><div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${t.min_amount}–${t.max_amount}</div></div>
-        <div class="case-item-row"><div class="ci-name">Sizga foiz</div><div class="ci-chance">${t.interest_effective}%</div></div>
-        <div class="case-item-row"><div class="ci-name">To'lash muddati</div><div class="ci-chance">${t.installments_weeks} hafta</div></div>
-
-        <label class="send-label">Qancha coin olmoqchisiz?</label>
-        <input type="number" class="send-input" id="takeCreditAmt" min="${t.min_amount}" max="${t.max_amount}" step="0.01" placeholder="${t.min_amount} - ${t.max_amount}" value="${esc(creditForm.amount)}" oninput="creditAmountChanged()">
-
-        <label class="send-label">Kafil username</label>
-        <input type="text" class="send-input" id="takeCreditGuarantor" placeholder="Kafil bo'ladigan foydalanuvchi username" autocapitalize="none" autocomplete="off" value="${esc(creditForm.guarantor)}" oninput="creditGuarantorInput()">
-        <div id="takeGuarChecks" style="font-size:13px; margin:6px 0;"></div>
-        <div class="send-hint">Kafil kamida ${r.guarantor_min_days} kunlik akkauntli, balansida kredit summasining ${r.guarantor_min_balance_percent}% idan kam bo'lmagan coin va PIN o'rnatilgan, siz bilan bir IP dan kirmagan bo'lishi kerak.</div>
-
-        <div id="takeCollWrap" style="margin-top:12px;"><div class="send-hint">Garov uchun giftlar yuklanmoqda...</div></div>
-
-        <div class="msg" id="takeCreditMsg"></div>
-        <button class="btn" style="margin-top:14px" onclick="creditGoTerms(${t.id})">Davom etish</button>
-      `;
-      openModal();
-      if (creditForm.guarantor) creditGuarantorInput(true);
-      loadCollateralOptions();
+      cw = { typeId, step: 0, amount: '', guarantor: '', guarOk: null, guarHtml: '', collateralId: '', gifts: [], preview: null, termsLeft: 0 };
+      clearInterval(cwTimer);
+      cwRender();
+      cwLoadGifts();
     }
 
-    async function loadCollateralOptions() {
+    function cwMsg(text) {
+      const m = document.getElementById('cwMsg');
+      if (!m) return;
+      m.textContent = text || ''; m.className = 'msg' + (text ? ' error' : '');
+    }
+
+    function cwCollRequired() {
+      const r = creditElCache.rules, amt = parseFloat(cw.amount) || 0;
+      return r.collateral_required_amount > 0 && amt >= r.collateral_required_amount;
+    }
+
+    function cwRender() {
+      const t = cwType(), r = creditElCache.rules, step = CW_STEPS[cw.step];
+      clearInterval(cwTimer);
+      openPage('Kredit olish', cw.step > 0 ? () => { cw.step--; cwRender(); } : null);
+      const prog = CW_STEPS.map((_, i) => `<div class="cw-seg ${i <= cw.step ? 'on' : ''}"></div>`).join('');
+      let title = '', body = '';
+
+      if (step === 'info') {
+        title = 'Kredit haqida';
+        const withCol = t.interest_with_collateral < t.interest_effective ? ` (garov bilan ${t.interest_with_collateral}%)` : '';
+        body = `
+          <div class="cw-row"><span>Kredit turi</span><b>${esc(t.name)}</b></div>
+          <div class="cw-row"><span>Summa</span><b>${cwCoin} ${t.min_amount}–${t.max_amount}</b></div>
+          <div class="cw-row"><span>Sizga foiz</span><b>${t.interest_effective}%${withCol}</b></div>
+          <div class="cw-row"><span>To'lash muddati</span><b>${t.installments_weeks} hafta</b></div>
+          <ul class="cw-list">
+            <li><i>1</i><span>Summani, kafilni${r.collateral_required_amount > 0 ? ` va (${r.collateral_required_amount} coindan katta kreditlarda) garovni` : ' va ixtiyoriy garovni'} tanlaysiz.</span></li>
+            <li><i>2</i><span>Kafil PIN bilan tasdiqlaydi${r.admin_approval_amount > 0 ? `. ${r.admin_approval_amount} coindan katta kreditlarni admin ham tasdiqlaydi` : ''}.</span></li>
+            <li><i>3</i><span>${r.accept_minutes} daqiqa ichida "Qabul qilaman" tugmasini bosasiz, shundan keyin coin tushadi.</span></li>
+            <li><i>4</i><span>${r.lock_hours > 0 ? `Kredit tushgandan keyin ${r.lock_hours} soat coin, gift va case jo'natib, trade qilib bo'lmaydi.` : "To'lovlarni o'z vaqtida qiling."}</span></li>
+          </ul>`;
+      } else if (step === 'amount') {
+        title = 'Qancha coin kerak?';
+        const mid = Math.round((t.min_amount + t.max_amount) / 2);
+        body = `
+          <input type="number" inputmode="decimal" class="cw-input cw-amt" id="cwAmt" min="${t.min_amount}" max="${t.max_amount}" step="0.01" placeholder="${t.min_amount}" value="${esc(cw.amount)}" oninput="cwAmtInput()">
+          <div class="cw-chips">
+            <button class="cw-chip" onclick="cwSetAmt(${t.min_amount})">${t.min_amount}</button>
+            <button class="cw-chip" onclick="cwSetAmt(${mid})">${mid}</button>
+            <button class="cw-chip" onclick="cwSetAmt(${t.max_amount})">${t.max_amount}</button>
+          </div>
+          <div id="cwCalc"></div>`;
+      } else if (step === 'guarantor') {
+        title = 'Kafilni tanlang';
+        body = `
+          <input type="text" class="cw-input" id="cwGuar" placeholder="Kafil username" autocapitalize="none" autocomplete="off" value="${esc(cw.guarantor)}" oninput="cwGuarInput()">
+          <div id="cwGuarChecks" style="margin-top:10px">${cw.guarHtml}</div>
+          <div class="cw-note">Kafil kamida ${r.guarantor_min_days} kunlik akkauntli bo'lishi, balansida kredit summasining ${r.guarantor_min_balance_percent}% idan kam bo'lmagan coin va PIN bo'lishi, siz bilan bir IP dan kirmagan bo'lishi kerak. Siz to'lamasangiz, kafil jarimaga tortiladi.</div>`;
+      } else if (step === 'collateral') {
+        title = 'Garov';
+        body = `<div id="cwColl"></div>`;
+      } else {
+        title = 'Shartlarni tasdiqlang';
+        body = `<div id="cwTerms"><div class="cw-note">Shartlar hisoblanmoqda...</div></div>`;
+      }
+
+      document.getElementById('modalBody').innerHTML = `
+        <div class="cw">
+          <div class="cw-prog">${prog}</div>
+          <div class="cw-scroll">
+            <div class="cw-title">${title}</div>
+            ${body}
+          </div>
+          <div class="msg" id="cwMsg"></div>
+          <div class="cw-foot"><button class="cw-next" id="cwNext" onclick="cwNext()">${step === 'confirm' ? 'Kafilga yuborish' : 'Keyingisi'}</button></div>
+        </div>`;
+
+      if (step === 'amount') cwAmtInput();
+      if (step === 'guarantor' && cw.guarantor) cwCheckGuarantor(true);
+      if (step === 'collateral') cwRenderColl();
+      if (step === 'confirm') { document.getElementById('cwNext').disabled = true; cwLoadPreview(); }
+    }
+
+    // ----- 2-bosqich: summa -----
+    function cwSetAmt(v) { const i = document.getElementById('cwAmt'); i.value = v; cwAmtInput(); }
+    function cwAmtInput() {
+      const t = cwType(), r = creditElCache.rules;
+      cw.amount = document.getElementById('cwAmt').value;
+      cwMsg('');
+      const amt = parseFloat(cw.amount);
+      const box = document.getElementById('cwCalc');
+      if (!amt || amt < t.min_amount || amt > t.max_amount) {
+        box.innerHTML = `<div class="cw-note">Miqdor ${t.min_amount} dan ${t.max_amount} gacha bo'lishi kerak.</div>`;
+        return;
+      }
+      const total = cwR2(amt * (1 + t.interest_effective / 100));
+      const weekly = cwR2(total / t.installments_weeks);
+      box.innerHTML = `
+        <div class="cw-row"><span>Olasiz</span><b>${cwCoin} ${amt}</b></div>
+        <div class="cw-row"><span>Qaytarasiz (${t.interest_effective}%)</span><b>${cwCoin} ${total}</b></div>
+        <div class="cw-row"><span>Haftalik to'lov</span><b>${cwCoin} ${weekly} &times; ${t.installments_weeks}</b></div>
+        ${cwCollRequired() ? `<div class="cw-note warn">🔒 Bu summada garov (gift) majburiy bo'ladi.</div>` : (t.interest_with_collateral < t.interest_effective ? `<div class="cw-note">Garov qo'ysangiz foiz ${t.interest_with_collateral}% ga tushadi.</div>` : '')}`;
+    }
+
+    // ----- 3-bosqich: kafil -----
+    function cwGuarInput() {
+      cw.guarantor = document.getElementById('cwGuar').value.trim();
+      cwMsg('');
+      cw.guarOk = null; cw.guarHtml = '';
+      clearTimeout(cwGuarTimer);
+      const box = document.getElementById('cwGuarChecks');
+      if (!cw.guarantor) { box.innerHTML = ''; return; }
+      box.innerHTML = '<div class="cw-note">Tekshirilmoqda...</div>';
+      cwGuarTimer = setTimeout(() => cwCheckGuarantor(false), 500);
+    }
+    async function cwCheckGuarantor() {
+      const uname = cw.guarantor, token = ++cwGuarToken;
+      if (!uname) return;
+      let html = '', ok = false;
+      try {
+        const res = await fetch(`${API_BASE}/api/credits/guarantor-check?username=${encodeURIComponent(uname)}&amount=${parseFloat(cw.amount) || 0}`, { credentials: 'include' });
+        const d = await res.json();
+        if (!d.found || d.error) html = `<div class="cw-check bad">❌ ${esc(d.error || 'Topilmadi')}</div>`;
+        else {
+          ok = d.ok;
+          html = d.checks.map(c => `<div class="cw-check">${c.ok ? '✅' : '❌'} ${esc(c.label)}</div>${c.ok ? '' : `<div class="cw-check-d">${esc(c.detail)}</div>`}`).join('');
+        }
+      } catch (e) { html = ''; }
+      if (token !== cwGuarToken || uname !== cw.guarantor) return;   // eskirgan javob
+      cw.guarOk = ok; cw.guarHtml = html;
+      const box = document.getElementById('cwGuarChecks');
+      if (box) box.innerHTML = html;
+    }
+
+    // ----- 4-bosqich: garov -----
+    async function cwLoadGifts() {
       try {
         const res = await fetch(`${API_BASE}/api/inventory/gifts`, { credentials: 'include' });
         const items = res.ok ? await res.json() : [];
-        creditForm.gifts = items.filter(g => !g.trade_id).sort((a, b) => b.current_price - a.current_price);
-      } catch (e) { creditForm.gifts = []; }
-      renderCollateral();
+        cw.gifts = items.filter(g => !g.trade_id).sort((a, b) => b.current_price - a.current_price);
+      } catch (e) { cw.gifts = []; }
+      cwRenderColl();
     }
-
-    function creditAmountChanged() {
-      creditForm.amount = document.getElementById('takeCreditAmt').value;
-      renderCollateral();
-      if (creditForm.guarantor) creditGuarantorInput();
-    }
-
-    function renderCollateral() {
-      const wrap = document.getElementById('takeCollWrap');
-      if (!wrap || !creditElCache) return;
-      const r = creditElCache.rules;
-      const amt = parseFloat(creditForm.amount) || 0;
-      const required = r.collateral_required_amount > 0 && amt >= r.collateral_required_amount;
+    function cwRenderColl() {
+      const wrap = document.getElementById('cwColl');
+      if (!wrap || !cw) return;
+      const r = creditElCache.rules, amt = parseFloat(cw.amount) || 0, required = cwCollRequired();
       const need = Math.round(amt * r.collateral_value_percent) / 100;
-      const head = required
-        ? `<div style="font-weight:700;">🔒 Garov majburiy</div><div class="send-hint">${r.collateral_required_amount} coin va undan katta kreditlarda giftingizni garovga qo'yasiz${amt ? `: kamida ${need} coin narxli gift kerak` : ''}. To'lamasangiz, gift saytga o'tadi. Kredit yopilgach qaytariladi.</div>`
-        : `<div style="font-weight:700;">🔒 Garov (ixtiyoriy)</div><div class="send-hint">Giftni garovga qo'ysangiz, foizdan ${r.collateral_discount_percent}% ayriladi. Kredit yopilgach gift qaytariladi, to'lamasangiz saytga o'tadi.</div>`;
-      if (!creditForm.gifts.length) {
-        wrap.innerHTML = head + `<div class="send-hint">Inventaringizda garovga qo'yish mumkin bo'lgan gift yo'q.</div>`;
-        return;
+      if (cw.collateralId) {      // narx yetmay qolgan bo'lsa tanlovni bekor qilamiz
+        const g = cw.gifts.find(x => String(x.inventory_id) === String(cw.collateralId));
+        if (!g || g.current_price + 0.005 < need) cw.collateralId = '';
       }
-      const sel = String(creditForm.collateralId || '');
-      const rows = creditForm.gifts.map(g => {
-        const ok = !amt || g.current_price + 0.005 >= need;
+      const head = required
+        ? `<div class="cw-note warn">🔒 ${r.collateral_required_amount} coin va undan katta kreditlarda garov majburiy: kamida <b>${need}</b> coin narxli gift tanlang. To'lamasangiz, gift saytga o'tadi, to'lasangiz qaytariladi.</div>`
+        : `<div class="cw-note">Ixtiyoriy: giftni garovga qo'ysangiz, foizdan ${r.collateral_discount_percent}% ayriladi. To'lamasangiz, gift saytga o'tadi, to'lasangiz qaytariladi.</div>`;
+      const sel = String(cw.collateralId || '');
+      const rows = cw.gifts.map(g => {
+        const ok = g.current_price + 0.005 >= need;
         return `
-          <label class="case-item-row" style="cursor:${ok ? 'pointer' : 'not-allowed'}; opacity:${ok ? 1 : .45};">
-            <input type="radio" name="collGift" value="${g.inventory_id}" ${sel === String(g.inventory_id) ? 'checked' : ''} ${ok ? '' : 'disabled'} onchange="creditForm.collateralId = this.value">
-            <div class="ci-name" style="margin-left:8px;">${esc(g.name)}</div>
-            <div class="ci-chance"><img class="cn" src="icons/coin.png" alt="coin"> ${g.current_price}</div>
+          <label class="tr-pick-row" style="cursor:${ok ? 'pointer' : 'not-allowed'}; opacity:${ok ? 1 : .45};">
+            <input type="radio" name="cwGift" value="${g.inventory_id}" ${sel === String(g.inventory_id) ? 'checked' : ''} ${ok ? '' : 'disabled'} onchange="cw.collateralId = this.value; cwMsg('')">
+            <div class="tr-thumb">${giftImg(g)}</div>
+            <div class="tr-name">${esc(g.name)}</div>
+            <div class="tr-price">${g.current_price}</div>
           </label>`;
       }).join('');
       const none = required ? '' : `
-        <label class="case-item-row" style="cursor:pointer;">
-          <input type="radio" name="collGift" value="" ${sel === '' ? 'checked' : ''} onchange="creditForm.collateralId = ''">
-          <div class="ci-name" style="margin-left:8px;">Garovsiz</div>
+        <label class="tr-pick-row" style="cursor:pointer;">
+          <input type="radio" name="cwGift" value="" ${sel === '' ? 'checked' : ''} onchange="cw.collateralId = ''">
+          <div class="tr-name">Garovsiz</div>
         </label>`;
-      wrap.innerHTML = head + `<div style="max-height:190px; overflow:auto; margin-top:6px;">${none}${rows}</div>`;
+      wrap.innerHTML = head + (cw.gifts.length || !required ? `<div class="tr-pick-list" style="max-height:none">${none}${rows}</div>` : `<div class="cw-note">Inventaringizda garovga qo'yish mumkin bo'lgan gift yo'q.</div>`);
     }
 
-    let guarTimer = null;
-    function creditGuarantorInput(now) {
-      creditForm.guarantor = document.getElementById('takeCreditGuarantor').value.trim();
-      const box = document.getElementById('takeGuarChecks');
-      clearTimeout(guarTimer);
-      creditForm.guarOk = null;
-      if (!creditForm.guarantor) { box.innerHTML = ''; return; }
-      box.innerHTML = '<span style="color:var(--muted)">Tekshirilmoqda...</span>';
-      guarTimer = setTimeout(async () => {
-        const amt = parseFloat(creditForm.amount) || 0;
-        const uname = creditForm.guarantor;
-        try {
-          const res = await fetch(`${API_BASE}/api/credits/guarantor-check?username=${encodeURIComponent(uname)}&amount=${amt}`, { credentials: 'include' });
-          const d = await res.json();
-          if (uname !== creditForm.guarantor || !document.getElementById('takeGuarChecks')) return;
-          if (!d.found || d.error) { creditForm.guarOk = false; box.innerHTML = `<div style="color:#ff6b6b">❌ ${esc(d.error || 'Topilmadi')}</div>`; return; }
-          creditForm.guarOk = d.ok;
-          box.innerHTML = d.checks.map(c => `<div>${c.ok ? '✅' : '❌'} ${esc(c.label)}</div>${c.ok ? '' : `<div style="font-size:12px; color:#ff6b6b; margin:0 0 4px 22px;">${esc(c.detail)}</div>`}`).join('');
-        } catch (e) { box.innerHTML = ''; }
-      }, now ? 0 : 500);
-    }
-
-    // 2-qadam: kredit shartlari oynasi
-    async function creditGoTerms(typeId) {
-      const msg = document.getElementById('takeCreditMsg');
-      msg.textContent = ''; msg.className = 'msg';
-      const t = creditTypesCache.find(x => x.id === typeId);
-      const amount = parseFloat(document.getElementById('takeCreditAmt').value);
-      const guarantor = document.getElementById('takeCreditGuarantor').value.trim();
-      const r = creditElCache.rules;
-      if (!amount) { msg.textContent = 'Miqdorni kiriting'; msg.classList.add('error'); return; }
-      if (amount < t.min_amount || amount > t.max_amount) { msg.textContent = `Miqdor ${t.min_amount} - ${t.max_amount} orasida bo'lishi kerak`; msg.classList.add('error'); return; }
-      if (!guarantor) { msg.textContent = 'Kafil username kiriting'; msg.classList.add('error'); return; }
-      if (creditForm.guarOk === false) { msg.textContent = 'Tanlangan kafil talablarga javob bermaydi. Boshqa kafil tanlang'; msg.classList.add('error'); return; }
-      const required = r.collateral_required_amount > 0 && amount >= r.collateral_required_amount;
-      if (required && !creditForm.collateralId) { msg.textContent = 'Bu summadagi kredit uchun garov (gift) tanlang'; msg.classList.add('error'); return; }
-      creditForm.amount = String(amount); creditForm.guarantor = guarantor;
-
+    // ----- 5-bosqich: shartlar -----
+    async function cwLoadPreview() {
+      const wrap = document.getElementById('cwTerms');
       const res = await fetch(`${API_BASE}/api/credits/preview`, {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credit_type_id: typeId, amount, collateral_user_gift_id: creditForm.collateralId || null }),
+        body: JSON.stringify({ credit_type_id: cw.typeId, amount: parseFloat(cw.amount), collateral_user_gift_id: cw.collateralId || null }),
       });
       const p = await res.json();
-      if (!res.ok) { msg.textContent = p.error || 'Xatolik'; msg.classList.add('error'); return; }
-      const col = creditForm.gifts.find(g => String(g.inventory_id) === String(creditForm.collateralId));
-      const coin = '<img class="cn" src="icons/coin.png" alt="coin">';
-      document.getElementById('modalBody').innerHTML = `
-        <div class="modal-title">Kredit shartlari</div>
-        <div class="receipt">
-          <div class="receipt-row"><span>Kredit</span><span>${esc(p.credit_name)}</span></div>
-          <div class="receipt-row"><span>Olinadigan summa</span><span>${coin} ${p.amount}</span></div>
-          <div class="receipt-row"><span>Foiz</span><span>${p.interest_percent}%${p.interest_percent !== p.base_interest_percent ? ` (asosiy ${p.base_interest_percent}%)` : ''}</span></div>
-          <div class="receipt-row"><span>Jami qaytarasiz</span><span>${coin} ${p.total_to_pay}</span></div>
-          <div class="receipt-row"><span>Haftalik to'lov</span><span>${coin} ${p.weekly_payment} &times; ${p.weeks} hafta</span></div>
-          <div class="receipt-row"><span>Kafil</span><span>@${esc(guarantor)}</span></div>
-          <div class="receipt-row"><span>Garov</span><span>${col ? '🔒 ' + esc(col.name) : "yo'q"}</span></div>
+      if (!wrap || CW_STEPS[cw.step] !== 'confirm') return;
+      if (!res.ok) { wrap.innerHTML = ''; cwMsg(p.error || 'Xatolik'); return; }
+      cw.preview = p;
+      const col = cw.gifts.find(g => String(g.inventory_id) === String(cw.collateralId));
+      wrap.innerHTML = `
+        <div class="cw-row"><span>Kredit</span><b>${esc(p.credit_name)}</b></div>
+        <div class="cw-row"><span>Olinadigan summa</span><b>${cwCoin} ${p.amount}</b></div>
+        <div class="cw-row"><span>Foiz</span><b>${p.interest_percent}%${p.interest_percent !== p.base_interest_percent ? ` (asosiy ${p.base_interest_percent}%)` : ''}</b></div>
+        <div class="cw-row"><span>Jami qaytarasiz</span><b>${cwCoin} ${p.total_to_pay}</b></div>
+        <div class="cw-row"><span>Haftalik to'lov</span><b>${cwCoin} ${p.weekly_payment} &times; ${p.weeks}</b></div>
+        <div class="cw-row"><span>Kafil</span><b>@${esc(cw.guarantor)}</b></div>
+        <div class="cw-row"><span>Garov</span><b>${col ? '🔒 ' + esc(col.name) : "yo'q"}</b></div>
+        <div class="cw-note">
+          ⚠️ To'lov kechiksa, har kechikkan hafta uchun ${cwCoin} ${p.fine_amount} (${p.fine_percent}%) jarima qo'shiladi. ${p.max_fines} marta kechiksangiz, hisobingiz bloklanadi${col ? ' va garovdagi gift saytga o\'tadi' : ''}.<br>
+          🤝 Kafilingiz ham jarimaga tortilishi mumkin (haftalik to'lovning ${p.guarantor_penalty_percent}% i, ${cwCoin} ${p.guarantor_penalty_amount}).<br>
+          ${p.lock_hours > 0 ? `🔒 Kredit tushgandan keyin ${p.lock_hours} soat coin, gift va case jo'natib, trade qilib bo'lmaydi (do'konda xarid qilish mumkin).<br>` : ''}
+          ⏱️ Kafil${p.needs_admin ? ' va admin' : ''} tasdiqlagandan keyin ${p.accept_minutes} daqiqa ichida "Qabul qilaman" tugmasini bosishingiz kerak.
         </div>
-        <div style="font-size:13px; line-height:1.5; margin:12px 0; color:var(--muted);">
-          <div>⚠️ To'lov kechiksa, har kechikkan hafta uchun ${coin} ${p.fine_amount} (${p.fine_percent}%) jarima qo'shiladi. ${p.max_fines} marta kechiksangiz, hisobingiz bloklanadi${col ? ' va garovdagi gift saytga o\'tadi' : ''}.</div>
-          <div>🤝 Kafilingiz ham jarimaga tortilishi mumkin (haftalik to'lovning ${p.guarantor_penalty_percent}% i, ${coin} ${p.guarantor_penalty_amount}).</div>
-          ${p.lock_hours > 0 ? `<div>🔒 Kredit coini tushgandan keyin ${p.lock_hours} soat davomida coin, gift va case jo'natib, trade qilib bo'lmaydi (do'konda xarid qilish mumkin).</div>` : ''}
-          <div>⏱️ Kafil${p.needs_admin ? ' va admin' : ''} tasdiqlagandan keyin ${p.accept_minutes} daqiqa ichida "Qabul qilaman" tugmasini bosishingiz kerak.</div>
-        </div>
-        <label style="display:flex; gap:8px; align-items:flex-start; font-size:14px; margin-bottom:10px;">
-          <input type="checkbox" id="termsCheck" onchange="creditTermsUpdate()" style="margin-top:3px;">
+        <label class="cw-check" style="margin:10px 0">
+          <input type="checkbox" id="cwTermsCheck" onchange="cwTermsUpdate()">
           <span>Kredit shartlarini o'qidim va qabul qilaman</span>
         </label>
-        <label class="send-label">Tasdiqlash uchun summani yozing: <b>${p.amount}</b></label>
-        <input type="text" inputmode="decimal" class="send-input" id="termsTyped" placeholder="${p.amount}" autocomplete="off" oninput="creditTermsUpdate()">
-        <div class="msg" id="takeCreditMsg"></div>
-        <button class="btn" id="termsBtn" style="margin-top:14px" disabled onclick="creditSubmitTake(${typeId})">Kafilga yuborish</button>
-        <button class="btn secondary" style="margin-top:8px" onclick="openCreditTypeModal(${typeId})">Orqaga</button>
-      `;
-      creditForm.termsLeft = p.terms_seconds;
-      creditTermsUpdate();
-      const iv = setInterval(() => {
-        if (!document.getElementById('termsBtn')) { clearInterval(iv); return; }
-        creditForm.termsLeft = Math.max(0, creditForm.termsLeft - 1);
-        creditTermsUpdate();
-        if (creditForm.termsLeft <= 0) clearInterval(iv);
+        <div class="cw-note" style="margin-bottom:6px">Tasdiqlash uchun summani yozing: <b>${p.amount}</b></div>
+        <input type="text" inputmode="decimal" class="cw-input" id="cwTyped" placeholder="${p.amount}" autocomplete="off" oninput="cwTermsUpdate()">`;
+      cw.termsLeft = p.terms_seconds;
+      cwTermsUpdate();
+      clearInterval(cwTimer);
+      cwTimer = setInterval(() => {
+        if (!document.getElementById('cwNext') || !cw) { clearInterval(cwTimer); return; }
+        cw.termsLeft = Math.max(0, cw.termsLeft - 1);
+        cwTermsUpdate();
+        if (cw.termsLeft <= 0) clearInterval(cwTimer);
       }, 1000);
     }
-
-    function creditTermsUpdate() {
-      const btn = document.getElementById('termsBtn');
-      if (!btn) return;
-      const checked = document.getElementById('termsCheck').checked;
-      const typed = parseFloat(String(document.getElementById('termsTyped').value).replace(',', '.'));
-      const okTyped = typed === parseFloat(creditForm.amount);
-      btn.disabled = !(checked && okTyped && creditForm.termsLeft <= 0);
-      btn.textContent = creditForm.termsLeft > 0 ? `Kafilga yuborish (${creditForm.termsLeft})` : 'Kafilga yuborish';
+    function cwTermsUpdate() {
+      const btn = document.getElementById('cwNext'), chk = document.getElementById('cwTermsCheck'), typed = document.getElementById('cwTyped');
+      if (!btn || !chk || !typed || !cw.preview) return;
+      const okTyped = parseFloat(String(typed.value).replace(',', '.')) === cw.preview.amount;
+      btn.disabled = !(chk.checked && okTyped && cw.termsLeft <= 0);
+      btn.textContent = cw.termsLeft > 0 ? `Kafilga yuborish (${cw.termsLeft})` : 'Kafilga yuborish';
     }
 
-    async function creditSubmitTake(typeId) {
+    // ----- "Keyingisi" -----
+    async function cwNext() {
+      const step = CW_STEPS[cw.step], t = cwType();
+      cwMsg('');
+      if (step === 'info') { cw.step = 1; return cwRender(); }
+      if (step === 'amount') {
+        const amount = parseFloat(document.getElementById('cwAmt').value);
+        if (!amount) return cwMsg('Miqdorni kiriting');
+        if (amount < t.min_amount || amount > t.max_amount) return cwMsg(`Miqdor ${t.min_amount} - ${t.max_amount} orasida bo'lishi kerak`);
+        cw.amount = String(amount); cw.step = 2; return cwRender();
+      }
+      if (step === 'guarantor') {
+        cw.guarantor = document.getElementById('cwGuar').value.trim();
+        if (!cw.guarantor) return cwMsg('Kafil username kiriting');
+        const btn = document.getElementById('cwNext'); btn.disabled = true;
+        clearTimeout(cwGuarTimer);
+        await cwCheckGuarantor();
+        const b2 = document.getElementById('cwNext'); if (b2) b2.disabled = false;
+        if (cw.guarOk !== true) return cwMsg('Tanlangan kafil talablarga javob bermaydi. Boshqa kafil tanlang');
+        cw.step = 3; return cwRender();
+      }
+      if (step === 'collateral') {
+        if (cwCollRequired() && !cw.collateralId) return cwMsg('Bu summadagi kredit uchun garov (gift) tanlang');
+        cw.step = 4; return cwRender();
+      }
+      return cwSubmit();
+    }
+
+    async function cwSubmit() {
       if (actionInProgress) return;
-      const msg = document.getElementById('takeCreditMsg');
-      msg.textContent = ''; msg.className = 'msg';
       actionInProgress = true;
+      cwMsg('');
       try {
         const res = await fetch(`${API_BASE}/api/credits/take`, {
-          method: 'POST', credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            credit_type_id: typeId, amount: parseFloat(creditForm.amount), guarantor_username: creditForm.guarantor,
-            collateral_user_gift_id: creditForm.collateralId || null,
-            terms_accepted: true, confirm_amount: String(parseFloat(creditForm.amount)),
+            credit_type_id: cw.typeId, amount: parseFloat(cw.amount), guarantor_username: cw.guarantor,
+            collateral_user_gift_id: cw.collateralId || null,
+            terms_accepted: true, confirm_amount: String(parseFloat(cw.amount)),
           }),
         });
         const data = await res.json();
         if (!res.ok) {
-          msg.textContent = data.error || 'Xatolik';
-          msg.classList.add('error');
+          // Xato qaysi bosqichga tegishli bo'lsa, o'sha bosqichga qaytaramiz
+          const back = (data.check && data.check.startsWith('g_')) ? 2 : (data.collateral_required || data.collateral_invalid) ? 3 : null;
+          if (back !== null) { cw.step = back; cwRender(); }
+          cwMsg(data.error || 'Xatolik');
           return;
         }
-        creditForm = { typeId: null, amount: '', guarantor: '', collateralId: '', gifts: [], guarOk: null };
+        clearInterval(cwTimer);
+        cw = null;
         closeModal();
         showToast(`So'rov @${data.guarantor_username} ga yuborildi. Kafil tasdiqlasa, qabul qilishingiz so'raladi 🤝`);
         loadMyRequests();
