@@ -445,11 +445,26 @@
   .modal-overlay.tall .modal-wrap { max-width: 540px; margin: 0; height: calc(100dvh - max(calc(env(safe-area-inset-top) + 56px), 9.5dvh)); }
   .modal-overlay.tall .modal-box {
     height: 100%; max-height: none; overflow: visible; display: flex; flex-direction: column;
-    background: var(--card); backdrop-filter: none; -webkit-backdrop-filter: none;
-    border: 1px solid var(--w80); border-bottom: none; border-radius: 30px 30px 0 0;
-    padding: 14px 18px 0;
-    box-shadow: 0 -12px 40px rgba(0,0,0,0.45);
+    background: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+    border: none; border-radius: 0; box-shadow: none;
+    padding: 14px 18px 0; position: relative; isolation: isolate; animation: none;
   }
+  /* Karta foni alohida qatlam: kirishda/chiqishda faqat u (va matn) shaffoflashadi, orqaga tugmasi joyida qoladi */
+  .modal-overlay.tall .modal-box::before {
+    content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: var(--card); border: 1px solid var(--w80); border-bottom: none; border-radius: 30px 30px 0 0;
+    box-shadow: 0 -12px 40px rgba(0,0,0,0.45);
+    animation: tallIn calc(340ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards;
+  }
+  .modal-overlay.tall.closing .modal-wrap { animation: none; }
+  .modal-overlay.tall.closing .modal-box::before { animation: tallOut calc(240ms * var(--anim-k)) cubic-bezier(.4,0,1,1) forwards; }
+  .modal-overlay.open.tall .cw-foot, .modal-overlay.open.tall .cw-head-title,
+  .modal-overlay.open.tall .cw-scroll:not(.fwd):not(.back) { animation: tallFadeIn calc(340ms * var(--anim-k)) ease backwards; }
+  .modal-overlay.open.tall.closing .cw-foot, .modal-overlay.open.tall.closing .cw-scroll, .modal-overlay.open.tall.closing .cw-prog-wrap { animation: tallFadeOut calc(240ms * var(--anim-k)) ease forwards; }
+  @keyframes tallIn { from { transform: translateY(40px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes tallOut { to { transform: translateY(40px) scale(.97); opacity: 0; } }
+  @keyframes tallFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes tallFadeOut { to { opacity: 0; } }
   .modal-overlay.tall .modal-grab-zone { display: none; }
   .modal-overlay.tall #modalBody { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .cw { display: flex; flex-direction: column; flex: 1; min-height: 0; position: relative; }
