@@ -442,9 +442,9 @@
   :root { --cw-accent: #03b2f1; }
   /* Tall sheet: ekranning ~90% i, tepasida orqadagi sahifa xiralashib ko'rinib turadi */
   .modal-overlay.tall { padding: 0; }
-  .modal-overlay.tall .modal-wrap { max-width: 540px; margin: 0; height: calc(100dvh - max(calc(env(safe-area-inset-top) + 24px), 9.5dvh)); }
+  .modal-overlay.tall .modal-wrap { max-width: 540px; margin: 0; height: calc(100dvh - max(calc(env(safe-area-inset-top) + 56px), 9.5dvh)); }
   .modal-overlay.tall .modal-box {
-    height: 100%; max-height: none; overflow: hidden; display: flex; flex-direction: column;
+    height: 100%; max-height: none; overflow: visible; display: flex; flex-direction: column;
     background: var(--card); backdrop-filter: none; -webkit-backdrop-filter: none;
     border: 1px solid var(--w80); border-bottom: none; border-radius: 30px 30px 0 0;
     padding: 14px 18px 0;
@@ -452,7 +452,7 @@
   }
   .modal-overlay.tall .modal-grab-zone { display: none; }
   .modal-overlay.tall #modalBody { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  .cw { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .cw { display: flex; flex-direction: column; flex: 1; min-height: 0; position: relative; }
   .cw-head { display: flex; align-items: center; gap: 12px; margin: 2px 0 14px; }
   .cw-head-title { flex: 1; text-align: center; font-size: 17px; font-weight: 800; }
   .cw-head-sp { width: 40px; flex-shrink: 0; }
@@ -461,12 +461,16 @@
   .cw-scroll.back { animation: cwInBack calc(.26s * var(--anim-k)) ease-out; }
   @keyframes cwInFwd { from { transform: translateX(22px); opacity: 0; } to { transform: none; opacity: 1; } }
   @keyframes cwInBack { from { transform: translateX(-22px); opacity: 0; } to { transform: none; opacity: 1; } }
-  .cw-scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 2px 2px 8px; margin: 0 -2px; }
+  .cw-scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 2px 2px calc(150px + env(safe-area-inset-bottom)); margin: 0 -2px; }
   .cw-amt::-webkit-outer-spin-button, .cw-amt::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .cw-amt { -moz-appearance: textfield; }
-  .cw-prog { display: flex; gap: 6px; margin: 0 0 18px; }
-  .cw-seg { flex: 1; height: 4px; border-radius: 999px; background: var(--w90); transition: background .25s ease; }
-  .cw-seg.on { background: var(--cw-accent); }
+  /* Progress: kartaning tepasidagi xira joyda, qora yo'lak ichida (yashil = o'tgan, ko'k = hozirgi, kulrang = qolgan) */
+  .cw-prog-wrap { position: absolute; left: 0; right: 0; bottom: calc(100% + 15px); padding-bottom: 20px; display: flex; justify-content: center; pointer-events: none; animation: cwProgIn calc(.4s * var(--anim-k)) ease backwards; }
+  .cw-prog { display: flex; gap: 5px; width: min(300px, 74%); padding: 5px; border-radius: 999px; background: rgba(70,70,70,.88); box-shadow: 0 4px 14px rgba(0,0,0,.3); }
+  .cw-seg { flex: 1; height: 17px; border-radius: 999px; background: #a6a6a6; transition: background .3s ease; }
+  .cw-seg.done { background: #00b050; }
+  .cw-seg.cur { background: var(--cw-accent); }
+  @keyframes cwProgIn { from { opacity: 0; transform: translateY(8px); } }
   .cw-title { font-size: 22px; font-weight: 800; margin: 0 0 14px; }
   .cw-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 13px 14px; border-radius: 14px; background: var(--w50); margin-bottom: 8px; font-size: 14px; }
   .cw-row > span:first-child { color: var(--muted); }
@@ -485,10 +489,13 @@
   .cw-check { display: flex; gap: 8px; align-items: center; font-size: 14px; padding: 4px 2px; }
   .cw-check.bad { color: #ff6b6b; }
   .cw-check-d { font-size: 12px; color: #ff6b6b; margin: 0 0 4px 24px; }
-  .cw-foot { flex-shrink: 0; padding: 10px 0 calc(14px + env(safe-area-inset-bottom)); }
-  .cw-next { width: 100%; height: 56px; border: 0; border-radius: 999px; background: var(--cw-accent); color: #fff; font: inherit; font-size: 18px; font-weight: 600; cursor: pointer; transition: transform .12s ease, opacity .2s ease; }
+  /* Pastki qism: matn tugma ostida davom etadi, tepadan pastga qorayib boruvchi gradient */
+  .cw-foot { position: absolute; left: -18px; right: -18px; bottom: 0; padding: 56px 18px calc(14px + env(safe-area-inset-bottom)); background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,.2) 40%, rgba(0,0,0,.48) 100%); pointer-events: none; z-index: 2; }
+  .cw-foot .msg { margin: 0 0 8px; text-align: center; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,.35); }
+  .cw-next { pointer-events: auto; width: 100%; height: 56px; border: 0; border-radius: 999px; background: var(--cw-accent); color: #fff; font: inherit; font-size: 18px; font-weight: 600; cursor: pointer; transition: opacity .2s ease; box-shadow: 0 8px 20px rgba(0,0,0,.28); }
+  .cw-next.pop { animation: nextPop calc(340ms * var(--anim-k)) cubic-bezier(.34,1.56,.64,1); }
+  @keyframes nextPop { 0% { transform: scale(1); } 45% { transform: scale(1.08); } 100% { transform: scale(1); } }
   .cw-next:disabled { opacity: .45; cursor: not-allowed; }
-  .cw-next:active:not(:disabled) { transform: scale(.98); }
   @keyframes pageIn {
     from { transform: translateX(24px); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
@@ -1019,6 +1026,12 @@
   @keyframes backIn { from { transform: scale(0); } 60% { transform: scale(1.2); } to { transform: scale(1); } }
   @keyframes backOut { 0% { transform: scale(1); } 40% { transform: scale(1.5); } 100% { transform: scale(0); } }
   @keyframes titleOut { to { opacity: 0; } }
+
+  /* Kredit olish orqaga tugmasi: Sozlamalardagi bilan bir xil (ochilganda chiqadi, bosilganda kattalashadi, yopilganda kattalashib yo'qoladi) */
+  .modal-overlay.open.tall .cw-back { animation: backIn calc(420ms * var(--anim-k)) cubic-bezier(.34,1.56,.64,1) backwards; }
+  .modal-overlay.open.tall:not(.closing) .cw-back.pop { animation: backPop calc(340ms * var(--anim-k)) cubic-bezier(.34,1.56,.64,1); }
+  .modal-overlay.open.tall.closing .cw-back { animation: backOut calc(290ms * var(--anim-k)) ease-in-out forwards; }
+  .modal-overlay.open.tall.closing .cw-head-title { animation: titleOut calc(200ms * var(--anim-k)) ease forwards; }
 
   /* Orqaga tugmasi: bosilganda bir marta kattalashib, o'z holiga qaytadi */
   .page-back-btn.pop { animation: backPop calc(340ms * var(--anim-k)) cubic-bezier(.34,1.56,.64,1); }
@@ -1998,6 +2011,7 @@ window.MTP = (function () {
       cw = { typeId, step: 0, dir: 'none', amount: '', guarantor: '', guarOk: null, guarHtml: '', collateralId: '', gifts: [], preview: null, termsLeft: 0 };
       clearInterval(cwTimer);
       openModal();
+      document.getElementById('modalBody').innerHTML = '';      // eski sahifa qoldig'i bo'lmasin
       document.getElementById('modalOverlay').classList.add('tall');
       cwRender();
       cwLoadGifts();
@@ -2017,7 +2031,6 @@ window.MTP = (function () {
     function cwRender() {
       const t = cwType(), r = creditElCache.rules, step = CW_STEPS[cw.step];
       clearInterval(cwTimer);
-      const prog = CW_STEPS.map((_, i) => `<div class="cw-seg ${i <= cw.step ? 'on' : ''}"></div>`).join('');
       let title = '', body = '';
 
       if (step === 'info') {
@@ -2059,20 +2072,37 @@ window.MTP = (function () {
         body = `<div id="cwTerms"><div class="cw-note">Shartlar hisoblanmoqda...</div></div>`;
       }
 
-      document.getElementById('modalBody').innerHTML = `
-        <div class="cw">
-          <div class="cw-head">
-            <button class="page-back-btn cw-back" onclick="cwBack()" aria-label="Orqaga"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-            <div class="cw-head-title">Kredit olish</div><div class="cw-head-sp"></div>
-          </div>
-          <div class="cw-prog">${prog}</div>
-          <div class="cw-scroll ${cw.dir === 'none' ? '' : cw.dir}">
-            <div class="cw-title">${title}</div>
-            ${body}
-          </div>
-          <div class="msg" id="cwMsg"></div>
-          <div class="cw-foot"><button class="cw-next" id="cwNext" onclick="cwNext()">${step === 'confirm' ? 'Kafilga yuborish' : 'Keyingisi'}</button></div>
-        </div>`;
+      const nextLabel = step === 'confirm' ? 'Kafilga yuborish' : 'Keyingisi';
+      const segCls = (i) => i < cw.step ? 'done' : (i === cw.step ? 'cur' : '');
+      const scroller = document.getElementById('cwScroll');
+      if (scroller) {
+        // Sahifa allaqachon ochiq: faqat ichini almashtiramiz, tugmalar joyida qoladi (animatsiyasi uzilmaydi)
+        document.querySelectorAll('.cw-seg').forEach((el, i) => { el.className = 'cw-seg ' + segCls(i); });
+        scroller.className = 'cw-scroll'; void scroller.offsetWidth;
+        if (cw.dir !== 'none') scroller.classList.add(cw.dir);
+        scroller.scrollTop = 0;
+        scroller.innerHTML = `<div class="cw-title">${title}</div>${body}`;
+        const nb = document.getElementById('cwNext');
+        nb.disabled = false; nb.textContent = nextLabel;
+        cwMsg('');
+      } else {
+        document.getElementById('modalBody').innerHTML = `
+          <div class="cw">
+            <div class="cw-prog-wrap"><div class="cw-prog">${CW_STEPS.map((_, i) => `<div class="cw-seg ${segCls(i)}"></div>`).join('')}</div></div>
+            <div class="cw-head">
+              <button class="page-back-btn cw-back" onclick="cwBack()" aria-label="Orqaga"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+              <div class="cw-head-title">Kredit olish</div><div class="cw-head-sp"></div>
+            </div>
+            <div class="cw-scroll" id="cwScroll">
+              <div class="cw-title">${title}</div>
+              ${body}
+            </div>
+            <div class="cw-foot">
+              <div class="msg" id="cwMsg"></div>
+              <button class="cw-next" id="cwNext" onclick="cwNext()">${nextLabel}</button>
+            </div>
+          </div>`;
+      }
 
       cw.dir = 'none';
       if (step === 'amount') cwAmtInput();
@@ -2231,6 +2261,8 @@ window.MTP = (function () {
 
     // ----- "Keyingisi" -----
     async function cwNext() {
+      const nb = document.getElementById('cwNext');          // bosilganda bir kattalashib, o'z holiga qaytadi
+      if (nb) { nb.classList.remove('pop'); void nb.offsetWidth; nb.classList.add('pop'); }
       const step = CW_STEPS[cw.step], t = cwType();
       cwMsg('');
       cw.dir = 'fwd';
