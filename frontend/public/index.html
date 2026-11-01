@@ -429,9 +429,11 @@
     pointer-events: auto;
     width: 40px; height: 40px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    background: #f1f2f6; border: none; border-radius: 50%;
-    color: #171a21; cursor: pointer;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    background: var(--g-a); border: 1px solid var(--w130); border-radius: 50%;
+    backdrop-filter: blur(calc(18px * var(--blur-k))) saturate(160%);
+    -webkit-backdrop-filter: blur(calc(18px * var(--blur-k))) saturate(160%);
+    color: var(--text); cursor: pointer;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
   }
   .page-head-title { flex: 1; text-align: center; font-size: 17px; font-weight: 800; }
   .page-head-spacer { width: 40px; flex-shrink: 0; }
@@ -476,7 +478,7 @@
   .cw-head { display: flex; align-items: center; gap: 12px; margin: 2px 0 14px; }
   .cw-head-title { flex: 1; text-align: center; font-size: 17px; font-weight: 800; }
   .cw-head-sp { width: 40px; flex-shrink: 0; }
-  .cw-back { border: none; cursor: pointer; }
+  .cw-back { cursor: pointer; }
   .cw-scroll.fwd { animation: cwInFwd calc(.26s * var(--anim-k)) ease-out; }
   .cw-scroll.back { animation: cwInBack calc(.26s * var(--anim-k)) ease-out; }
   @keyframes cwInFwd { from { transform: translateX(22px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -488,7 +490,8 @@
   .cw-prog-wrap { position: absolute; left: 0; right: 0; bottom: calc(100% + 15px); padding-bottom: 20px; display: flex; justify-content: center; pointer-events: none; }
   .cw-prog { display: flex; gap: 5px; width: min(300px, 74%); padding: 5px; border-radius: 999px; background: rgba(70,70,70,.88); box-shadow: 0 4px 14px rgba(0,0,0,.3); }
   .cw-seg { flex: 1; height: 17px; border-radius: 999px; background: #a6a6a6; transition: background .3s ease; }
-  .cw-seg.done { background: #00b050; }
+  .cw-seg.done { background: #00b050; cursor: pointer; pointer-events: auto; }
+  .cw-seg { pointer-events: none; }
   .cw-seg.cur { background: var(--cw-accent); }
   .cw-title { font-size: 22px; font-weight: 800; margin: 0 0 14px; }
   .cw-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 13px 14px; border-radius: 14px; background: var(--w50); margin-bottom: 8px; font-size: 14px; }
@@ -2132,7 +2135,7 @@ window.MTP = (function () {
       } else {
         document.getElementById('modalBody').innerHTML = `
           <div class="cw cw-open">
-            <div class="cw-prog-wrap"><div class="cw-prog">${CW_STEPS.map((_, i) => `<div class="cw-seg ${segCls(i)}"></div>`).join('')}</div></div>
+            <div class="cw-prog-wrap"><div class="cw-prog">${CW_STEPS.map((_, i) => `<div class="cw-seg ${segCls(i)}" onclick="cwGoStep(${i})"></div>`).join('')}</div></div>
             <div class="cw-head">
               <button class="page-back-btn cw-back" onclick="cwBack()" aria-label="Orqaga"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
               <div class="cw-head-title">Kredit olish</div><div class="cw-head-sp"></div>
@@ -2156,6 +2159,21 @@ window.MTP = (function () {
       if (step === 'collateral') cwRenderColl();
       if (step === 'confirm') { document.getElementById('cwNext').disabled = true; cwLoadPreview(); }
     }
+
+    // Progressdagi yashil (o'tgan) bo'lakni bosib, o'sha bosqichga qaytish
+    function cwGoStep(i) {
+      if (!cw || i >= cw.step) return;
+      cw.step = i; cw.dir = 'back'; cwRender();
+    }
+    // Enter bosilsa "Keyingisi" bosilgandek ishlaydi (kompyuterda qulay)
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || !cw) return;
+      const ov = document.getElementById('modalOverlay');
+      if (!ov || !ov.classList.contains('tall') || !ov.classList.contains('open') || ov.classList.contains('closing')) return;
+      if (!e.target.classList || !e.target.classList.contains('cw-input')) return;
+      const nb = document.getElementById('cwNext');
+      if (nb && !nb.disabled) { e.preventDefault(); cwNext(); }
+    });
 
     function cwBack() {
       const btn = document.querySelector('.cw-back');
@@ -2194,7 +2212,7 @@ window.MTP = (function () {
       const box = document.getElementById('cwGuarChecks');
       if (!cw.guarantor) { box.innerHTML = ''; return; }
       box.innerHTML = '<div class="cw-note">Tekshirilmoqda...</div>';
-      cwGuarTimer = setTimeout(() => cwCheckGuarantor(false), 500);
+      cwGuarTimer = setTimeout(() => cwCheckGuarantor(false), 300);
     }
     async function cwCheckGuarantor() {
       const uname = cw.guarantor, token = ++cwGuarToken;
