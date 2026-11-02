@@ -489,10 +489,37 @@
   /* Progress: kartaning tepasidagi xira joyda, qora yo'lak ichida (yashil = o'tgan, ko'k = hozirgi, kulrang = qolgan) */
   .cw-prog-wrap { position: absolute; left: 0; right: 0; bottom: calc(100% + 15px); padding-bottom: 20px; display: flex; justify-content: center; pointer-events: none; }
   .cw-prog { display: flex; gap: 5px; width: min(300px, 74%); padding: 5px; border-radius: 999px; background: rgba(70,70,70,.88); box-shadow: 0 4px 14px rgba(0,0,0,.3); }
-  .cw-seg { flex: 1; height: 17px; border-radius: 999px; background: #a6a6a6; transition: background .3s ease; }
-  .cw-seg.done { background: #00b050; cursor: pointer; pointer-events: auto; }
-  .cw-seg { pointer-events: none; }
-  .cw-seg.cur { background: var(--cw-accent); }
+  .cw-seg { flex: 1; height: 17px; border-radius: 999px; background: #a6a6a6; position: relative; overflow: hidden; pointer-events: none; }
+  .cw-seg::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: var(--cw-accent); transform: scaleX(0); transform-origin: left center;
+    transition: transform calc(.5s * var(--anim-k)) cubic-bezier(.22,1,.36,1), background .35s ease; }
+  .cw-seg.cur::after { transform: scaleX(1); }
+  .cw-seg.done::after { transform: scaleX(1); background: #00b050; }
+  .cw-seg.done { cursor: pointer; pointer-events: auto; }
+  /* Gift turlari oynasi (Kredit olish oynasi uslubida) */
+  .gw-opt { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; margin-bottom: 10px; border-radius: 18px; background: var(--w60); border: 1.5px solid transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: border-color .2s ease, background .2s ease, transform .15s ease; }
+  .gw-opt:active { transform: scale(.98); }
+  .gw-opt.active { border-color: var(--accent); background: rgba(var(--accent-rgb), .13); }
+  .gw-opt > img, .gw-opt > .gw-fb { width: 56px; height: 56px; border-radius: 14px; object-fit: cover; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 28px; background: var(--w80); }
+  .gw-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .gw-n { font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gw-p { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 13px; font-weight: 600; }
+  .gw-radio { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--w130); flex-shrink: 0; position: relative; transition: border-color .2s ease, background .2s ease; }
+  .gw-opt.active .gw-radio { border-color: var(--accent); background: var(--accent); }
+  .gw-opt.active .gw-radio::after { content: ''; position: absolute; left: 7px; top: 3px; width: 6px; height: 11px; border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg); }
+  .gw-hero { text-align: center; padding-top: 4px; }
+  .gw-hero > img, .gw-hero > .gw-fb { width: 150px; height: 150px; border-radius: 26px; object-fit: cover; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 64px; background: var(--w80); }
+  /* Tasdiq belgisi (so'rov yuborilgach) */
+  .cw-done { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 70px 10px 0; }
+  .cw-done svg { width: 104px; height: 104px; animation: cwDonePop calc(.5s * var(--anim-k)) cubic-bezier(.34,1.56,.64,1) backwards; }
+  .cw-done .ring { fill: none; stroke: #00b050; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 227; stroke-dashoffset: 227; animation: cwDraw calc(.55s * var(--anim-k)) ease forwards; }
+  .cw-done .tick { fill: none; stroke: #00b050; stroke-width: 5.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 56; stroke-dashoffset: 56; animation: cwDraw calc(.4s * var(--anim-k)) calc(.4s * var(--anim-k)) ease forwards; }
+  .cw-done-t { font-size: 20px; font-weight: 800; animation: cwDoneUp calc(.4s * var(--anim-k)) calc(.5s * var(--anim-k)) ease backwards; }
+  .cw-done-s { color: var(--muted); font-size: 14px; max-width: 280px; animation: cwDoneUp calc(.4s * var(--anim-k)) calc(.6s * var(--anim-k)) ease backwards; }
+  .cw.cw-finished .cw-foot { opacity: 0; transition: opacity .25s ease; }
+  .cw.cw-finished .cw-next, .cw.cw-finished .cw-seg { pointer-events: none; }
+  @keyframes cwDraw { to { stroke-dashoffset: 0; } }
+  @keyframes cwDonePop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes cwDoneUp { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
   .cw-title { font-size: 22px; font-weight: 800; margin: 0 0 14px; }
   .cw-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 13px 14px; border-radius: 14px; background: var(--w50); margin-bottom: 8px; font-size: 14px; }
   .cw-row > span:first-child { color: var(--muted); }
@@ -2068,6 +2095,7 @@ window.MTP = (function () {
       const m = document.getElementById('cwMsg');
       if (!m) return;
       m.textContent = text || ''; m.className = 'msg' + (text ? ' error' : '');
+      if (text && typeof hap === 'function') hap('error');
     }
 
     function cwCollRequired() {
@@ -2176,6 +2204,7 @@ window.MTP = (function () {
     });
 
     function cwBack() {
+      if (!cw) { closeModal(); return; }
       const btn = document.querySelector('.cw-back');
       if (btn) { btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); }
       if (cw.step > 0) { cw.step--; cw.dir = 'back'; cwRender(); }
@@ -2325,6 +2354,7 @@ window.MTP = (function () {
 
     // ----- "Keyingisi" -----
     async function cwNext() {
+      if (!cw) return;
       const nb = document.getElementById('cwNext');          // bosilganda bir kattalashib, o'z holiga qaytadi
       if (nb) { nb.classList.remove('pop'); void nb.offsetWidth; nb.classList.add('pop'); }
       const step = CW_STEPS[cw.step], t = cwType();
@@ -2376,9 +2406,21 @@ window.MTP = (function () {
           return;
         }
         clearInterval(cwTimer);
+        const gName = data.guarantor_username;
         cw = null;
+        // Tasdiq belgisi (✓) ko'rsatamiz, keyin oynani yopamiz
+        const box = document.querySelector('.cw'), sc = document.getElementById('cwScroll');
+        const k = MTP.animK();
+        if (box && sc && k > 0) {
+          box.classList.add('cw-finished');
+          document.querySelectorAll('.cw-seg').forEach(el => { el.className = 'cw-seg done'; });
+          sc.className = 'cw-scroll';
+          sc.innerHTML = `<div class="cw-done"><svg viewBox="0 0 104 104" aria-hidden="true"><circle class="ring" cx="52" cy="52" r="36" transform="rotate(-90 52 52)"/><path class="tick" d="M36 53 L48 65 L69 39"/></svg><div class="cw-done-t">So'rov yuborildi</div><div class="cw-done-s">@${esc(gName)} tasdiqlashini kuting</div></div>`;
+          hap('win');
+          await new Promise(r => setTimeout(r, Math.round(1500 * k)));
+        }
         closeModal();
-        showToast(`So'rov @${data.guarantor_username} ga yuborildi. Kafil tasdiqlasa, qabul qilishingiz so'raladi 🤝`);
+        showToast(`So'rov @${gName} ga yuborildi. Kafil tasdiqlasa, qabul qilishingiz so'raladi 🤝`);
         loadMyRequests();
         loadCreditTypesForUser();
       } finally {
@@ -3882,12 +3924,13 @@ window.MTP = (function () {
     function hap(kind) {
       const p = MTP.get();
       if (p.vibrate && navigator.vibrate) {
-        try { navigator.vibrate(kind === 'win' ? [20, 50, 30, 50, 40] : kind === 'open' ? [14, 30, 14] : 8); } catch (e) {}
+        try { navigator.vibrate(kind === 'win' ? [20, 50, 30, 50, 40] : kind === 'open' ? [14, 30, 14] : kind === 'error' ? [30, 40, 30] : 8); } catch (e) {}
       }
       if (p.sound) {
         if (kind === 'tap') _tone(680, 0.05, 0, 0.035, 'triangle');
         else if (kind === 'open') { _tone(392, 0.12, 0, 0.06); _tone(523, 0.12, 0.09, 0.06); _tone(659, 0.2, 0.18, 0.06); }
         else if (kind === 'win') [523, 659, 784, 1047].forEach((f, i) => _tone(f, 0.22, i * 0.1, 0.07));
+        else if (kind === 'error') { _tone(220, 0.12, 0, 0.05, 'triangle'); _tone(170, 0.16, 0.1, 0.05, 'triangle'); }
       }
     }
     document.addEventListener('click', (e) => {
@@ -5354,7 +5397,154 @@ window.MTP = (function () {
       `).join('');
     }
 
+
+    // ---------- Gift turlari oynasi (Kredit olish oynasi uslubida) ----------
+    let gw = null;
+    function gwOptions(g) { return [{ id: null, name: g.name, price: g.price, image_url: g.image_url }, ...(g.variants || [])]; }
+    function gwMedia(img) { return img ? `<img src="${esc(img)}" alt="">` : `<div class="gw-fb">🎁</div>`; }
+    function gwCur() {
+      const g = lastLoadedShopGifts.find(x => x.id === gw.gid);
+      const o = gwOptions(g).find(x => (x.id || null) === gw.sel) || gwOptions(g)[0];
+      return { g, o, img: o.image_url || g.image_url };
+    }
+    function openGiftWizard(giftId) {
+      const g = lastLoadedShopGifts.find(x => x.id === giftId);
+      if (!g) return;
+      gw = { gid: giftId, sel: null, qty: 1, step: 0, dir: 'none' };
+      openModal();
+      document.getElementById('modalBody').innerHTML = '';
+      document.getElementById('modalOverlay').classList.add('tall');
+      gwRender();
+    }
+    function gwMsg(text) {
+      const m = document.getElementById('gwMsg');
+      if (!m) return;
+      m.textContent = text || ''; m.className = 'msg' + (text ? ' error' : '');
+      if (text) hap('error');
+    }
+    function gwRender() {
+      const { g, o, img } = gwCur();
+      const maxQty = g.quantity === null ? 999 : g.quantity;
+      const stock = g.quantity === null ? 'Cheksiz' : (g.sold_out ? 'Tugagan' : 'Qoldi: ' + g.quantity);
+      let title, body, label;
+      if (gw.step === 0) {
+        title = 'Turni tanlang';
+        body = gwOptions(g).map(op => `
+          <button type="button" class="gw-opt ${(op.id || null) === gw.sel ? 'active' : ''}" onclick="gwPick(${op.id === null ? 'null' : op.id})">
+            ${gwMedia(op.image_url || g.image_url)}
+            <span class="gw-info"><span class="gw-n">${esc(op.name)}</span><span class="gw-p"><img class="cn" src="icons/coin.png" alt=""> ${op.price}</span></span>
+            <i class="gw-radio"></i>
+          </button>`).join('');
+        label = 'Keyingisi';
+      } else {
+        title = 'Tasdiqlash';
+        body = `
+          <div class="gw-hero">${gwMedia(img)}<div class="win-title">${esc(o.name)}</div>
+            ${g.event_ribbon && g.event_ribbon.name ? `<div class="modal-sub" style="font-weight:700;">🎉 ${esc(g.event_ribbon.name)}</div>` : ''}
+            <div class="modal-sub"><img class="cn" src="icons/coin.png" alt=""> ${o.price} &middot; ${stock}</div></div>
+          <div class="qty-row">
+            <button class="qty-btn" onclick="gwQty(-1)">−</button>
+            <div class="qty-value" id="gwQtyValue">${gw.qty}</div>
+            <button class="qty-btn" onclick="gwQty(1)">+</button>
+          </div>
+          <div class="modal-sub" style="text-align:center; margin-top:6px;" id="gwTotal">Jami: <img class="cn" src="icons/coin.png" alt=""> ${Math.round(gw.qty * o.price * 100) / 100}</div>`;
+        label = g.sold_out ? 'Qolmagan' : 'Sotib olish';
+      }
+      const segCls = (i) => i < gw.step ? 'done' : (i === gw.step ? 'cur' : '');
+      const scroller = document.getElementById('gwScroll');
+      if (scroller) {
+        document.querySelectorAll('.cw-seg').forEach((el, i) => { el.className = 'cw-seg ' + segCls(i); });
+        scroller.className = 'cw-scroll'; void scroller.offsetWidth;
+        if (gw.dir !== 'none') scroller.classList.add(gw.dir);
+        scroller.scrollTop = 0;
+        scroller.innerHTML = `<div class="cw-title">${title}</div>${body}`;
+        const nb = document.getElementById('gwNext');
+        nb.disabled = gw.step === 1 && g.sold_out; nb.textContent = label;
+        gwMsg('');
+      } else {
+        document.getElementById('modalBody').innerHTML = `
+          <div class="cw cw-open">
+            <div class="cw-prog-wrap"><div class="cw-prog">${[0, 1].map(i => `<div class="cw-seg ${segCls(i)}" onclick="gwGoStep(${i})"></div>`).join('')}</div></div>
+            <div class="cw-head">
+              <button class="page-back-btn cw-back" onclick="gwBack()" aria-label="Orqaga"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+              <div class="cw-head-title">${esc(g.name)}</div><div class="cw-head-sp"></div>
+            </div>
+            <div class="cw-scroll" id="gwScroll"><div class="cw-title">${title}</div>${body}</div>
+            <div class="cw-foot">
+              <div class="msg" id="gwMsg"></div>
+              <button class="cw-next" id="gwNext" onclick="gwNext()" ${gw.step === 1 && g.sold_out ? 'disabled' : ''}>${label}</button>
+            </div>
+          </div>`;
+        setTimeout(() => { const c = document.querySelector('.cw'); if (c) c.classList.remove('cw-open'); }, Math.round(480 * MTP.animK()) + 60);
+      }
+    }
+    function gwPick(id) {
+      gw.sel = id;
+      document.querySelectorAll('.gw-opt').forEach((el, i) => {
+        const opts = gwOptions(gwCur().g);
+        el.classList.toggle('active', (opts[i].id || null) === gw.sel);
+      });
+    }
+    function gwQty(d) {
+      const { g, o } = gwCur();
+      const maxQty = g.quantity === null ? 999 : g.quantity;
+      gw.qty = Math.min(Math.max(1, gw.qty + d), Math.max(1, maxQty));
+      document.getElementById('gwQtyValue').textContent = gw.qty;
+      document.getElementById('gwTotal').innerHTML = `Jami: <img class="cn" src="icons/coin.png" alt=""> ${Math.round(gw.qty * o.price * 100) / 100}`;
+    }
+    function gwGoStep(i) { if (!gw || i >= gw.step) return; gw.step = i; gw.dir = 'back'; gwRender(); }
+    function gwBack() {
+      if (!gw) { closeModal(); return; }
+      const btn = document.querySelector('.cw-back');
+      if (btn) { btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); }
+      if (gw.step > 0) { gw.step--; gw.dir = 'back'; gwRender(); }
+      else { gw = null; closeModal(); }
+    }
+    async function gwNext() {
+      if (!gw) return;
+      const nb = document.getElementById('gwNext');
+      if (nb) { nb.classList.remove('pop'); void nb.offsetWidth; nb.classList.add('pop'); }
+      if (gw.step === 0) { gw.step = 1; gw.dir = 'fwd'; gwRender(); return; }
+      await gwBuy();
+    }
+    async function gwBuy() {
+      if (actionInProgress || !gw) return;
+      actionInProgress = true;
+      try {
+        const { g, o, img } = gwCur();
+        const qty = gw.qty, variantId = gw.sel;
+        const res = await fetch(`${API_BASE}/api/gifts/${g.id}/buy`, {
+          method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quantity: qty, variant_id: variantId || undefined }),
+        });
+        const data = await res.json();
+        if (!res.ok) { gwMsg(data.error || 'Xatolik'); return; }
+        currentUser.coin_balance = data.coin_balance;
+        updateCoinBadge();
+        loadShop();
+        const bought = data.bought_qty || qty;
+        gw = null;
+        const box = document.querySelector('.cw'), sc = document.getElementById('gwScroll');
+        const k = MTP.animK();
+        if (box && sc && k > 0) {
+          box.classList.add('cw-finished');
+          document.querySelectorAll('.cw-seg').forEach(el => { el.className = 'cw-seg done'; });
+          sc.className = 'cw-scroll';
+          sc.innerHTML = `<div class="cw-done"><svg viewBox="0 0 104 104" aria-hidden="true"><circle class="ring" cx="52" cy="52" r="36" transform="rotate(-90 52 52)"/><path class="tick" d="M36 53 L48 65 L69 39"/></svg><div class="cw-done-t">Sotib olindi!</div><div class="cw-done-s">${esc(o.name)} x${bought} inventorga tushdi</div></div>`;
+          hap('win');
+          await new Promise(r => setTimeout(r, Math.round(1500 * k)));
+        } else {
+          showToast(`${o.name} x${bought} inventorga tushdi ✅`);
+        }
+        closeModal();
+      } finally {
+        actionInProgress = false;
+      }
+    }
+
     function openGiftInfoModal(giftId, variantId) {
+      const _g0 = lastLoadedShopGifts.find(x => x.id === giftId);
+      if (_g0 && _g0.variants && _g0.variants.length) { openGiftWizard(giftId); return; }   // gift turlari bo'lsa: kredit oynasi uslubida ochiladi
       const g = lastLoadedShopGifts.find(x => x.id === giftId);
       if (!g) return;
       const maxQty = g.quantity === null ? 999 : g.quantity;
