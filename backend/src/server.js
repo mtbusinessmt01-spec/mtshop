@@ -30,6 +30,9 @@ const cardStylesRouter = require('./routes/cardStyles');
 const trades = require('./trades');
 const push = require('./push');
 const guarantor = require('./guarantor');
+const loginGuard = require('./loginGuard');
+// Foydalanuvchi topilmaganda ham parol tekshiruvi vaqti bir xil bo'lishi uchun (username aniqlab bo'lmasin)
+const DUMMY_HASH = bcrypt.hashSync('mtshop-dummy-password', 10);
 
 const app = express();
 // Render proxy orqasida: haqiqiy mijoz IP'si (kirish tarixi uchun) X-Forwarded-For dan olinadi
@@ -70,12 +73,28 @@ app.post('/api/auth/login', async (req, res) => {
     if (!username || !password) {
       return res.status(400).json({ error: 'Username va parol kerak' });
     }
+    if (typeof username !== 'string' || typeof password !== 'string' || username.length > 64 || password.length > 200) {
+      return res.status(400).json({ error: 'Username yoki parol noto\'g\'ri formatda' });
+    }
+    // Parolni terib topishdan himoya: ko'p xato urinishdan keyin vaqtincha to'xtatiladi
+    const wait = loginGuard.check(req.ip, username);
+    if (wait > 0) {
+      res.set('Retry-After', String(Math.ceil(wait / 1000)));
+      return res.status(429).json({ error: `Juda ko'p urinish. ${Math.max(1, Math.ceil(wait / 60000))} daqiqadan keyin qayta urinib ko'ring` });
+    }
     const user = await db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-    if (!user) return res.status(401).json({ error: 'Username yoki parol xato' });
+    if (!user) {
+      await bcrypt.compare(password, DUMMY_HASH);   // vaqtni tenglashtirish
+      loginGuard.fail(req.ip, username);
+      return res.status(401).json({ error: 'Username yoki parol xato' });
+    }
     if (user.is_blocked) return res.status(403).json({ error: 'Hisobingiz bloklangan' });
 
-    const ok = bcrypt.compareSync(password, user.password_hash);
+    // Asinxron bcrypt: parol tekshirilayotganda server boshqa so'rovlarga javob berishda davom etadi
+    const ok = await bcrypt.compare(password, user.password_hash);
+    if (ok) loginGuard.success(req.ip, username);
     if (!ok) {
+      loginGuard.fail(req.ip, username);
       // Kirish tarixiga yoziladi; qisqa vaqtda ko'p marta xato bo'lsa egasiga push boradi
       try { await security.recordFailedLogin(user.id, req); } catch (e) { console.error('Kirish tarixi xatosi:', e); }
       return res.status(401).json({ error: 'Username yoki parol xato' });
@@ -119,7 +138,7 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Topilmadi' });
     const emoji = await profileSvc.emojiFor(user.id);   // egalik va narx qayta tekshiriladi
     const card_style = await cardStyleSvc.styleFor(user.id);
-    res.json({ ...profileSvc.withAvatar(user), emoji_gift_id: emoji ? emoji.gift_id : null, card_style });
+    res.json({ ...profileSvc.withAvatar(user), emoji_gift_id: emoji ? emoji.gift_id : null, emoji_variant_id: emoji ? emoji.variant_id : null, card_style });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server xatosi' });

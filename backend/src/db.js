@@ -150,6 +150,9 @@ async function initDb() {
   await runMigrations();
 
   // Eski bazalarda yo'q bo'lgan ustunlarni qo'shib qo'yamiz
+  await ensureColumn('gift_variants', 'archived_at', 'TEXT');
+  await ensureColumn('transfers', 'variant_id', 'INTEGER');     // yuborilgan gift qaysi turdan ekani
+  await ensureColumn('trade_items', 'variant_id', 'INTEGER');   // Trade'dagi gift turi   // o'chirilgan tur: do'kondan yo'q, egalarida qoladi
   await ensureColumn('user_pets', 'name', 'TEXT');
   // O'lgan pet qachon o'lgani (7 kun ichida tiriltirish mumkin)
   await ensureColumn('user_pets', 'died_at', 'TEXT');
@@ -184,6 +187,7 @@ async function initDb() {
   // Foydalanuvchi o'z Trade tarixini ko'rinishdan o'chirishi (sherik va admin audit tarixi saqlanadi)
   // Emoji status: username yonidagi gift rasmi (narxi 200 coindan yuqori gift)
   await ensureColumn('users', 'emoji_gift_id', 'INTEGER');
+  await ensureColumn('users', 'emoji_variant_id', 'INTEGER');   // emoji status gift turi (NULL = asosiy gift)
   await ensureColumn('trades', 'a_hidden', 'INTEGER NOT NULL DEFAULT 0');
   await ensureColumn('trades', 'b_hidden', 'INTEGER NOT NULL DEFAULT 0');
   await client.execute('CREATE INDEX IF NOT EXISTS idx_user_gifts_trade ON user_gifts(trade_id)');

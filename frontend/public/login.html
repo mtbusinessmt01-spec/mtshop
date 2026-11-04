@@ -9,6 +9,11 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
+  /* Tugmalar bosilganda ko'k ramka (focus halqasi) chiqmasin */
+  * { -webkit-tap-highlight-color: transparent; }
+  button, a, summary, [role="button"], [tabindex]:not(input):not(textarea) { outline: none !important; }
+  button:focus, button:focus-visible, a:focus, a:focus-visible { outline: none !important; }
+
   :root {
     --bg: #0f1115;
     --card: #171a21;

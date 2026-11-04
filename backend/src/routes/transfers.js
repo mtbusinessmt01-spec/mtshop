@@ -120,16 +120,16 @@ router.post('/transfers/gift', authMiddleware, requireNotFrozen, requireNoCredit
         .run(toUser.id, item.id, req.user.id);
       if (!mv.changes) throw new Error('GIFT_UNAVAILABLE');
       await tx.prepare(`
-        INSERT INTO transfers (from_user_id, to_user_id, item_type, gift_id, is_anonymous)
-        VALUES (?, ?, 'gift', ?, ?)
-      `).run(req.user.id, toUser.id, item.gift_id, is_anonymous ? 1 : 0);
+        INSERT INTO transfers (from_user_id, to_user_id, item_type, gift_id, is_anonymous, variant_id)
+        VALUES (?, ?, 'gift', ?, ?, ?)
+      `).run(req.user.id, toUser.id, item.gift_id, is_anonymous ? 1 : 0, item.variant_id || null);
     });
   } catch (e) {
     if (e.message === 'GIFT_UNAVAILABLE') return res.status(409).json({ error: "Bu giftni yuborib bo'lmaydi (Trade'da band yoki allaqachon ko'chgan)" });
     throw e;
   }
 
-  const g = await db.prepare('SELECT name FROM gifts WHERE id = ?').get(item.gift_id);
+  const g = await db.prepare('SELECT COALESCE(v.name, g.name) AS name FROM gifts g LEFT JOIN gift_variants v ON v.id = ? AND v.gift_id = g.id WHERE g.id = ?').get(item.variant_id || 0, item.gift_id);
   notifyTransfer(req.user.username, toUser.id, is_anonymous, `🎁 ${g ? g.name : 'gift'}`);
 
   res.json({ ok: true });
@@ -171,11 +171,12 @@ router.post('/transfers/case', authMiddleware, requireNotFrozen, requireNoCredit
 // Hali ko'rilmagan (seen=0) kelgan transferlar
 router.get('/transfers/unseen', authMiddleware, async (req, res) => {
   const rows = await db.prepare(`
-    SELECT t.*, fu.username as from_username, g.name as gift_name, g.image_url as gift_image_url,
+    SELECT t.*, fu.username as from_username, COALESCE(gv.name, g.name) as gift_name, COALESCE(gv.image_url, g.image_url) as gift_image_url,
            c.name as case_name, c.image_url as case_image_url
     FROM transfers t
     JOIN users fu ON fu.id = t.from_user_id
     LEFT JOIN gifts g ON g.id = t.gift_id
+    LEFT JOIN gift_variants gv ON gv.id = t.variant_id
     LEFT JOIN cases c ON c.id = t.case_id
     WHERE t.to_user_id = ? AND t.seen = 0
     ORDER BY t.created_at ASC
@@ -209,12 +210,13 @@ router.get('/admin/transfers', authMiddleware, adminMiddleware, async (req, res)
     SELECT t.*, 
            fu.username as from_username, 
            tu.username as to_username,
-           g.name as gift_name,
+           COALESCE(gv.name, g.name) as gift_name,
            c.name as case_name
     FROM transfers t
     JOIN users fu ON fu.id = t.from_user_id
     JOIN users tu ON tu.id = t.to_user_id
     LEFT JOIN gifts g ON g.id = t.gift_id
+    LEFT JOIN gift_variants gv ON gv.id = t.variant_id
     LEFT JOIN cases c ON c.id = t.case_id
     ORDER BY t.created_at DESC
   `).all();

@@ -6,6 +6,9 @@ const { authMiddleware, adminMiddleware } = require('../auth');
 const { requirePin } = require('../security');
 const { isEventItemLocked, parseEventId, eventRibbon } = require('../eventUtil');
 
+const MAX_BUY_QTY = 999;   // frontend ham shu chegarani ishlatadi
+class BuyError extends Error {}
+
 const router = express.Router();
 
 const RARITIES = ['common', 'rare', 'legendary'];
@@ -91,7 +94,7 @@ function parseVariantFields(body) {
 router.get('/admin/gifts/:id/variants', authMiddleware, adminMiddleware, async (req, res) => {
   const gift = await db.prepare('SELECT * FROM gifts WHERE id = ?').get(req.params.id);
   if (!gift) return res.status(404).json({ error: 'Gift topilmadi' });
-  const variants = await db.prepare('SELECT * FROM gift_variants WHERE gift_id = ? ORDER BY id ASC').all(gift.id);
+  const variants = await db.prepare('SELECT * FROM gift_variants WHERE gift_id = ? AND archived_at IS NULL ORDER BY id ASC').all(gift.id);
   res.json({ gift, variants });
 });
 
@@ -121,15 +124,18 @@ router.put('/admin/gift-variants/:variantId', authMiddleware, adminMiddleware, u
   res.json(await db.prepare('SELECT * FROM gift_variants WHERE id = ?').get(v.id));
 });
 
-// Turni o'chirish: bu turni olgan foydalanuvchilarda gift asosiy gift ko'rinishida qoladi
+// Turni o'chirish: do'kondan olib tashlanadi, lekin uni olgan foydalanuvchilarda gift o'z nomi,
+// rasmi va narxi bilan QOLADI (variant_id saqlanadi, qator arxivlanadi). Hech kimda bo'lmasa — butunlay o'chadi.
 router.delete('/admin/gift-variants/:variantId', authMiddleware, adminMiddleware, async (req, res) => {
   const v = await db.prepare('SELECT * FROM gift_variants WHERE id = ?').get(req.params.variantId);
   if (!v) return res.status(404).json({ error: 'Tur topilmadi' });
-  await db.transaction(async () => {
-    await db.prepare('UPDATE user_gifts SET variant_id = NULL WHERE variant_id = ?').run(v.id);
-    await db.prepare('DELETE FROM gift_variants WHERE id = ?').run(v.id);
-  })();
-  res.json({ ok: true });
+  const owned = await db.prepare('SELECT COUNT(*) AS c FROM user_gifts WHERE variant_id = ?').get(v.id);
+  if (owned && owned.c > 0) {
+    await db.prepare("UPDATE gift_variants SET archived_at = datetime('now') WHERE id = ?").run(v.id);
+    return res.json({ ok: true, archived: true, owners: owned.c });
+  }
+  await db.prepare('DELETE FROM gift_variants WHERE id = ?').run(v.id);
+  res.json({ ok: true, archived: false });
 });
 
 // ---------- FOYDALANUVCHI: Shop, Inventory, Buy, Sell ----------
@@ -161,7 +167,7 @@ router.get('/gifts', authMiddleware, async (req, res) => {
   if (gifts.length) {
     const ids = gifts.map(g => g.id);
     const vs = await db.prepare(
-      `SELECT id, gift_id, name, price, image_url FROM gift_variants WHERE gift_id IN (${ids.map(() => '?').join(',')}) ORDER BY price ASC, id ASC`
+      `SELECT id, gift_id, name, price, image_url FROM gift_variants WHERE archived_at IS NULL AND gift_id IN (${ids.map(() => '?').join(',')}) ORDER BY price ASC, id ASC`
     ).all(...ids);
     for (const v of vs) (variantsByGift[v.gift_id] = variantsByGift[v.gift_id] || []).push(v);
   }
@@ -177,44 +183,42 @@ router.post('/gifts/:id/buy', authMiddleware, async (req, res) => {
   }
 
   const qty = Math.max(1, parseInt(req.body?.quantity, 10) || 1);
+  if (qty > MAX_BUY_QTY) return res.status(400).json({ error: `Bir martada ko'pi bilan ${MAX_BUY_QTY} ta sotib olish mumkin` });
 
   // Tur tanlangan bo'lsa narx shu turdan olinadi (soni esa asosiy gift bilan umumiy)
   let variant = null;
   const variantId = parseInt(req.body?.variant_id, 10);
   if (variantId) {
-    variant = await db.prepare('SELECT * FROM gift_variants WHERE id = ? AND gift_id = ?').get(variantId, gift.id);
+    variant = await db.prepare('SELECT * FROM gift_variants WHERE id = ? AND gift_id = ? AND archived_at IS NULL').get(variantId, gift.id);
     if (!variant) return res.status(404).json({ error: 'Gift turi topilmadi' });
   }
   const unitPrice = variant ? variant.price : gift.price;
   const totalPrice = Math.round(unitPrice * qty * 100) / 100;
 
-  // Avval sonini (agar cheklangan bo'lsa) atomik ravishda kamaytiramiz
-  if (gift.quantity !== null) {
-    const stockResult = await db.prepare(
-      'UPDATE gifts SET quantity = quantity - ? WHERE id = ? AND quantity >= ?'
-    ).run(qty, gift.id, qty);
-    if (!stockResult.changes) {
-      return res.status(400).json({ error: `Yetarli dona qolmagan` });
-    }
+  // HAQIQIY tranzaksiya: son, coin va giftlar birga yoziladi. Yo'lda xato chiqsa yoki server to'xtasa
+  // hammasi qaytadi (oldin coin yechilib, gift berilmay qolishi mumkin edi).
+  try {
+    await db.withTx(async (tx) => {
+      if (gift.quantity !== null) {
+        const stockResult = await tx.prepare(
+          'UPDATE gifts SET quantity = quantity - ? WHERE id = ? AND quantity >= ?'
+        ).run(qty, gift.id, qty);
+        if (!stockResult.changes) throw new BuyError('Yetarli dona qolmagan');
+      }
+      const deductResult = await tx.prepare(
+        'UPDATE users SET coin_balance = coin_balance - ? WHERE id = ? AND coin_balance >= ?'
+      ).run(totalPrice, req.user.id, totalPrice);
+      if (!deductResult.changes) throw new BuyError('Coin yetarli emas');
+
+      const insertOne = tx.prepare(
+        'INSERT INTO user_gifts (user_id, gift_id, bought_price, variant_id) VALUES (?, ?, ?, ?)'
+      );
+      for (let i = 0; i < qty; i++) await insertOne.run(req.user.id, gift.id, unitPrice, variant ? variant.id : null);
+    });
+  } catch (e) {
+    if (e instanceof BuyError) return res.status(400).json({ error: e.message });
+    throw e;
   }
-
-  // Keyin balansni atomik ravishda yechamiz
-  const deductResult = await db.prepare(
-    'UPDATE users SET coin_balance = coin_balance - ? WHERE id = ? AND coin_balance >= ?'
-  ).run(totalPrice, req.user.id, totalPrice);
-
-  if (!deductResult.changes) {
-    // Balans yetmadi — sonini orqaga qaytaramiz
-    if (gift.quantity !== null) {
-      await db.prepare('UPDATE gifts SET quantity = quantity + ? WHERE id = ?').run(qty, gift.id);
-    }
-    return res.status(400).json({ error: 'Coin yetarli emas' });
-  }
-
-  const insertOne = db.prepare(
-    'INSERT INTO user_gifts (user_id, gift_id, bought_price, variant_id) VALUES (?, ?, ?, ?)'
-  );
-  for (let i = 0; i < qty; i++) await insertOne.run(req.user.id, gift.id, unitPrice, variant ? variant.id : null);
 
   const updatedUser = await db.prepare('SELECT coin_balance FROM users WHERE id = ?').get(req.user.id);
   res.json({ ok: true, coin_balance: updatedUser.coin_balance, bought_qty: qty });

@@ -9,6 +9,11 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
+  /* Tugmalar bosilganda ko'k ramka (focus halqasi) chiqmasin */
+  * { -webkit-tap-highlight-color: transparent; }
+  button, a, summary, [role="button"], [tabindex]:not(input):not(textarea) { outline: none !important; }
+  button:focus, button:focus-visible, a:focus, a:focus-visible { outline: none !important; }
+
   :root {
     --bg: #0f1115; --card: #171a21; --accent: #6c5ce7; --accent-2: #a29bfe;
     --text: #f1f2f6; --muted: #8a8d98; --coin: #ffd166; --danger: #ff6b6b;
@@ -1066,7 +1071,7 @@
     }
 
     async function deleteVariant(id) {
-      if (!confirm("Bu tur o'chirilsinmi? Uni olgan foydalanuvchilarda gift asosiy giftga qaytadi.")) return;
+      if (!confirm("Bu tur do'kondan olib tashlansinmi? Uni olgan foydalanuvchilarda gift o'z nomi, rasmi va narxi bilan qoladi.")) return;
       const res = await fetch(`${API_BASE}/api/admin/gift-variants/${id}`, { method: 'DELETE', credentials: 'include' });
       if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Xatolik'); return; }
       await openVariants(variantGift.id);

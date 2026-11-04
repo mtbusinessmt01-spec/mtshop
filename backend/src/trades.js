@@ -391,7 +391,7 @@ async function addGift(userId, tradeId, userGiftId) {
 
     // Egalik va bo'shlikni DB ma'lumotlari bilan tekshiramiz (client ID'siga ishonmaymiz)
     const ug = await tx.prepare(
-      'SELECT ug.id, ug.user_id, ug.gift_id, ug.trade_id, g.name FROM user_gifts ug JOIN gifts g ON g.id = ug.gift_id WHERE ug.id = ?'
+      'SELECT ug.id, ug.user_id, ug.gift_id, ug.trade_id, ug.variant_id, COALESCE(v.name, g.name) AS name FROM user_gifts ug JOIN gifts g ON g.id = ug.gift_id LEFT JOIN gift_variants v ON v.id = ug.variant_id WHERE ug.id = ?'
     ).get(ugId);
     if (!ug || ug.user_id !== userId) throw new TradeError(404, 'Gift sizning inventaringizda topilmadi.');
     if (ug.trade_id) throw new TradeError(409, "Bu gift boshqa Trade'da band.");
@@ -400,8 +400,8 @@ async function addGift(userId, tradeId, userGiftId) {
     const res = await tx.prepare('UPDATE user_gifts SET trade_id = ? WHERE id = ? AND user_id = ? AND trade_id IS NULL').run(t.id, ugId, userId);
     if (!res.changes) throw new TradeError(409, "Bu gift band bo'lib qolgan.");
 
-    await tx.prepare('INSERT INTO trade_items (trade_id, user_id, user_gift_id, gift_id, gift_name, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(t.id, userId, ugId, ug.gift_id, ug.name, nowIso());
+    await tx.prepare('INSERT INTO trade_items (trade_id, user_id, user_gift_id, gift_id, gift_name, created_at, variant_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(t.id, userId, ugId, ug.gift_id, ug.name, nowIso(), ug.variant_id || null);
     await resetLocks(tx, after, t, side, userId);
     await log(tx, t.id, userId, 'offer_added', `user_gift=${ugId}`);
     return { ok: true };
@@ -520,8 +520,8 @@ async function completeInTx(tx, after, t) {
       .run(to, it.user_gift_id, it.user_id, t.id);
     if (!m.changes) throw new TradeIntegrityError(`gift ${it.user_gift_id} mos kelmadi`);
     await tx.prepare(
-      "INSERT INTO transfers (from_user_id, to_user_id, item_type, gift_id, is_anonymous, seen, trade_id) VALUES (?, ?, 'gift', ?, 0, 1, ?)"
-    ).run(it.user_id, to, it.gift_id, t.id);
+      "INSERT INTO transfers (from_user_id, to_user_id, item_type, gift_id, is_anonymous, seen, trade_id, variant_id) VALUES (?, ?, 'gift', ?, 0, 1, ?, (SELECT variant_id FROM user_gifts WHERE id = ?))"
+    ).run(it.user_id, to, it.gift_id, t.id, it.user_gift_id);
   }
 
   // Coinlar allaqachon escrow'da (egasidan yechilgan) — qarshi tomonga qo'shiladi
@@ -670,13 +670,14 @@ async function viewTrade(userId, tradeId, afterMsgId) {
   const emo = await profile.emojiMap([me.id, other.id]);   // emoji status (egalik va narx tekshirilgan)
 
   const items = await db.prepare(`
-    SELECT ti.user_id, ti.user_gift_id, ti.gift_id, ti.gift_name,
+    SELECT ti.user_id, ti.user_gift_id, ti.gift_id, ti.gift_name, ti.variant_id,
            (SELECT COUNT(*) FROM user_gifts ug WHERE ug.id = ti.user_gift_id AND ug.trade_id = ti.trade_id AND ug.user_id = ti.user_id) AS present
     FROM trade_items ti WHERE ti.trade_id = ? ORDER BY ti.id
   `).all(t.id);
   const shape = (uid) => items.filter(i => i.user_id === uid).map(i => ({
     user_gift_id: i.user_gift_id,
     gift_id: i.gift_id,
+    variant_id: i.variant_id || null,
     name: i.gift_name,
     missing: t.status === 'ACTIVE' && !i.present,
   }));
@@ -696,8 +697,8 @@ async function viewTrade(userId, tradeId, afterMsgId) {
       completed_at: t.completed_at, cancelled_at: t.cancelled_at, rejected_at: t.rejected_at,
       expired_at: t.expired_at, failed_at: t.failed_at,
     },
-    me: { id: me.id, username: me.username, emoji_gift_id: emo.has(me.id) ? emo.get(me.id).gift_id : null },
-    other: { id: other.id, username: other.username, emoji_gift_id: emo.has(other.id) ? emo.get(other.id).gift_id : null },
+    me: { id: me.id, username: me.username, emoji_gift_id: emo.has(me.id) ? emo.get(me.id).gift_id : null, emoji_variant_id: emo.has(me.id) ? emo.get(me.id).variant_id : null },
+    other: { id: other.id, username: other.username, emoji_gift_id: emo.has(other.id) ? emo.get(other.id).gift_id : null, emoji_variant_id: emo.has(other.id) ? emo.get(other.id).variant_id : null },
     my: { coin: t[side + '_coin'], locked: !!t[side + '_locked'], confirmed: !!t[side + '_confirmed'], gifts: shape(me.id) },
     their: { coin: t[oside + '_coin'], locked: !!t[oside + '_locked'], confirmed: !!t[oside + '_confirmed'], gifts: shape(other.id) },
     can: statusFlags(t, side),
@@ -709,10 +710,12 @@ async function viewTrade(userId, tradeId, afterMsgId) {
 // Offerga qo'shish mumkin bo'lgan giftlarim (band bo'lmaganlar)
 async function availableGifts(userId) {
   return db.prepare(`
-    SELECT ug.id AS user_gift_id, g.id AS gift_id, g.name, g.price
+    SELECT ug.id AS user_gift_id, g.id AS gift_id, ug.variant_id,
+           COALESCE(v.name, g.name) AS name, COALESCE(v.price, g.price) AS price
     FROM user_gifts ug JOIN gifts g ON g.id = ug.gift_id
+    LEFT JOIN gift_variants v ON v.id = ug.variant_id
     WHERE ug.user_id = ? AND ug.trade_id IS NULL
-    ORDER BY g.price DESC, ug.id ASC
+    ORDER BY COALESCE(v.price, g.price) DESC, ug.id ASC
   `).all(userId);
 }
 
@@ -748,9 +751,10 @@ async function summary(userId) {
     ...incoming.map(t => t.from_id), ...outgoing.map(t => t.to_id), active ? active.with_id : 0,
   ]);
   const emojiOf = (id) => (emo.has(id) ? emo.get(id).gift_id : null);
-  incoming.forEach(t => { t.emoji_gift_id = emojiOf(t.from_id); });
-  outgoing.forEach(t => { t.emoji_gift_id = emojiOf(t.to_id); });
-  if (active) active.emoji_gift_id = emojiOf(active.with_id);
+  const emojiVarOf = (id) => (emo.has(id) ? emo.get(id).variant_id : null);
+  incoming.forEach(t => { t.emoji_gift_id = emojiOf(t.from_id); t.emoji_variant_id = emojiVarOf(t.from_id); });
+  outgoing.forEach(t => { t.emoji_gift_id = emojiOf(t.to_id); t.emoji_variant_id = emojiVarOf(t.to_id); });
+  if (active) { active.emoji_gift_id = emojiOf(active.with_id); active.emoji_variant_id = emojiVarOf(active.with_id); }
 
   const notifications = await db.prepare(
     'SELECT id, trade_id, type, text, created_at FROM trade_notifications WHERE user_id = ? AND seen = 0 ORDER BY id ASC LIMIT 20'

@@ -228,7 +228,9 @@ async function send(fromUser, toUserId, inventoryId) {
     throw e;
   }
 
-  const g = await db.prepare('SELECT name, image_url FROM gifts WHERE id = ?').get(item.gift_id);
+  const g = await db.prepare(
+    'SELECT COALESCE(v.name, g.name) AS name, COALESCE(v.image_url, g.image_url) AS image_url FROM gifts g LEFT JOIN gift_variants v ON v.id = ? AND v.gift_id = g.id WHERE g.id = ?'
+  ).get(item.variant_id || 0, item.gift_id);
   const me = await db.prepare('SELECT id, username, full_name, avatar_ver FROM users WHERE id = ?').get(fromUser.id);
   const delivered = emitTo(toUserId, 'incoming', {
     id, expires_at: expires, from: profileSvc.withAvatar(me),
@@ -262,8 +264,8 @@ async function accept(userId, airdropId) {
         return { ...d, status: 'FAILED' };
       }
       await tx.prepare(
-        "INSERT INTO transfers (from_user_id, to_user_id, item_type, gift_id, is_anonymous, seen) VALUES (?, ?, 'gift', ?, 0, 1)"
-      ).run(d.from_user_id, userId, d.gift_id);
+        "INSERT INTO transfers (from_user_id, to_user_id, item_type, gift_id, is_anonymous, seen, variant_id) VALUES (?, ?, 'gift', ?, 0, 1, (SELECT variant_id FROM user_gifts WHERE id = ?))"
+      ).run(d.from_user_id, userId, d.gift_id, d.user_gift_id);
       await tx.prepare("UPDATE airdrops SET status = 'ACCEPTED', resolved_at = datetime('now') WHERE id = ?").run(d.id);
       return { ...d, status: 'ACCEPTED' };
     });

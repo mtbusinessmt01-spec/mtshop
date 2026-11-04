@@ -147,31 +147,41 @@ router.delete('/admin/users/:id', authMiddleware, adminMiddleware, async (req, r
   try {
   await trades.purgeUserTrades(parseInt(id, 10));
 
-  const tx = db.transaction(async () => {
-    await db.prepare('DELETE FROM profile_pins WHERE user_id = ?').run(id);
+  // HAQIQIY tranzaksiya: yo'lda xato chiqsa hech narsa o'chmaydi (avval yarim o'chib qolardi)
+  await db.withTx(async (tx) => {
+    await tx.prepare('DELETE FROM profile_pins WHERE user_id = ?').run(id);
+    // Qolgan jadvallar (foydalanuvchiga bog'langan; ba'zilarida FK bor — shuning uchun avval ular tozalanadi)
+    await tx.prepare('DELETE FROM coin_purchases WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM user_card_styles WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM webauthn_credentials WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM daily_case_claims WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM daily_case_opens WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM notifications WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM notification_prefs WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM notification_settings WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM airdrops WHERE from_user_id = ? OR to_user_id = ?').run(id, id);
     // 006 (promokod) va 003 (versiya) jadvallari users(id) ga bog'langan — avval tozalanadi
-    await db.prepare('DELETE FROM promo_redemptions WHERE user_id = ?').run(id);
-    await db.prepare('DELETE FROM app_version_testers WHERE user_id = ?').run(id);
-    await db.prepare('DELETE FROM user_gifts WHERE user_id = ?').run(id);
-    await db.prepare('DELETE FROM user_cases WHERE user_id = ?').run(id);
-    await db.prepare('DELETE FROM user_pets WHERE user_id = ?').run(id);
-    await db.prepare('DELETE FROM push_subscriptions WHERE user_id = ?').run(id);
-    await db.prepare('DELETE FROM notification_log WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM promo_redemptions WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM app_version_testers WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM user_gifts WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM user_cases WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM user_pets WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM push_subscriptions WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM notification_log WHERE user_id = ?').run(id);
     // 007 (xavfsizlik) jadvallari users(id) ga bog'langan — avval tozalanadi
-    await db.prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
-    await db.prepare('DELETE FROM login_history WHERE user_id = ?').run(id);
-    await db.prepare('DELETE FROM guarantor_overdues WHERE borrower_id = ? OR guarantor_id = ?').run(id, id);
-    await db.prepare(`
+    await tx.prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM login_history WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM guarantor_overdues WHERE borrower_id = ? OR guarantor_id = ?').run(id, id);
+    await tx.prepare(`
       DELETE FROM credit_payments WHERE user_credit_id IN (SELECT id FROM user_credits WHERE user_id = ?)
     `).run(id);
-    await db.prepare('DELETE FROM user_credits WHERE user_id = ?').run(id);
-    await db.prepare('DELETE FROM credit_requests WHERE user_id = ? OR guarantor_id = ?').run(id, id);
+    await tx.prepare('DELETE FROM user_credits WHERE user_id = ?').run(id);
+    await tx.prepare('DELETE FROM credit_requests WHERE user_id = ? OR guarantor_id = ?').run(id, id);
     // Transfer tarixi saqlanadi, faqat foydalanuvchiga bog'lanish yo'qotiladi bo'lmaydi
     // (chunki from_user_id/to_user_id NOT NULL) — shuning uchun bu transferlarni o'chiramiz
-    await db.prepare('DELETE FROM transfers WHERE from_user_id = ? OR to_user_id = ?').run(id, id);
-    await db.prepare('DELETE FROM users WHERE id = ?').run(id);
+    await tx.prepare('DELETE FROM transfers WHERE from_user_id = ? OR to_user_id = ?').run(id, id);
+    await tx.prepare('DELETE FROM users WHERE id = ?').run(id);
   });
-  await tx();
 
   res.json({ ok: true });
   } catch (e) {
@@ -190,7 +200,7 @@ router.get('/users/search', authMiddleware, async (req, res) => {
     'SELECT id, username, full_name, avatar_ver, status_image_url FROM users WHERE username LIKE ? OR full_name LIKE ? ORDER BY username ASC LIMIT 20'
   ).all(`%${q}%`, `%${q}%`);
   const emojis = await profileSvc.emojiMap(rows.map(r => r.id));
-  res.json(rows.map(r => ({ ...profileSvc.withAvatar(r), emoji_gift_id: emojis.has(r.id) ? emojis.get(r.id).gift_id : null })));
+  res.json(rows.map(r => ({ ...profileSvc.withAvatar(r), emoji_gift_id: emojis.has(r.id) ? emojis.get(r.id).gift_id : null, emoji_variant_id: emojis.has(r.id) ? emojis.get(r.id).variant_id : null })));
 });
 
 // Ochiq profil: username, status, giftlari, case'lari (pet mavjudligi, lekin tafsilotsiz)
@@ -201,10 +211,11 @@ router.get('/users/:username/profile', authMiddleware, async (req, res) => {
   if (!user) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
 
   const gifts = await db.prepare(`
-    SELECT g.id, g.name, g.image_url, COUNT(*) as count
+    SELECT g.id, ug.variant_id, COALESCE(v.name, g.name) AS name, COALESCE(v.image_url, g.image_url) AS image_url, COUNT(*) as count
     FROM user_gifts ug JOIN gifts g ON g.id = ug.gift_id
+    LEFT JOIN gift_variants v ON v.id = ug.variant_id
     WHERE ug.user_id = ?
-    GROUP BY g.id
+    GROUP BY g.id, COALESCE(ug.variant_id, 0)
   `).all(user.id);
 
   const cases = await db.prepare(`

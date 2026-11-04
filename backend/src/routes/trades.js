@@ -27,8 +27,18 @@ const h = (fn) => async (req, res) => {
 router.get('/gift-image/:id', authMiddleware, h(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) return res.status(404).end();
-  const g = await db.prepare('SELECT image_url FROM gifts WHERE id = ?').get(id);
-  const m = /^data:([^;]+);base64,([\s\S]*)$/.exec((g && g.image_url) || '');
+  // ?v=<tur id> berilsa shu turning rasmi (tur o'chirilgan/arxivlangan bo'lsa ham egalarida ko'rinadi)
+  const vid = Number(req.query.v);
+  let img = null;
+  if (Number.isInteger(vid) && vid > 0) {
+    const v = await db.prepare('SELECT image_url FROM gift_variants WHERE id = ? AND gift_id = ?').get(vid, id);
+    img = v && v.image_url;
+  }
+  if (!img) {
+    const g = await db.prepare('SELECT image_url FROM gifts WHERE id = ?').get(id);
+    img = g && g.image_url;
+  }
+  const m = /^data:([^;]+);base64,([\s\S]*)$/.exec(img || '');
   if (!m) return res.status(404).end();
   res.set('Content-Type', m[1]);
   res.set('Cache-Control', 'private, max-age=86400');

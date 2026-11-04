@@ -31,12 +31,15 @@ async function emojiMap(userIds) {
   if (!ids.length) return out;
   const marks = ids.map(() => '?').join(',');
   const rows = await db.prepare(`
-    SELECT u.id AS user_id, g.id AS gift_id, g.name
+    SELECT u.id AS user_id, g.id AS gift_id, v.id AS variant_id, COALESCE(v.name, g.name) AS name
     FROM users u JOIN gifts g ON g.id = u.emoji_gift_id
-    WHERE u.id IN (${marks}) AND g.price >= ?
-      AND EXISTS (SELECT 1 FROM user_gifts ug WHERE ug.user_id = u.id AND ug.gift_id = g.id)
+    LEFT JOIN gift_variants v ON v.id = u.emoji_variant_id AND v.gift_id = g.id
+    WHERE u.id IN (${marks}) AND COALESCE(v.price, g.price) >= ?
+      AND (u.emoji_variant_id IS NULL OR v.id IS NOT NULL)
+      AND EXISTS (SELECT 1 FROM user_gifts ug WHERE ug.user_id = u.id AND ug.gift_id = g.id
+                  AND COALESCE(ug.variant_id, 0) = COALESCE(u.emoji_variant_id, 0))
   `).all(...ids, EMOJI_MIN_PRICE);
-  rows.forEach(r => out.set(r.user_id, { gift_id: r.gift_id, name: r.name }));
+  rows.forEach(r => out.set(r.user_id, { gift_id: r.gift_id, variant_id: r.variant_id || null, name: r.name }));
   return out;
 }
 
@@ -57,11 +60,12 @@ async function pinsFor(userId) {
   await cleanStalePins(userId);
   // Yashirin (narxi pasaygan) yozuvlar qaytib chiqsa ham ko'pi bilan PIN_MAX ta ko'rsatiladi
   return db.prepare(`
-    SELECT pp.user_gift_id, g.id AS gift_id, g.name, g.price
+    SELECT pp.user_gift_id, g.id AS gift_id, ug.variant_id, COALESCE(v.name, g.name) AS name, COALESCE(v.price, g.price) AS price
     FROM profile_pins pp
     JOIN user_gifts ug ON ug.id = pp.user_gift_id AND ug.user_id = pp.user_id
     JOIN gifts g ON g.id = ug.gift_id
-    WHERE pp.user_id = ? AND g.price >= ?
+    LEFT JOIN gift_variants v ON v.id = ug.variant_id
+    WHERE pp.user_id = ? AND COALESCE(v.price, g.price) >= ?
     ORDER BY pp.position ASC, pp.id ASC
     LIMIT ?
   `).all(userId, PIN_MIN_PRICE, PIN_MAX);
@@ -73,24 +77,27 @@ async function editData(userId) {
   const emoji = await emojiFor(userId);
   // Emoji statusni faqat giftning o'zi qolmaganda tozalaymiz; narx vaqtincha pasaysa tanlov saqlanadi (faqat ko'rinmaydi)
   await db.prepare(`
-    UPDATE users SET emoji_gift_id = NULL
+    UPDATE users SET emoji_gift_id = NULL, emoji_variant_id = NULL
     WHERE id = ? AND emoji_gift_id IS NOT NULL
-      AND NOT EXISTS (SELECT 1 FROM user_gifts ug WHERE ug.user_id = users.id AND ug.gift_id = users.emoji_gift_id)
+      AND NOT EXISTS (SELECT 1 FROM user_gifts ug WHERE ug.user_id = users.id AND ug.gift_id = users.emoji_gift_id
+                      AND COALESCE(ug.variant_id, 0) = COALESCE(users.emoji_variant_id, 0))
   `).run(userId);
 
   const emojiOptions = await db.prepare(`
-    SELECT g.id AS gift_id, g.name, g.price, COUNT(*) AS count
+    SELECT g.id AS gift_id, ug.variant_id, COALESCE(v.name, g.name) AS name, COALESCE(v.price, g.price) AS price, COUNT(*) AS count
     FROM user_gifts ug JOIN gifts g ON g.id = ug.gift_id
-    WHERE ug.user_id = ? AND g.price >= ?
-    GROUP BY g.id ORDER BY g.price DESC, g.name ASC
+    LEFT JOIN gift_variants v ON v.id = ug.variant_id
+    WHERE ug.user_id = ? AND COALESCE(v.price, g.price) >= ?
+    GROUP BY g.id, COALESCE(ug.variant_id, 0) ORDER BY COALESCE(v.price, g.price) DESC, name ASC
   `).all(userId, EMOJI_MIN_PRICE);
 
   const pinOptions = await db.prepare(`
-    SELECT ug.id AS user_gift_id, g.id AS gift_id, g.name, g.price
+    SELECT ug.id AS user_gift_id, g.id AS gift_id, ug.variant_id, COALESCE(v.name, g.name) AS name, COALESCE(v.price, g.price) AS price
     FROM user_gifts ug JOIN gifts g ON g.id = ug.gift_id
-    WHERE ug.user_id = ? AND g.price >= ?
+    LEFT JOIN gift_variants v ON v.id = ug.variant_id
+    WHERE ug.user_id = ? AND COALESCE(v.price, g.price) >= ?
       AND ug.id NOT IN (SELECT user_gift_id FROM profile_pins)
-    ORDER BY g.price DESC, ug.id ASC
+    ORDER BY COALESCE(v.price, g.price) DESC, ug.id ASC
   `).all(userId, PIN_MIN_PRICE);
 
   return {
@@ -102,28 +109,35 @@ async function editData(userId) {
   };
 }
 
-async function setEmoji(userId, giftId) {
+async function setEmoji(userId, giftId, variantId) {
   const gid = parseId(giftId);
   if (!gid) throw new ProfileError(400, "Gift noto'g'ri");
-  const gift = await db.prepare('SELECT id, name, price FROM gifts WHERE id = ?').get(gid);
+  const vid = variantId == null || variantId === '' || Number(variantId) === 0 ? null : parseId(variantId);
+  if (variantId != null && variantId !== '' && Number(variantId) !== 0 && !vid) throw new ProfileError(400, "Gift turi noto'g'ri");
+  let gift = await db.prepare('SELECT id, name, price FROM gifts WHERE id = ?').get(gid);
   if (!gift) throw new ProfileError(404, 'Gift topilmadi');
+  if (vid) {
+    const v = await db.prepare('SELECT id, name, price FROM gift_variants WHERE id = ? AND gift_id = ?').get(vid, gid);
+    if (!v) throw new ProfileError(404, 'Gift turi topilmadi');
+    gift = { id: gift.id, name: v.name, price: v.price };
+  }
   if (!(gift.price >= EMOJI_MIN_PRICE)) {
     throw new ProfileError(400, `Emoji status uchun gift narxi ${EMOJI_MIN_PRICE} coin va undan yuqori bo'lishi kerak.`);
   }
   // Egalik va narxni UPDATE ichida atomik tekshiramiz (sotish bilan poyga bo'lmasligi uchun)
   const r = await db.prepare(`
-    UPDATE users SET emoji_gift_id = ?
+    UPDATE users SET emoji_gift_id = ?, emoji_variant_id = ?
     WHERE id = ? AND EXISTS (
-      SELECT 1 FROM user_gifts ug JOIN gifts g ON g.id = ug.gift_id
-      WHERE ug.user_id = ? AND ug.gift_id = ? AND g.price >= ?
+      SELECT 1 FROM user_gifts ug
+      WHERE ug.user_id = ? AND ug.gift_id = ? AND COALESCE(ug.variant_id, 0) = ?
     )
-  `).run(gid, userId, userId, gid, EMOJI_MIN_PRICE);
+  `).run(gid, vid, userId, userId, gid, vid || 0);
   if (!r.changes) throw new ProfileError(403, 'Bu gift sizning inventaringizda yo\'q.');
-  return { ok: true, emoji: { gift_id: gift.id, name: gift.name } };
+  return { ok: true, emoji: { gift_id: gift.id, variant_id: vid, name: gift.name } };
 }
 
 async function clearEmoji(userId) {
-  await db.prepare('UPDATE users SET emoji_gift_id = NULL WHERE id = ?').run(userId);
+  await db.prepare('UPDATE users SET emoji_gift_id = NULL, emoji_variant_id = NULL WHERE id = ?').run(userId);
   return { ok: true };
 }
 
@@ -133,7 +147,7 @@ async function pinGift(userId, userGiftId) {
   await cleanStalePins(userId);
   return db.withTx(async (tx) => {
     const ug = await tx.prepare(
-      'SELECT ug.id, ug.user_id, g.id AS gift_id, g.name, g.price FROM user_gifts ug JOIN gifts g ON g.id = ug.gift_id WHERE ug.id = ?'
+      'SELECT ug.id, ug.user_id, g.id AS gift_id, ug.variant_id, COALESCE(v.name, g.name) AS name, COALESCE(v.price, g.price) AS price FROM user_gifts ug JOIN gifts g ON g.id = ug.gift_id LEFT JOIN gift_variants v ON v.id = ug.variant_id WHERE ug.id = ?'
     ).get(ugId);
     if (!ug || ug.user_id !== userId) throw new ProfileError(404, 'Gift sizning inventaringizda topilmadi.');
     if (!(ug.price >= PIN_MIN_PRICE)) throw new ProfileError(400, `Faqat narxi ${PIN_MIN_PRICE} coin va undan yuqori giftlarni qadash mumkin.`);
@@ -146,13 +160,14 @@ async function pinGift(userId, userGiftId) {
       SELECT COUNT(*) AS c FROM profile_pins pp
       JOIN user_gifts ug2 ON ug2.id = pp.user_gift_id AND ug2.user_id = pp.user_id
       JOIN gifts g2 ON g2.id = ug2.gift_id
-      WHERE pp.user_id = ? AND g2.price >= ?
+      LEFT JOIN gift_variants v2 ON v2.id = ug2.variant_id
+      WHERE pp.user_id = ? AND COALESCE(v2.price, g2.price) >= ?
     `).get(userId, PIN_MIN_PRICE);
     if (cnt.c >= PIN_MAX) throw new ProfileError(400, `Ko'pi bilan ${PIN_MAX} ta gift qadash mumkin.`);
 
     const mx = await tx.prepare('SELECT COALESCE(MAX(position), 0) AS m FROM profile_pins WHERE user_id = ?').get(userId);
     await tx.prepare('INSERT INTO profile_pins (user_id, user_gift_id, position) VALUES (?, ?, ?)').run(userId, ugId, mx.m + 1);
-    return { ok: true, pin: { user_gift_id: ug.id, gift_id: ug.gift_id, name: ug.name } };
+    return { ok: true, pin: { user_gift_id: ug.id, gift_id: ug.gift_id, variant_id: ug.variant_id || null, name: ug.name } };
   });
 }
 

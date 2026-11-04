@@ -22,7 +22,7 @@ router.get('/profile/edit', authMiddleware, h(async (req, res) => {
 }));
 
 router.put('/profile/emoji-status', authMiddleware, h(async (req, res) => {
-  res.json(await profile.setEmoji(req.user.id, req.body && req.body.gift_id));
+  res.json(await profile.setEmoji(req.user.id, req.body && req.body.gift_id, req.body && req.body.variant_id));
 }));
 
 router.delete('/profile/emoji-status', authMiddleware, h(async (req, res) => {

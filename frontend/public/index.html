@@ -10,6 +10,11 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <!-- MTshop Liquid Glass v2: 3-item navigation + elastic active glass indicator -->
 <style>
+  /* Tugmalar bosilganda ko'k ramka (focus halqasi) chiqmasin */
+  * { -webkit-tap-highlight-color: transparent; }
+  button, a, summary, [role="button"], [tabindex]:not(input):not(textarea) { outline: none !important; }
+  button:focus, button:focus-visible, a:focus, a:focus-visible { outline: none !important; }
+
   :root {
     --bg: #0f1115;
     --card: #171a21;
@@ -4093,7 +4098,7 @@ window.MTP = (function () {
           ${stAvatar(u, 64)}
           <div style="min-width:0;flex:1;">
             <div class="st-name">${esc(u.full_name || u.username)}</div>
-            <div class="st-user">@${esc(u.username)}${statusImg}${emojiBadge(u.emoji_gift_id)}</div>
+            <div class="st-user">@${esc(u.username)}${statusImg}${emojiBadge(u.emoji_gift_id, u.emoji_variant_id)}</div>
             ${u.full_name ? '' : '<div class="st-hint">Ism va rasm qo\'shish</div>'}
           </div>
           <span class="st-chev">›</span>
@@ -4623,19 +4628,21 @@ window.MTP = (function () {
       return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
     }
 
-    function tradeGiftThumb(giftId) {
+    function tradeGiftThumb(giftId, variantId) {
       if (!giftId) return `<span class="tr-thumb">🎁</span>`;
-      return `<span class="tr-thumb"><img src="${API_BASE}/api/gift-image/${Number(giftId)}" alt="" loading="lazy" onerror="this.parentNode.textContent='🎁'"></span>`;
+      const vq = Number(variantId) > 0 ? `?v=${Number(variantId)}` : '';
+      return `<span class="tr-thumb"><img src="${API_BASE}/api/gift-image/${Number(giftId)}${vq}" alt="" loading="lazy" onerror="this.parentNode.textContent='🎁'"></span>`;
     }
 
 
     // =====================================================================
     // EMOJI STATUS va QADALGAN GIFTLAR (Profils > Profile edit)
     // =====================================================================
-    function emojiBadge(giftId) {
+    function emojiBadge(giftId, variantId) {
       const id = Number(giftId);
       if (!id) return '';
-      return `<span class="emo-st"><img src="${API_BASE}/api/gift-image/${id}" alt="" loading="lazy" onerror="this.parentNode.remove()"></span>`;
+      const vq = Number(variantId) > 0 ? `?v=${Number(variantId)}` : '';
+      return `<span class="emo-st"><img src="${API_BASE}/api/gift-image/${id}${vq}" alt="" loading="lazy" onerror="this.parentNode.remove()"></span>`;
     }
 
     async function profileApi(method, path, body) {
@@ -4675,12 +4682,12 @@ window.MTP = (function () {
       if (!r.ok) return profileEditError(r);
       const d = r.data;
       const cur = d.emoji
-        ? `<div class="pe-cur">${tradeGiftThumb(d.emoji.gift_id)}<div class="tr-name">Joriy: ${esc(d.emoji.name)}</div>
+        ? `<div class="pe-cur">${tradeGiftThumb(d.emoji.gift_id, d.emoji.variant_id)}<div class="tr-name">Joriy: ${esc(d.emoji.name)}</div>
              <button class="tr-del" aria-label="Olib tashlash" id="peEmojiClear">✕</button></div>` : '';
       const rows = d.emoji_options.length
         ? d.emoji_options.map(g => `
-            <div class="tr-pick-row" data-gid="${Number(g.gift_id)}">
-              ${tradeGiftThumb(g.gift_id)}
+            <div class="tr-pick-row" data-gid="${Number(g.gift_id)}" data-vid="${Number(g.variant_id) || 0}">
+              ${tradeGiftThumb(g.gift_id, g.variant_id)}
               <div class="tr-name">${esc(g.name)}</div>
               <div class="tr-price"><img class="cn" src="icons/coin.png" alt="coin"> ${esc(g.price)}</div>
               <div class="tr-add">Tanlash</div>
@@ -4695,7 +4702,7 @@ window.MTP = (function () {
       `;
       document.querySelectorAll('#modalBody .tr-pick-row[data-gid]').forEach(el => {
         el.addEventListener('click', async () => {
-          const rr = await profileApi('PUT', '/emoji-status', { gift_id: Number(el.dataset.gid) });
+          const rr = await profileApi('PUT', '/emoji-status', { gift_id: Number(el.dataset.gid), variant_id: Number(el.dataset.vid) || 0 });
           if (!rr.ok) { showToast(rr.data.error || 'Xatolik'); return; }
           showToast('Emoji status qo\'yildi');
           await refreshMe();
@@ -4723,7 +4730,7 @@ window.MTP = (function () {
       const pinned = d.pins.length
         ? d.pins.map(p => `
             <div class="tr-pick-row" style="cursor:default" data-ugrow="${Number(p.user_gift_id)}">
-              ${tradeGiftThumb(p.gift_id)}
+              ${tradeGiftThumb(p.gift_id, p.variant_id)}
               <div class="tr-name">${esc(p.name)}</div>
               ${d.pins.length > 1 ? `<div class="pz-mv"><button type="button" data-mv="up" aria-label="Yuqoriga">▲</button><button type="button" data-mv="down" aria-label="Pastga">▼</button></div>` : ''}
               <button class="tr-del" aria-label="Olib tashlash" data-ug="${Number(p.user_gift_id)}">✕</button>
@@ -4760,7 +4767,7 @@ window.MTP = (function () {
       const rows = d.pin_options.length
         ? d.pin_options.map(g => `
             <div class="tr-pick-row" data-ug="${Number(g.user_gift_id)}">
-              ${tradeGiftThumb(g.gift_id)}
+              ${tradeGiftThumb(g.gift_id, g.variant_id)}
               <div class="tr-name">${esc(g.name)}</div>
               <div class="tr-price"><img class="cn" src="icons/coin.png" alt="coin"> ${esc(g.price)}</div>
               <div class="tr-add">📌 Qadash</div>
@@ -4835,7 +4842,7 @@ window.MTP = (function () {
       (s.incoming || []).forEach(t => {
         parts.push(`
           <div class="tb">
-            <div class="tb-t">🔄 @${esc(t.from_username)}${emojiBadge(t.emoji_gift_id)} siz bilan Trade boshlamoqchi.</div>
+            <div class="tb-t">🔄 @${esc(t.from_username)}${emojiBadge(t.emoji_gift_id, t.emoji_variant_id)} siz bilan Trade boshlamoqchi.</div>
             <div class="tb-s">Muddati: <span data-exp="${esc(t.expires_at)}"></span></div>
             <div class="tb-b">
               <button class="btn good" onclick="tradeAccept(${t.id})">Qabul qilish</button>
@@ -4846,7 +4853,7 @@ window.MTP = (function () {
       if (s.outgoing) {
         parts.push(`
           <div class="tb">
-            <div class="tb-t">⏳ @${esc(s.outgoing.to_username)}${emojiBadge(s.outgoing.emoji_gift_id)} javobini kutyapmiz</div>
+            <div class="tb-t">⏳ @${esc(s.outgoing.to_username)}${emojiBadge(s.outgoing.emoji_gift_id, s.outgoing.emoji_variant_id)} javobini kutyapmiz</div>
             <div class="tb-s">Request muddati: <span data-exp="${esc(s.outgoing.expires_at)}"></span></div>
             <div class="tb-b"><button class="btn secondary" onclick="tradeCancelRequest(${s.outgoing.id})">Requestni bekor qilish</button></div>
           </div>`);
@@ -4854,7 +4861,7 @@ window.MTP = (function () {
       if (s.active && !inRoomOfActive) {
         parts.push(`
           <div class="tb">
-            <div class="tb-t">🔄 Trade #${s.active.id} davom etmoqda — @${esc(s.active.with)}${emojiBadge(s.active.emoji_gift_id)}</div>
+            <div class="tb-t">🔄 Trade #${s.active.id} davom etmoqda — @${esc(s.active.with)}${emojiBadge(s.active.emoji_gift_id, s.active.emoji_variant_id)}</div>
             <div class="tb-b"><button class="btn" onclick="openTradeRoom(${s.active.id})">Trade'ni ochish</button></div>
           </div>`);
       }
@@ -4952,7 +4959,7 @@ window.MTP = (function () {
       let html = '';
       if (s.active) {
         html += `<div class="tr-card"><div class="section-title">🟢 Faol Trade</div>
-          <div class="modal-sub" style="margin-bottom:10px">Trade #${s.active.id} — @${esc(s.active.with)}${emojiBadge(s.active.emoji_gift_id)}</div>
+          <div class="modal-sub" style="margin-bottom:10px">Trade #${s.active.id} — @${esc(s.active.with)}${emojiBadge(s.active.emoji_gift_id, s.active.emoji_variant_id)}</div>
           <button class="btn" onclick="openTradeRoom(${s.active.id})">Ochish</button></div>`;
       }
       if (s.cooldown_until && s.cooldown_until > tradeNow()) {
@@ -5103,7 +5110,7 @@ window.MTP = (function () {
       const gifts = side.gifts.length
         ? side.gifts.map(g => `
             <div class="tr-offer-row ${g.missing ? 'missing' : ''}">
-              ${tradeGiftThumb(g.gift_id)}
+              ${tradeGiftThumb(g.gift_id, g.variant_id)}
               <div class="tr-name">${esc(g.name)}${g.missing ? ' (mavjud emas)' : ''}</div>
               ${canEdit ? `<button class="tr-x" aria-label="Olib tashlash" onclick="tradeRemoveGift(${g.user_gift_id})">✕</button>` : ''}
             </div>`).join('')
@@ -5118,7 +5125,7 @@ window.MTP = (function () {
       document.getElementById('trStatus').textContent = TRADE_STATUS_UZ[t.status] || t.status;
       document.getElementById('trStatus').className = 'tr-badge ' + t.status;
       const vsEl = document.getElementById('trVs');
-      const vsHtml = `@${esc(d.me.username)}${emojiBadge(d.me.emoji_gift_id)} ↔ @${esc(d.other.username)}${emojiBadge(d.other.emoji_gift_id)}`;
+      const vsHtml = `@${esc(d.me.username)}${emojiBadge(d.me.emoji_gift_id, d.me.emoji_variant_id)} ↔ @${esc(d.other.username)}${emojiBadge(d.other.emoji_gift_id, d.other.emoji_variant_id)}`;
       if (vsEl.dataset.k !== vsHtml) { vsEl.dataset.k = vsHtml; vsEl.innerHTML = vsHtml; }   // faqat o'zgarsa (rasm qayta yuklanmasin)
 
       const active = t.status === 'ACTIVE';
@@ -5219,7 +5226,7 @@ window.MTP = (function () {
       const rows = r.data.length
         ? r.data.map(g => `
             <div class="tr-pick-row" onclick="tradeAddGift(${g.user_gift_id})">
-              ${tradeGiftThumb(g.gift_id)}
+              ${tradeGiftThumb(g.gift_id, g.variant_id)}
               <div class="tr-name">${esc(g.name)}</div>
               <div class="tr-add">+ Qo'shish</div>
             </div>`).join('')
@@ -5300,7 +5307,7 @@ window.MTP = (function () {
           ${stAvatar(u, 40)}
           <div class="ci-name">
             ${u.full_name ? `<div>${esc(u.full_name)}</div>` : ''}
-            <div style="${u.full_name ? 'color:var(--muted);font-size:12px;font-weight:500;' : ''}">@${esc(u.username)}${emojiBadge(u.emoji_gift_id)}</div>
+            <div style="${u.full_name ? 'color:var(--muted);font-size:12px;font-weight:500;' : ''}">@${esc(u.username)}${emojiBadge(u.emoji_gift_id, u.emoji_variant_id)}</div>
           </div>
         </div>`).join('');
       el.querySelectorAll('[data-u]').forEach(row => row.addEventListener('click', () => openUserProfile(row.dataset.u)));
@@ -5324,7 +5331,7 @@ window.MTP = (function () {
       const pinsHtml = (data.pins && data.pins.length)
         ? `<div class="modal-sub" style="margin-top:14px">📌 Qadalgan giftlar</div>
            <div class="pin-grid${data.card_style ? ' cs-pins' + (data.card_style.kind === 'glow' ? ' cs-glow-pins' : '') : ''}" style="${csVars(data.card_style)}">${data.pins.map(p => `
-             <div class="pin-tile">${tradeGiftThumb(p.gift_id)}<div class="pin-name">${esc(p.name)}</div></div>`).join('')}</div>`
+             <div class="pin-tile">${tradeGiftThumb(p.gift_id, p.variant_id)}<div class="pin-name">${esc(p.name)}</div></div>`).join('')}</div>`
         : '';
 
       const giftsHtml = data.gifts.length
@@ -5354,7 +5361,7 @@ window.MTP = (function () {
           ${stAvatar(data, 88)}
           <div style="text-align:center;">
             ${data.full_name ? `<div class="st-name">${esc(data.full_name)}</div>` : ''}
-            <div class="st-user" style="${data.full_name ? '' : 'font-size:18px;font-weight:800;color:var(--text);'}">@${esc(data.username)}${statusImg}${emojiBadge(data.emoji && data.emoji.gift_id)}</div>
+            <div class="st-user" style="${data.full_name ? '' : 'font-size:18px;font-weight:800;color:var(--text);'}">@${esc(data.username)}${statusImg}${emojiBadge(data.emoji && data.emoji.gift_id, data.emoji && data.emoji.variant_id)}</div>
           </div>
         </div>
         ${data.username !== currentUser.username ? `<button class="btn" style="margin-top:10px" data-u="${esc(data.username)}" onclick="confirmTradeRequest(this.dataset.u)">🔄 Trade boshlash</button>` : ''}
