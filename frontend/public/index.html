@@ -1723,13 +1723,35 @@ window.MTP = (function () {
     let currentUser = null;
     let actionInProgress = false; // tugmani ketma-ket tez-tez bosishning oldini olish uchun
 
+    // Faqat serverning ANIQ "kirmagansiz" (401/403) javobi login sahifasiga olib boradi.
+    // Server uyg'onayotgan bo'lsa (502/503/tarmoq xatosi — bepul hostingda uzoq tanaffusdan keyin shunday bo'ladi)
+    // login sahifasiga TASHLAMAYMIZ: qayta urinamiz, aks holda yaroqli sessiya bo'lsa ham qayta parol so'raladi.
+    function showInitProblem(text) {
+      const ls = document.getElementById('loadingScreen');
+      ls.style.display = '';
+      ls.innerHTML = `<div style="text-align:center;padding:0 24px"><div style="margin-bottom:14px">${text}</div>` +
+        `<button type="button" onclick="location.reload()" style="padding:10px 22px;border-radius:12px;border:0;font-weight:700;cursor:pointer">Qayta urinish</button></div>`;
+    }
+
     async function init() {
+      let res = null;
+      for (let attempt = 0; attempt < 8; attempt++) {
+        try {
+          res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include', cache: 'no-store' });
+          if (res.ok || res.status === 401 || res.status === 403) break;   // server aniq javob berdi
+        } catch (e) { res = null; }                                        // tarmoq xatosi
+        if (attempt === 1) document.getElementById('loadingScreen').textContent = 'Server uyg\'onmoqda, biroz kuting...';
+        await new Promise(r => setTimeout(r, Math.min(1000 * (attempt + 1), 5000)));
+      }
+      if (res && (res.status === 401 || res.status === 403)) {
+        window.location.href = 'login.html';
+        return;
+      }
+      if (!res || !res.ok) {
+        showInitProblem('Serverga ulanib bo\'lmadi. Internetni tekshirib, qayta urinib ko\'ring.');
+        return;
+      }
       try {
-        const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
-        if (!res.ok) {
-          window.location.href = 'login.html';
-          return;
-        }
         currentUser = await res.json();
         updateCoinBadge();
         document.getElementById('loadingScreen').style.display = 'none';
@@ -1749,7 +1771,9 @@ window.MTP = (function () {
         startTradePolling();
         startNotificationBell();
       } catch (e) {
-        window.location.href = 'login.html';
+        // Sessiya yaroqli, faqat ishga tushirishda xato — login sahifasiga tashlamaymiz
+        console.error('Ishga tushirish xatosi:', e);
+        showInitProblem('Sahifani yuklashda xatolik yuz berdi.');
       }
     }
 

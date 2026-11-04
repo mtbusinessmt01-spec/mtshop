@@ -705,7 +705,15 @@
     }
 
     async function checkAdmin() {
-      const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
+      let res = null;
+      for (let i = 0; i < 6; i++) {
+        try {
+          res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include', cache: 'no-store' });
+          if (res.ok || res.status === 401 || res.status === 403) break;
+        } catch (e) { res = null; }
+        await new Promise(r => setTimeout(r, Math.min(1000 * (i + 1), 5000)));
+      }
+      if (!res || (!res.ok && res.status !== 401 && res.status !== 403)) { alert('Serverga ulanib bo\'lmadi. Sahifani yangilang.'); return; }
       if (!res.ok) { window.location.href = 'login.html'; return; }
       const me = await res.json();
       if (!me.is_admin) { alert('Bu sahifa faqat admin uchun'); window.location.href = 'index.html'; }

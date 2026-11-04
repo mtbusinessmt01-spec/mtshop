@@ -137,6 +137,14 @@
 
   <script src="config.js"></script>
   <script>
+    // Sessiya hali yaroqli bo'lsa (cookie bor) — parol so'ramasdan to'g'ridan-to'g'ri hisobga o'tadi
+    (async () => {
+      try {
+        const r = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include', cache: 'no-store' });
+        if (r.ok) window.location.replace('index.html');
+      } catch (e) { /* server uyg'onmagan bo'lishi mumkin — login formasi ko'rinib turaveradi */ }
+    })();
+
     const form = document.getElementById('loginForm');
     const errorMsg = document.getElementById('errorMsg');
     const submitBtn = document.getElementById('submitBtn');

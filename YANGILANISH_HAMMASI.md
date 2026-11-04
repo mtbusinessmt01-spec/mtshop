@@ -22,6 +22,19 @@
 5. Login: bir IP+username uchun 10 daqiqada 8 ta xato, bir IP uchun 40 ta xatodan keyin vaqtincha to'xtatiladi
    (yangi fayl loyiha ichida: backend/src/loginGuard.js); parol tekshiruvi asinxron (server qotmaydi).
 
+## C) "Qaytib kirsam login sahifasi chiqyapti" tuzatishi
+Sabab: sayt ochilganda index.html `/api/auth/me` ni so'rardi va har qanday xatoda (server uxlab turgan bo'lsa 502/503,
+tarmoq uzilishi, hatto sahifani chizishdagi kichik xato) login sahifasiga tashlardi. Login sahifasi esa cookie yaroqli
+bo'lsa ham parol so'rardi.
+Endi:
+- Faqat serverning aniq 401/403 javobi login sahifasiga olib boradi; boshqa xatolarda 8 martagacha qayta uriniladi
+  ("Server uyg'onmoqda..."), bo'lmasa "Qayta urinish" tugmasi chiqadi.
+- Login sahifasi ochilganda sessiya yaroqli bo'lsa, parol so'ramay to'g'ridan-to'g'ri hisobga o'tkazadi.
+- admin.html ham xuddi shunday.
+Fayllar: frontend/public/index.html, login.html, admin.html
+
+MUHIM: JWT_SECRET Renderda qo'yilgan bo'lishi shart. Qo'yilmagan bo'lsa server har uyg'onganda hamma tizimdan chiqadi.
+
 ## Hali qilinmagan (keyingi navbat)
 - /transfers/case (case yuborish) atomik emas, egasini tekshirmaydi
 - Gift o'chirish atomik emas va bog'liq yozuvlarni (trade_items, kredit garovi) tozalamaydi
