@@ -9,8 +9,16 @@ const IS_HOSTED = !!process.env.RENDER || process.env.NODE_ENV === 'production';
 let JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.length < 16) {
   if (IS_HOSTED) {
-    JWT_SECRET = crypto.randomBytes(48).toString('hex');
-    console.error('!!! XAVFSIZLIK: JWT_SECRET o\'rnatilmagan yoki juda qisqa (kamida 16 belgi). Vaqtincha tasodifiy kalit ishlatilmoqda — har qayta ishga tushganda hamma tizimdan chiqadi. Render > Environment ga JWT_SECRET (uzun tasodifiy matn) qo\'shing.');
+    // Barqaror zaxira kalit: Turso tokenidan hosil qilinadi (u maxfiy va server qayta ishga tushganda o'zgarmaydi).
+    // Shunda JWT_SECRET qo'yilmagan bo'lsa ham foydalanuvchilar server uyg'onganda tizimdan chiqib ketmaydi.
+    const base = process.env.TURSO_AUTH_TOKEN || process.env.MERCHANT_SECRET || '';
+    if (base.length >= 16) {
+      JWT_SECRET = crypto.createHmac('sha256', 'mtshop-jwt-v1').update(base).digest('hex');
+      console.warn('Ogohlantirish: JWT_SECRET o\'rnatilmagan — barqaror zaxira kalit ishlatilmoqda. Render > Environment ga JWT_SECRET qo\'shish tavsiya etiladi.');
+    } else {
+      JWT_SECRET = crypto.randomBytes(48).toString('hex');
+      console.error('!!! XAVFSIZLIK: JWT_SECRET o\'rnatilmagan — har qayta ishga tushganda hamma tizimdan chiqadi. Render > Environment ga JWT_SECRET qo\'shing.');
+    }
   } else {
     JWT_SECRET = 'mtshop-dev-secret-change-me';
     console.warn('Ogohlantirish: JWT_SECRET yo\'q — faqat mahalliy sinov uchun dev kalit ishlatilmoqda.');
@@ -22,7 +30,7 @@ function signToken(user, sid) {
   return jwt.sign(
     { id: user.id, username: user.username, is_admin: user.is_admin, sid },
     JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: '30d' }
   );
 }
 
@@ -32,7 +40,7 @@ function setAuthCookie(req, res, token) {
     httpOnly: true,
     sameSite: isHttps ? 'none' : 'lax',
     secure: isHttps,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
   });
 }
 
