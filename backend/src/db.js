@@ -186,6 +186,8 @@ async function initDb() {
   await ensureColumn('transfers', 'trade_id', 'INTEGER');
   // Foydalanuvchi o'z Trade tarixini ko'rinishdan o'chirishi (sherik va admin audit tarixi saqlanadi)
   // Emoji status: username yonidagi gift rasmi (narxi 200 coindan yuqori gift)
+  // Premium: tugash vaqti (ISO). NULL yoki o'tib ketgan bo'lsa — Premium yo'q
+  await ensureColumn('users', 'premium_until', 'TEXT');
   await ensureColumn('users', 'emoji_gift_id', 'INTEGER');
   await ensureColumn('users', 'emoji_variant_id', 'INTEGER');   // emoji status gift turi (NULL = asosiy gift)
   await ensureColumn('trades', 'a_hidden', 'INTEGER NOT NULL DEFAULT 0');

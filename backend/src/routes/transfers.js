@@ -3,6 +3,7 @@ const db = require('../db');
 const push = require('../push');
 const { authMiddleware, adminMiddleware } = require('../auth');
 const { requirePin, requireNotFrozen } = require('../security');
+const premium = require('../premium');
 const { requireNoCreditLock } = require('../creditRules');   // kredit coini qulflangan vaqtda jo'natish mumkin emas
 
 const router = express.Router();
@@ -23,15 +24,18 @@ function notifyTransfer(fromUsername, toUserId, isAnonymous, itemText) {
 const COMMISSION_KEY = 'transfer_commission_percent';
 const DEFAULT_COMMISSION_PERCENT = 5;
 
-async function getCommissionPercent() {
+async function getCommissionPercent(userId) {
   const row = await db.prepare('SELECT value FROM app_settings WHERE key = ?').get(COMMISSION_KEY);
   const p = row ? parseFloat(row.value) : NaN;
-  return isNaN(p) || p < 0 ? DEFAULT_COMMISSION_PERCENT : p;
+  const base = isNaN(p) || p < 0 ? DEFAULT_COMMISSION_PERCENT : p;
+  if (!userId) return base;
+  // Premium faol bo'lsa komissiya kamroq (hech qachon oddiydan ko'p emas)
+  return (await premium.limitsFor(userId)).commission_percent;
 }
 
 // Foydalanuvchilar uchun: joriy komissiya foizi
 router.get('/settings/commission', authMiddleware, async (req, res) => {
-  res.json({ percent: await getCommissionPercent() });
+  res.json({ percent: await getCommissionPercent(req.user.id) });
 });
 
 // Admin: komissiyani ko'rish va o'zgartirish
@@ -72,7 +76,7 @@ router.post('/transfers/coin', authMiddleware, requireNotFrozen, requireNoCredit
   const toUser = await findUserByUsername(to_username);
   if (!toUser) return res.status(404).json({ error: 'Bunday foydalanuvchi topilmadi' });
 
-  const commissionPercent = await getCommissionPercent();
+  const commissionPercent = await getCommissionPercent(req.user.id);
   const commission = Math.round(amt * (commissionPercent / 100) * 100) / 100;
   const totalDeduct = amt + commission;
 

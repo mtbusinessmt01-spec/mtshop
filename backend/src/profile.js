@@ -7,6 +7,7 @@
 //    (har o'qishda egalik va narx qayta tekshiriladi, shuning uchun sotish/yuborish kodlariga tegilmaydi).
 
 const db = require('./db');
+const premium = require('./premium');
 const { AVATAR_MAX_BYTES, normalizeFullName, sniffImage } = require('./identityRules');
 
 const EMOJI_MIN_PRICE = 200;
@@ -58,7 +59,8 @@ async function cleanStalePins(userId) {
 
 async function pinsFor(userId) {
   await cleanStalePins(userId);
-  // Yashirin (narxi pasaygan) yozuvlar qaytib chiqsa ham ko'pi bilan PIN_MAX ta ko'rsatiladi
+  const pinMax = (await premium.limitsFor(userId)).pin_max;   // Premium bo'lsa ko'proq
+  // Yashirin (narxi pasaygan) yozuvlar qaytib chiqsa ham ko'pi bilan pinMax ta ko'rsatiladi
   return db.prepare(`
     SELECT pp.user_gift_id, g.id AS gift_id, ug.variant_id, COALESCE(v.name, g.name) AS name, COALESCE(v.price, g.price) AS price
     FROM profile_pins pp
@@ -68,7 +70,7 @@ async function pinsFor(userId) {
     WHERE pp.user_id = ? AND COALESCE(v.price, g.price) >= ?
     ORDER BY pp.position ASC, pp.id ASC
     LIMIT ?
-  `).all(userId, PIN_MIN_PRICE, PIN_MAX);
+  `).all(userId, PIN_MIN_PRICE, pinMax);
 }
 
 // "Profile edit" ekrani uchun hamma ma'lumot
@@ -101,7 +103,7 @@ async function editData(userId) {
   `).all(userId, PIN_MIN_PRICE);
 
   return {
-    limits: { emoji_min_price: EMOJI_MIN_PRICE, pin_min_price: PIN_MIN_PRICE, pin_max: PIN_MAX },
+    limits: { emoji_min_price: EMOJI_MIN_PRICE, pin_min_price: PIN_MIN_PRICE, pin_max: (await premium.limitsFor(userId)).pin_max },
     emoji,
     emoji_options: emojiOptions,
     pins,
@@ -145,6 +147,7 @@ async function pinGift(userId, userGiftId) {
   const ugId = parseId(userGiftId);
   if (!ugId) throw new ProfileError(400, "Gift noto'g'ri");
   await cleanStalePins(userId);
+  const pinMax = (await premium.limitsFor(userId)).pin_max;
   return db.withTx(async (tx) => {
     const ug = await tx.prepare(
       'SELECT ug.id, ug.user_id, g.id AS gift_id, ug.variant_id, COALESCE(v.name, g.name) AS name, COALESCE(v.price, g.price) AS price FROM user_gifts ug JOIN gifts g ON g.id = ug.gift_id LEFT JOIN gift_variants v ON v.id = ug.variant_id WHERE ug.id = ?'
@@ -163,7 +166,7 @@ async function pinGift(userId, userGiftId) {
       LEFT JOIN gift_variants v2 ON v2.id = ug2.variant_id
       WHERE pp.user_id = ? AND COALESCE(v2.price, g2.price) >= ?
     `).get(userId, PIN_MIN_PRICE);
-    if (cnt.c >= PIN_MAX) throw new ProfileError(400, `Ko'pi bilan ${PIN_MAX} ta gift qadash mumkin.`);
+    if (cnt.c >= pinMax) throw new ProfileError(400, `Ko'pi bilan ${pinMax} ta gift qadash mumkin.`);
 
     const mx = await tx.prepare('SELECT COALESCE(MAX(position), 0) AS m FROM profile_pins WHERE user_id = ?').get(userId);
     await tx.prepare('INSERT INTO profile_pins (user_id, user_gift_id, position) VALUES (?, ?, ?)').run(userId, ugId, mx.m + 1);

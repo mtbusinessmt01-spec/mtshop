@@ -4,6 +4,7 @@ const { upload, fileToDataUrl } = require('../imageUpload');
 const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
 const { requirePin } = require('../security');
+const premium = require('../premium');
 const { isEventItemLocked, parseEventId, eventRibbon } = require('../eventUtil');
 
 const MAX_BUY_QTY = 999;   // frontend ham shu chegarani ishlatadi
@@ -253,7 +254,9 @@ router.post('/inventory/gifts/:inventoryId/sell', authMiddleware, requirePin, as
   if (!item) return res.status(404).json({ error: 'Topilmadi' });
   if (item.trade_id) return res.status(409).json({ error: "Bu gift Trade'da band — sotib bo'lmaydi" });
 
-  const sellPrice = Math.round(item.current_price * 0.8 * 100) / 100;
+  // Sotish foizi: oddiy 80%, Premium faol bo'lsa ko'proq (admin belgilaydi)
+  const sellPct = (await premium.limitsFor(req.user.id)).sell_percent;
+  const sellPrice = Math.round(item.current_price * (sellPct / 100) * 100) / 100;
 
   // Haqiqiy tranzaksiya: gift faqat egasida va Trade'da band bo'lmasa o'chiriladi; faqat shunda coin beriladi
   // (parallel ikki marta sotish yoki sotish + Trade poygasi mumkin emas)

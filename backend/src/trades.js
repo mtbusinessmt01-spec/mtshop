@@ -12,9 +12,10 @@
 const db = require('./db');
 const push = require('./push');
 const profile = require('./profile');
+const premium = require('./premium');
 
 const REQUEST_TTL_MS = 5 * 60 * 1000;     // request 5 daqiqa amal qiladi
-const COOLDOWN_MS = 20 * 60 * 1000;       // 20 daqiqada faqat 1 ta request
+const COOLDOWN_MS = 20 * 60 * 1000;       // 20 daqiqada faqat 1 ta request (Premium faol bo'lsa qisqaroq — premium.js)
 const MAX_GIFTS_PER_SIDE = 5;
 const MAX_COIN_PER_SIDE = 100000;
 const MAX_MESSAGE_LEN = 500;
@@ -159,6 +160,9 @@ async function createRequest(userId, targetUsername) {
   const uname = String(targetUsername == null ? '' : targetUsername).trim();
   if (!uname || uname.length > 64) throw new TradeError(400, 'Foydalanuvchi username kerak');
 
+  const cooldownMs = (await premium.limitsFor(userId)).trade_cooldown_min * 60 * 1000;
+  const cooldownMin = Math.round(cooldownMs / 60000);
+
   return tradeTx(async (tx, after) => {
     const me = await assertActiveUser(tx, userId);
     const target = await tx.prepare('SELECT id, username, is_blocked FROM users WHERE username = ?').get(uname);
@@ -182,14 +186,14 @@ async function createRequest(userId, targetUsername) {
 
     // 20 daqiqalik cooldown — atomik: shartli UPDATE faqat vaqt o'tgan bo'lsa ishlaydi (server vaqti)
     const nowMs = Date.now();
-    const cutoff = new Date(nowMs - COOLDOWN_MS).toISOString();
+    const cutoff = new Date(nowMs - cooldownMs).toISOString();
     const upd = await tx.prepare(
       'UPDATE users SET last_trade_request_at = ? WHERE id = ? AND (last_trade_request_at IS NULL OR last_trade_request_at <= ?)'
     ).run(new Date(nowMs).toISOString(), me.id, cutoff);
     if (!upd.changes) {
       const last = await tx.prepare('SELECT last_trade_request_at AS l FROM users WHERE id = ?').get(me.id);
-      const wait = Math.max(1, Math.ceil((new Date(last.l).getTime() + COOLDOWN_MS - nowMs) / 1000));
-      throw new TradeError(429, `20 daqiqalik cooldown: yana ${Math.ceil(wait / 60)} daqiqadan keyin urinib ko'ring.`,
+      const wait = Math.max(1, Math.ceil((new Date(last.l).getTime() + cooldownMs - nowMs) / 1000));
+      throw new TradeError(429, `${cooldownMin} daqiqalik cooldown: yana ${Math.ceil(wait / 60)} daqiqadan keyin urinib ko'ring.`,
         { code: 'COOLDOWN', retry_after_seconds: wait });
     }
 
@@ -763,7 +767,7 @@ async function summary(userId) {
   const me = await db.prepare('SELECT last_trade_request_at AS l FROM users WHERE id = ?').get(userId);
   let cooldownUntil = null;
   if (me && me.l) {
-    const until = new Date(me.l).getTime() + COOLDOWN_MS;
+    const until = new Date(me.l).getTime() + (await premium.limitsFor(userId)).trade_cooldown_min * 60 * 1000;
     if (until > nowMs) cooldownUntil = until;
   }
 

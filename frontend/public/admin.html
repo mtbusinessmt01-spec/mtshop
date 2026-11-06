@@ -158,6 +158,7 @@
     <button class="admin-nav-btn" data-section="trades" onclick="switchAdminSection('trades')">🔄 Trade</button>
     <button class="admin-nav-btn" data-section="promos" onclick="switchAdminSection('promos')">🎟️ Promokod</button>
     <button class="admin-nav-btn" data-section="cardstyles" onclick="switchAdminSection('cardstyles')">🎨 Profil uslublari</button>
+    <button class="admin-nav-btn" data-section="premium" onclick="switchAdminSection('premium')">👑 Premium</button>
   </div>
 
   <div class="admin-section" data-section="users">
@@ -597,6 +598,45 @@
   <div class="card">
     <h2>Uslublar</h2>
     <div class="gift-list" id="csList">Yuklanmoqda...</div>
+  </div>
+  </div>
+
+  <div class="admin-section" data-section="premium" style="display:none">
+  <div class="card">
+    <h2>Premium sozlamalari</h2>
+    <label>Narxi (coin)</label>
+    <input type="number" id="premPrice" min="0" step="1">
+    <label>Muddati (kun)</label>
+    <input type="number" id="premDays" min="1" step="1">
+    <label>Coin yuborish komissiyasi (%) — Premium uchun</label>
+    <input type="number" id="premCommission" min="0" max="100" step="0.01">
+    <label>Giftni qaytarib sotish (%) — Premium uchun</label>
+    <input type="number" id="premSell" min="1" max="100" step="0.01">
+    <label>Maksimum pet soni — Premium uchun</label>
+    <input type="number" id="premPets" min="1" step="1">
+    <label>Profilga qadash soni — Premium uchun</label>
+    <input type="number" id="premPins" min="1" step="1">
+    <label>Trade requestlar orasidagi kutish (daqiqa) — Premium uchun</label>
+    <input type="number" id="premCooldown" min="0" step="1">
+    <div class="msg" style="margin-top:6px;">Oddiy foydalanuvchilar uchun qiymatlar o'zgarmaydi: komissiya (Transfer bo'limidagi), sotish 80%, pet 2 ta, qadash 6 ta, trade kutish 20 daqiqa. Premium qiymati oddiydan yomon bo'lsa, oddiy qiymat ishlatiladi.</div>
+    <button type="button" class="btn-primary" onclick="savePremiumSettings()">Saqlash</button>
+    <div class="msg" id="premSettingsMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>Premium berish / olib qo'yish</h2>
+    <label>Username</label>
+    <input type="text" id="premUser" autocomplete="off">
+    <label>Kun (berish uchun)</label>
+    <input type="number" id="premGrantDays" min="1" max="3650" step="1" value="30">
+    <button type="button" class="btn-primary" onclick="premiumGrant()">Premium berish</button>
+    <button type="button" class="btn-primary" style="background:#c0392b;margin-top:8px;" onclick="premiumRevoke()">Premiumni olib qo'yish</button>
+    <div class="msg" id="premGrantMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>Faol Premium egalari</h2>
+    <div class="gift-list" id="premActiveList">Yuklanmoqda...</div>
   </div>
   </div>
 
@@ -1129,6 +1169,85 @@
     }
 
     loadCommission();
+
+    // ---------- PREMIUM ----------
+    async function loadPremiumAdmin() {
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/premium/settings`, { credentials: 'include' });
+        if (res.ok) {
+          const d = await res.json();
+          document.getElementById('premPrice').value = d.premium_price;
+          document.getElementById('premDays').value = d.premium_days;
+          document.getElementById('premCommission').value = d.premium_commission_percent;
+          document.getElementById('premSell').value = d.premium_sell_percent;
+          document.getElementById('premPets').value = d.premium_max_pets;
+          document.getElementById('premPins').value = d.premium_pin_max;
+          document.getElementById('premCooldown').value = d.premium_trade_cooldown_min;
+        }
+      } catch (e) { /* tarmoq xatosi */ }
+      loadPremiumActive();
+    }
+
+    async function loadPremiumActive() {
+      const el = document.getElementById('premActiveList');
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/premium/users`, { credentials: 'include' });
+        const list = res.ok ? await res.json() : [];
+        el.innerHTML = list.length
+          ? list.map(u => `<div class="gift-item"><b>@${escHtml(u.username)}</b> &mdash; ${escHtml(new Date(u.premium_until).toLocaleDateString('uz-UZ'))} gacha</div>`).join('')
+          : 'Hozircha Premium egasi yo\'q';
+      } catch (e) { el.textContent = 'Yuklab bo\'lmadi'; }
+    }
+
+    async function savePremiumSettings() {
+      const msg = document.getElementById('premSettingsMsg');
+      msg.textContent = ''; msg.className = 'msg';
+      const body = {
+        premium_price: document.getElementById('premPrice').value,
+        premium_days: document.getElementById('premDays').value,
+        premium_commission_percent: document.getElementById('premCommission').value,
+        premium_sell_percent: document.getElementById('premSell').value,
+        premium_max_pets: document.getElementById('premPets').value,
+        premium_pin_max: document.getElementById('premPins').value,
+        premium_trade_cooldown_min: document.getElementById('premCooldown').value,
+      };
+      const res = await fetch(`${API_BASE}/api/admin/premium/settings`, {
+        method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) { msg.textContent = data.error || 'Xatolik'; msg.classList.add('error'); return; }
+      msg.textContent = 'Saqlandi!'; msg.classList.add('success');
+    }
+
+    async function premiumAction(path, payload) {
+      const msg = document.getElementById('premGrantMsg');
+      msg.textContent = ''; msg.className = 'msg';
+      const res = await fetch(`${API_BASE}/api/admin/premium/${path}`, {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) { msg.textContent = data.error || 'Xatolik'; msg.classList.add('error'); return null; }
+      msg.classList.add('success');
+      loadPremiumActive();
+      return data;
+    }
+
+    async function premiumGrant() {
+      const username = document.getElementById('premUser').value.trim();
+      const days = document.getElementById('premGrantDays').value;
+      const d = await premiumAction('grant', { username, days });
+      if (d) document.getElementById('premGrantMsg').textContent = `Berildi! @${username} uchun ${new Date(d.until).toLocaleDateString('uz-UZ')} gacha`;
+    }
+
+    async function premiumRevoke() {
+      const username = document.getElementById('premUser').value.trim();
+      if (!username) return;
+      if (!confirm(`@${username} Premiumini olib qo'yasizmi?`)) return;
+      const d = await premiumAction('revoke', { username });
+      if (d) document.getElementById('premGrantMsg').textContent = `@${username} Premiumi olib qo'yildi`;
+    }
+
+    loadPremiumAdmin();
 
     // ---------- CASE MANAGEMENT ----------
 

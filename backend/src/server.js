@@ -20,6 +20,8 @@ const notificationsRouter = require('./routes/notifications');
 const eventsRouter = require('./routes/events');
 const tradesRouter = require('./routes/trades');
 const profileRouter = require('./routes/profile');
+const premiumRouter = require('./routes/premium');
+const premiumSvc = require('./premium');
 const promocodesRouter = require('./routes/promocodes');
 const securityRouter = require('./routes/security');
 const airdropRouter = require('./routes/airdrop');
@@ -59,6 +61,7 @@ app.use('/api', notificationsRouter);
 app.use('/api', eventsRouter);
 app.use('/api', tradesRouter);
 app.use('/api', profileRouter);
+app.use('/api', premiumRouter);
 app.use('/api', promocodesRouter);
 app.use('/api', securityRouter);
 app.use('/api', airdropRouter);
@@ -138,7 +141,8 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Topilmadi' });
     const emoji = await profileSvc.emojiFor(user.id);   // egalik va narx qayta tekshiriladi
     const card_style = await cardStyleSvc.styleFor(user.id);
-    res.json({ ...profileSvc.withAvatar(user), emoji_gift_id: emoji ? emoji.gift_id : null, emoji_variant_id: emoji ? emoji.variant_id : null, card_style });
+    const prem = await premiumSvc.statusFor(user.id);   // Premium holati va amaldagi chegaralar
+    res.json({ ...profileSvc.withAvatar(user), emoji_gift_id: emoji ? emoji.gift_id : null, emoji_variant_id: emoji ? emoji.variant_id : null, card_style, is_premium: prem.active, premium_until: prem.until, limits: prem.effective });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server xatosi' });

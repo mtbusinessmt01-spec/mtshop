@@ -6,6 +6,7 @@ const { authMiddleware, adminMiddleware } = require('../auth');
 
 const router = express.Router();
 
+const premium = require('../premium');
 const R = require('../petRules');   // barcha pet qoidalari (muddatlar, narxlar, bonus) shu yerda
 
 const MAX_PETS_PER_USER = 2;
@@ -130,7 +131,7 @@ async function refreshAllUserPets(userId) {
 // ---------- FOYDALANUVCHI ----------
 
 // Shop'da "Ko'rish" oynasi uchun: pet nima berishi va qoidalari (hammasi petRules.js dan hisoblanadi)
-function petShopInfo(t) {
+function petShopInfo(t, maxPets) {
   return {
     coin_per_day: R.round2((t.coin_per_3h || 0) * 8),
     max_coin_per_3h: R.round2((t.coin_per_3h || 0) * (1 + R.MAX_LEVEL_BONUS)),
@@ -140,7 +141,7 @@ function petShopInfo(t) {
     sell_price_lv1: R.sellPrice(t.price, 1),
     sell_price_max: R.sellPrice(t.price, 100000),
     rules: {
-      max_pets: MAX_PETS_PER_USER,
+      max_pets: maxPets || MAX_PETS_PER_USER,
       hungry_after_hours: R.HUNGRY_AFTER_MS / R.HOUR_MS,
       sick_after_hours: R.SICK_AFTER_MS / R.HOUR_MS,
       death_after_hours: R.DEATH_AFTER_MS / R.HOUR_MS,
@@ -158,7 +159,8 @@ router.get('/pets/types', authMiddleware, async (req, res) => {
   const types = await db.prepare(
     'SELECT * FROM pet_types ORDER BY CASE WHEN stock IS NOT NULL AND stock <= 0 THEN 1 ELSE 0 END, price ASC'
   ).all();
-  res.json(types.map(t => ({ ...t, ...petShopInfo(t), sold_out: t.stock !== null && t.stock <= 0 })));
+  const maxPets = (await premium.limitsFor(req.user.id)).max_pets;
+  res.json(types.map(t => ({ ...t, ...petShopInfo(t, maxPets), sold_out: t.stock !== null && t.stock <= 0 })));
 });
 
 router.post('/pets/types/:id/buy', authMiddleware, async (req, res) => {
@@ -167,8 +169,9 @@ router.post('/pets/types/:id/buy', authMiddleware, async (req, res) => {
   if (petType.stock !== null && petType.stock <= 0) return res.status(400).json({ error: 'Pet tugagan' });
 
   const ownedCountRow = await db.prepare("SELECT COUNT(*) as c FROM user_pets WHERE user_id = ? AND status != 'dead'").get(req.user.id);
-  if (ownedCountRow.c >= MAX_PETS_PER_USER) {
-    return res.status(400).json({ error: `Maksimum ${MAX_PETS_PER_USER} ta pet egalik qilishingiz mumkin` });
+  const maxPets = (await premium.limitsFor(req.user.id)).max_pets;
+  if (ownedCountRow.c >= maxPets) {
+    return res.status(400).json({ error: `Maksimum ${maxPets} ta pet egalik qilishingiz mumkin` });
   }
 
   const nowIso = new Date().toISOString();
@@ -375,8 +378,9 @@ router.post('/pets/:id/revive', authMiddleware, async (req, res) => {
   if (pet.status !== 'dead') return res.status(400).json({ error: "Pet o'lmagan" });
 
   const aliveRow = await db.prepare("SELECT COUNT(*) as c FROM user_pets WHERE user_id = ? AND status != 'dead'").get(req.user.id);
-  if (aliveRow.c >= MAX_PETS_PER_USER) {
-    return res.status(400).json({ error: `Avval joy bo'shating: maksimum ${MAX_PETS_PER_USER} ta tirik pet bo'lishi mumkin` });
+  const maxPetsRevive = (await premium.limitsFor(req.user.id)).max_pets;
+  if (aliveRow.c >= maxPetsRevive) {
+    return res.status(400).json({ error: `Avval joy bo'shating: maksimum ${maxPetsRevive} ta tirik pet bo'lishi mumkin` });
   }
 
   const cost = R.reviveCost(petType.price);

@@ -6,6 +6,7 @@ const db = require('../db');
 const { authMiddleware, adminMiddleware } = require('../auth');
 const trades = require('../trades');
 const profileSvc = require('../profile');
+const premiumSvc = require('../premium');
 const cardStyleSvc = require('../cardStyles');
 
 const security = require('../security');
@@ -200,7 +201,8 @@ router.get('/users/search', authMiddleware, async (req, res) => {
     'SELECT id, username, full_name, avatar_ver, status_image_url FROM users WHERE username LIKE ? OR full_name LIKE ? ORDER BY username ASC LIMIT 20'
   ).all(`%${q}%`, `%${q}%`);
   const emojis = await profileSvc.emojiMap(rows.map(r => r.id));
-  res.json(rows.map(r => ({ ...profileSvc.withAvatar(r), emoji_gift_id: emojis.has(r.id) ? emojis.get(r.id).gift_id : null, emoji_variant_id: emojis.has(r.id) ? emojis.get(r.id).variant_id : null })));
+  const prems = await premiumSvc.premiumMap(rows.map(r => r.id));
+  res.json(rows.map(r => ({ ...profileSvc.withAvatar(r), is_premium: prems.has(r.id), emoji_gift_id: emojis.has(r.id) ? emojis.get(r.id).gift_id : null, emoji_variant_id: emojis.has(r.id) ? emojis.get(r.id).variant_id : null })));
 });
 
 // Ochiq profil: username, status, giftlari, case'lari (pet mavjudligi, lekin tafsilotsiz)
@@ -233,7 +235,8 @@ router.get('/users/:username/profile', authMiddleware, async (req, res) => {
   const pins = (await profileSvc.pinsFor(user.id)).map(p => ({ gift_id: p.gift_id, name: p.name }));
 
   const card_style = await cardStyleSvc.styleFor(user.id);
-  res.json({ ...profileSvc.withAvatar(user), gifts, cases, pets, emoji, pins, card_style });
+  const is_premium = await premiumSvc.isPremium(user.id);
+  res.json({ ...profileSvc.withAvatar(user), gifts, cases, pets, emoji, pins, card_style, is_premium });
 });
 
 module.exports = router;
