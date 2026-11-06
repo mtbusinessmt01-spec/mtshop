@@ -5,3 +5,4 @@ db/*.db-shm
 db/*.db-wal
 db/local.db*
 uploads/
+/mtshop/
