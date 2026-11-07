@@ -330,22 +330,52 @@
   .emo-st { display: inline-flex; width: 20px; height: 20px; min-width: 20px; border-radius: 6px; overflow: hidden; vertical-align: middle; margin-left: 6px; background: var(--w80); }
   .emo-st img { width: 100%; height: 100%; max-width: 100%; object-fit: cover; display: block; margin: 0; }
   /* Premium */
-  .prem-b { display: inline-flex; width: 18px; height: 18px; margin-left: 6px; vertical-align: middle; }
-  .prem-b svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 1px 2px rgba(240,140,20,.45)); }
-  .prem-hero { text-align: center; padding: 22px 16px; border-radius: 20px; margin-bottom: 14px; color: #3a2400;
-    background: linear-gradient(135deg, #ffd45a 0%, #ffb020 55%, #f08c14 100%); box-shadow: 0 10px 30px rgba(240,140,20,.28); }
-  .prem-hero .ph-ico { width: 54px; height: 54px; margin: 0 auto 8px; }
-  .prem-hero .ph-ico svg { width: 100%; height: 100%; display: block; }
-  .prem-hero .ph-t { font-size: 20px; font-weight: 800; }
-  .prem-hero .ph-s { font-size: 13px; font-weight: 600; margin-top: 4px; opacity: .85; }
-  .prem-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 2px; border-bottom: 1px solid rgba(128,128,128,.16); }
-  .prem-row:last-child { border-bottom: 0; }
-  .prem-row .pr-l { font-weight: 600; min-width: 0; }
-  .prem-row .pr-v { font-weight: 800; white-space: nowrap; text-align: right; }
-  .prem-row .pr-old { color: var(--muted); font-weight: 600; text-decoration: line-through; margin-right: 6px; }
-  .prem-row .pr-new { color: #e8970c; }
-  .prem-price { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 22px; font-weight: 800; margin: 6px 0 2px; }
-  .prem-price .cn { width: 22px; height: 22px; }
+  .prem-b { display: inline-flex; width: 20px; height: 20px; margin-left: 6px; vertical-align: -4px; }
+  .prem-b svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 1px 3px rgba(232,150,20,.55)); }
+  .is-prem { background: linear-gradient(90deg, #b87a0c 0%, #e9a825 45%, #b87a0c 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent !important; font-weight: 700; }
+
+  .pz { position: relative; overflow: hidden; border-radius: 24px; padding: 0 0 22px; color: #f6e7c1;
+    background: radial-gradient(120% 70% at 50% 0%, #3b2a10 0%, #1d150a 55%, #120d06 100%);
+    box-shadow: 0 18px 50px rgba(0,0,0,.35), inset 0 0 0 1px rgba(243,193,75,.28); }
+  .pz-hero { position: relative; text-align: center; padding: 30px 20px 22px; overflow: hidden; }
+  .pz-hero::after { content: ""; position: absolute; top: 0; bottom: 0; width: 38%; left: -50%;
+    background: linear-gradient(100deg, transparent, rgba(255,230,160,.16), transparent); transform: skewX(-18deg);
+    animation: pzSheen 7s ease-in-out infinite; pointer-events: none; }
+  @keyframes pzSheen { 0%, 55% { left: -50%; } 100% { left: 140%; } }
+  .pz-medal { position: relative; width: 86px; height: 86px; margin: 0 auto 14px; border-radius: 50%;
+    background: conic-gradient(from 210deg, #7a4b06, #ffd86b, #fff3c4, #e9a825, #7a4b06, #ffd86b);
+    padding: 3px; box-shadow: 0 0 40px rgba(243,193,75,.45); }
+  .pz-medal > div { width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 50% 30%, #3a2a0e, #150e05); }
+  .pz-medal svg { width: 40px; height: 40px; filter: drop-shadow(0 2px 6px rgba(255,196,60,.6)); }
+  .pz-title { font-family: Georgia, 'Times New Roman', serif; font-size: 27px; font-weight: 700; letter-spacing: .02em; color: #fff1c9; }
+  .pz-sub { margin-top: 6px; font-size: 13px; font-weight: 600; color: #cdb887; }
+  .pz-bar { height: 5px; margin: 14px auto 0; max-width: 220px; border-radius: 3px; background: rgba(243,193,75,.16); overflow: hidden; }
+  .pz-bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #e9a825, #ffe08a); }
+  .pz-list { padding: 4px 18px 0; }
+  .pz-row { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-top: 1px solid rgba(243,193,75,.16); }
+  .pz-ico { flex: 0 0 34px; width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    color: #ffd35c; background: rgba(243,193,75,.1); box-shadow: inset 0 0 0 1px rgba(243,193,75,.22); }
+  .pz-ico svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .pz-l { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: #f6e7c1; }
+  .pz-v { text-align: right; white-space: nowrap; font-size: 15px; font-weight: 800; }
+  .pz-v s { color: #8f7d57; font-weight: 600; margin-right: 8px; }
+  .pz-v b { font-weight: 800; background: linear-gradient(180deg, #fff0b8, #f0b73a); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .pz-buy { padding: 18px 18px 0; text-align: center; border-top: 1px solid rgba(243,193,75,.16); margin-top: 4px; }
+  .pz-price { display: inline-flex; align-items: center; gap: 8px; font-family: Georgia, 'Times New Roman', serif; font-size: 34px; font-weight: 700; color: #fff1c9; }
+  .pz-price .cn { width: 28px; height: 28px; }
+  .pz-for { margin: 2px 0 14px; font-size: 13px; color: #cdb887; }
+  .pz-err { min-height: 18px; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #ff9b8a; }
+  .pz-btn { width: 100%; padding: 15px; border: 0; border-radius: 16px; font-size: 16px; font-weight: 800; color: #3a2400; cursor: pointer;
+    background: linear-gradient(180deg, #ffe58f 0%, #f2b92f 55%, #d9922a 100%);
+    box-shadow: 0 8px 22px rgba(240,160,30,.35), inset 0 1px 0 rgba(255,255,255,.6); transition: transform .12s, filter .12s; }
+  .pz-btn:active { transform: scale(.98); }
+  .pz-btn[disabled] { filter: grayscale(.7) brightness(.7); cursor: not-allowed; box-shadow: none; }
+  .pz-note { margin: 14px 4px 0; font-size: 12px; line-height: 1.5; color: #9c8a61; }
+  .pz-spark { position: absolute; width: 7px; height: 7px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, #fff6cf, #f2b92f); animation: pzBurst .9s cubic-bezier(.15,.7,.3,1) forwards; }
+  @keyframes pzBurst { from { transform: translate(0,0) scale(1); opacity: 1; } to { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .pz-hero::after, .pz-spark { animation: none; } .pz-spark { display: none; } }
   .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
   .pin-tile { background: var(--w60); border-radius: 12px; padding: 10px 4px 8px; text-align: center; font-size: 11px; line-height: 1.25; min-width: 0; }
   .pin-tile .tr-thumb { width: 44px; height: 44px; min-width: 44px; margin: 0 auto 6px; }
@@ -4139,7 +4169,7 @@ window.MTP = (function () {
           ${stAvatar(u, 64)}
           <div style="min-width:0;flex:1;">
             <div class="st-name">${esc(u.full_name || u.username)}</div>
-            <div class="st-user">@${esc(u.username)}${statusImg}${emojiBadge(u.emoji_gift_id, u.emoji_variant_id)}${premiumBadge(u.is_premium)}</div>
+            <div class="st-user${u.is_premium ? ' is-prem' : ''}">@${esc(u.username)}${statusImg}${emojiBadge(u.emoji_gift_id, u.emoji_variant_id)}${premiumBadge(u.is_premium)}</div>
             ${u.full_name ? '' : '<div class="st-hint">Ism va rasm qo\'shish</div>'}
           </div>
           <span class="st-chev">›</span>
@@ -4537,49 +4567,83 @@ window.MTP = (function () {
       if (d.coin_balance !== undefined) { currentUser.coin_balance = d.coin_balance; updateCoinBadge(); }
     }
 
-    function premRow(label, oldV, newV) {
+    const PZ_ICONS = {
+      pct: '<circle cx="7.5" cy="7.5" r="2.3"/><circle cx="16.5" cy="16.5" r="2.3"/><path d="M18 6L6 18"/>',
+      paw: '<circle cx="8" cy="9" r="1.8"/><circle cx="16" cy="9" r="1.8"/><circle cx="5.5" cy="14" r="1.6"/><circle cx="18.5" cy="14" r="1.6"/><path d="M12 12.5c-2.6 0-4.5 2.4-4.5 4.3 0 1.4 1.2 2 2.4 2 .9 0 1.4-.4 2.1-.4s1.2.4 2.1.4c1.2 0 2.4-.6 2.4-2 0-1.9-1.9-4.3-4.5-4.3z"/>',
+      tag: '<path d="M3 12V4h8l9 9-8 8-9-9z"/><circle cx="7.5" cy="8.5" r="1.3"/>',
+      pin: '<path d="M12 21s-6-5.6-6-10a6 6 0 1112 0c0 4.4-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>',
+      clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+      crown: '<path d="M3 8l4.2 4.2L12 4l4.8 8.2L21 8l-2 11H5L3 8z"/>',
+    };
+
+    function premRow(icon, label, oldV, newV) {
       const val = (oldV === null || String(oldV) === String(newV))
-        ? `<span class="pr-new">${newV}</span>`
-        : `<span class="pr-old">${oldV}</span><span class="pr-new">${newV}</span>`;
-      return `<div class="prem-row"><div class="pr-l">${label}</div><div class="pr-v">${val}</div></div>`;
+        ? `<b>${newV}</b>`
+        : `<s>${oldV}</s><b>${newV}</b>`;
+      return `<div class="pz-row"><span class="pz-ico"><svg viewBox="0 0 24 24">${PZ_ICONS[icon]}</svg></span><span class="pz-l">${label}</span><span class="pz-v">${val}</span></div>`;
     }
 
-    function renderPremium(d) {
+    // Sotib olinganda tugma atrofida oltin zarralar (foydalanuvchi harakatiga javob)
+    function premBurst() {
+      const sheet = document.getElementById('pzSheet');
+      const btn = document.getElementById('premBuyBtn');
+      if (!sheet || !btn || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const sr = sheet.getBoundingClientRect(), br = btn.getBoundingClientRect();
+      const ox = br.left - sr.left + br.width / 2, oy = br.top - sr.top + br.height / 2;
+      for (let i = 0; i < 26; i++) {
+        const sp = document.createElement('span');
+        sp.className = 'pz-spark';
+        const ang = Math.random() * Math.PI * 2, dist = 60 + Math.random() * 120;
+        sp.style.left = ox + 'px'; sp.style.top = oy + 'px';
+        sp.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+        sp.style.setProperty('--dy', Math.sin(ang) * dist - 40 + 'px');
+        sheet.appendChild(sp);
+        setTimeout(() => sp.remove(), 1000);
+      }
+    }
+
+    function renderPremium(d, celebrate) {
       const root = document.getElementById('premRoot');
       if (!root) return;
       const n = d.normal, p = d.perks;
       const status = d.active
-        ? `Faol — ${d.days_left} kun qoldi (${premDate(d.until)} gacha)`
+        ? `Faol &middot; ${d.days_left} kun qoldi (${premDate(d.until)} gacha)`
         : 'Hozircha faol emas';
+      const pct = d.active ? Math.max(4, Math.min(100, Math.round(d.days_left / d.days * 100))) : 0;
       const coin = '<img class="cn" src="icons/coin.png" alt="coin">';
       const canBuy = d.coin_balance >= d.price;
       root.innerHTML = `
-        <div class="prem-hero">
-          <div class="ph-ico"><svg viewBox="0 0 24 24" fill="#fff8e6" stroke="#8a5200" stroke-width="1" stroke-linejoin="round">${PREM_CROWN}</svg></div>
-          <div class="ph-t">MTshop Premium</div>
-          <div class="ph-s">${status}</div>
+        <div class="pz" id="pzSheet">
+          <div class="pz-hero">
+            <div class="pz-medal"><div><svg viewBox="0 0 24 24" fill="#ffc93c" stroke="#8a5200" stroke-width="0.8" stroke-linejoin="round">${PREM_CROWN}</svg></div></div>
+            <div class="pz-title">MTshop Premium</div>
+            <div class="pz-sub">${status}</div>
+            ${d.active ? `<div class="pz-bar"><i style="width:${pct}%"></i></div>` : ''}
+          </div>
+          <div class="pz-list">
+            ${premRow('crown', 'Username yonida belgi va oltin ism', null, premiumBadge(true))}
+            ${premRow('pct', 'Coin yuborish komissiyasi', n.commission_percent + '%', p.commission_percent + '%')}
+            ${premRow('paw', 'Petlar soni', n.max_pets + ' ta', p.max_pets + ' ta')}
+            ${premRow('tag', 'Giftni qaytarib sotish', n.sell_percent + '%', p.sell_percent + '%')}
+            ${premRow('pin', 'Profilga qadash', n.pin_max + ' ta', p.pin_max + ' ta')}
+            ${premRow('clock', 'Trade requestlar orasida', n.trade_cooldown_min + ' daq', p.trade_cooldown_min + ' daq')}
+          </div>
+          <div class="pz-buy">
+            <div class="pz-price">${coin}${esc(d.price)}</div>
+            <div class="pz-for">${esc(d.days)} kunga &middot; hisobingizda ${esc(d.coin_balance)}</div>
+            <div class="pz-err" id="premMsg"></div>
+            <button class="pz-btn" id="premBuyBtn" ${canBuy ? '' : 'disabled'}>${canBuy ? (d.active ? `Uzaytirish (+${esc(d.days)} kun)` : 'Premium olish') : 'Coin yetarli emas'}</button>
+            <div class="pz-note">Muddat tugagach imtiyozlar o'chadi, lekin petlaringiz, giftlaringiz va qadalgan giftlaringiz joyida qoladi. Uzaytirsangiz, muddat hozirgi tugash vaqtiga qo'shiladi.</div>
+          </div>
         </div>
-        <div class="st-card">
-          ${premRow('Premium belgi (username yonida)', null, '👑')}
-          ${premRow('Coin yuborish komissiyasi', n.commission_percent + '%', p.commission_percent + '%')}
-          ${premRow('Ko\'proq pet', n.max_pets + ' ta', p.max_pets + ' ta')}
-          ${premRow('Giftni qaytarib sotish', n.sell_percent + '%', p.sell_percent + '%')}
-          ${premRow('Profilga qadash', n.pin_max + ' ta', p.pin_max + ' ta')}
-          ${premRow('Trade requestlar orasidagi kutish', n.trade_cooldown_min + ' daqiqa', p.trade_cooldown_min + ' daqiqa')}
-        </div>
-        <div class="prem-price">${coin} ${esc(d.price)}</div>
-        <div class="send-hint" style="text-align:center;margin-bottom:6px;">${esc(d.days)} kunga &middot; hisobingizda: ${coin} ${esc(d.coin_balance)}</div>
-        <div class="msg error" id="premMsg" style="min-height:18px;text-align:center;"></div>
-        <button class="btn" id="premBuyBtn" ${canBuy ? '' : 'disabled'}>${d.active ? `Uzaytirish (+${esc(d.days)} kun)` : 'Premium sotib olish'}</button>
-        ${canBuy ? '' : '<div class="send-hint" style="text-align:center;margin-top:8px;">Coin yetarli emas</div>'}
-        <div class="send-hint" style="margin-top:10px;">Muddat tugagach imtiyozlar o'chadi, lekin petlaringiz, giftlaringiz va qadalgan giftlaringiz joyida qoladi. Uzaytirsangiz, muddat hozirgi tugash vaqtiga qo'shiladi.</div>
       `;
       const btn = document.getElementById('premBuyBtn');
       const msg = document.getElementById('premMsg');
+      if (celebrate) premBurst();
       let armed = false, busy = false, t = null;
       const label = btn.textContent;
       btn.addEventListener('click', async () => {
-        if (busy) return;
+        if (busy || btn.disabled) return;
         if (!armed) {
           armed = true;
           btn.textContent = `Tasdiqlash: ${d.price} coin yechiladi`;
@@ -4596,7 +4660,7 @@ window.MTP = (function () {
           if (!res.ok) { msg.textContent = data.error || 'Xatolik'; armed = false; btn.textContent = label; btn.disabled = false; busy = false; return; }
           premApplyToUser(data);
           showToast('Premium faollashdi 👑');
-          renderPremium(data);
+          renderPremium(data, true);
         } catch (e) {
           msg.textContent = "Tarmoq xatosi. Qayta urinib ko'ring.";
           armed = false; btn.textContent = label; btn.disabled = false; busy = false;
@@ -5451,7 +5515,7 @@ window.MTP = (function () {
           ${stAvatar(u, 40)}
           <div class="ci-name">
             ${u.full_name ? `<div>${esc(u.full_name)}</div>` : ''}
-            <div style="${u.full_name ? 'color:var(--muted);font-size:12px;font-weight:500;' : ''}">@${esc(u.username)}${emojiBadge(u.emoji_gift_id, u.emoji_variant_id)}${premiumBadge(u.is_premium)}</div>
+            <div class="${u.is_premium ? 'is-prem' : ''}" style="${u.full_name ? 'color:var(--muted);font-size:12px;font-weight:500;' : ''}">@${esc(u.username)}${emojiBadge(u.emoji_gift_id, u.emoji_variant_id)}${premiumBadge(u.is_premium)}</div>
           </div>
         </div>`).join('');
       el.querySelectorAll('[data-u]').forEach(row => row.addEventListener('click', () => openUserProfile(row.dataset.u)));
@@ -5505,7 +5569,7 @@ window.MTP = (function () {
           ${stAvatar(data, 88)}
           <div style="text-align:center;">
             ${data.full_name ? `<div class="st-name">${esc(data.full_name)}</div>` : ''}
-            <div class="st-user" style="${data.full_name ? '' : 'font-size:18px;font-weight:800;color:var(--text);'}">@${esc(data.username)}${statusImg}${emojiBadge(data.emoji && data.emoji.gift_id, data.emoji && data.emoji.variant_id)}${premiumBadge(data.is_premium)}</div>
+            <div class="st-user${data.is_premium ? ' is-prem' : ''}" style="${data.full_name ? '' : 'font-size:18px;font-weight:800;color:var(--text);'}">@${esc(data.username)}${statusImg}${emojiBadge(data.emoji && data.emoji.gift_id, data.emoji && data.emoji.variant_id)}${premiumBadge(data.is_premium)}</div>
           </div>
         </div>
         ${data.username !== currentUser.username ? `<button class="btn" style="margin-top:10px" data-u="${esc(data.username)}" onclick="confirmTradeRequest(this.dataset.u)">🔄 Trade boshlash</button>` : ''}
