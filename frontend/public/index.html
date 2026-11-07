@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MTshop</title>
-<link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png?v=2">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
 <!-- MTshop Liquid Glass v2: 3-item navigation + elastic active glass indicator -->
 <style>
   /* Tugmalar bosilganda ko'k ramka (focus halqasi) chiqmasin */
@@ -1384,10 +1384,12 @@
   .modal-overlay.page.split .page-head-inner { max-width: none; margin: 0; }
   .modal-overlay.page.split .page-head-title { padding-left: 380px; }
   @media (min-width: 1000px) {
-    header { padding-left: max(18px, calc((100% - 1160px) / 2)); padding-right: max(18px, calc((100% - 1160px) / 2)); }
-    main { padding-left: max(18px, calc((100% - 1160px) / 2)); padding-right: max(18px, calc((100% - 1160px) / 2)); }
-    :root { --card-min: 190px; }
-    html[data-density="compact"] { --card-min: 150px; }
+    header { padding-left: max(28px, calc((100% - 1480px) / 2)); padding-right: max(28px, calc((100% - 1480px) / 2)); }
+    main { padding-left: max(28px, calc((100% - 1480px) / 2)); padding-right: max(28px, calc((100% - 1480px) / 2)); }
+    :root { --card-min: 176px; --card-gap: 16px; }
+    html[data-density="compact"] { --card-min: 140px; }
+    .gift-card { padding: 12px; }
+    .gift-name { font-size: 13.5px; }
     .modal-overlay:not(.page) { align-items: center; padding: 24px; }
     .modal-overlay:not(.page) .modal-wrap { margin-bottom: 0; max-width: 520px; }
     .modal-overlay.page #modalBody { max-width: 680px; }
@@ -1419,6 +1421,36 @@
     .btn:not(:disabled):hover, .cw-next:not(:disabled):hover { filter: brightness(1.1); }
     .st-row:hover { background: var(--w60); }
     .page-back-btn:hover { transform: scale(1.08); }
+  }
+
+  /* ===== Chrome'ning standart scrollbar'i o'rniga: ingichka, yumaloq, sayt rangiga mos ===== */
+  ::-webkit-scrollbar { width: 12px; height: 12px; background: transparent; }
+  ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+  ::-webkit-scrollbar-corner { background: transparent; }
+  ::-webkit-scrollbar-track { background: transparent; margin: 8px 0; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(var(--accent2-rgb), .30); border-radius: 999px;
+    border: 4px solid transparent; background-clip: padding-box; min-height: 56px;
+    transition: background-color .2s ease;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(var(--accent2-rgb), .55); border-width: 3px; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:active { background: rgba(var(--accent2-rgb), .75); border-width: 3px; background-clip: padding-box; }
+  @supports not selector(::-webkit-scrollbar) {
+    * { scrollbar-width: thin; scrollbar-color: rgba(var(--accent2-rgb), .4) transparent; }
+  }
+  /* Sotib olish oynasi: telefonda oddiy ustun, kompyuterda chapda rasm, o'ngda sotib olish qismi */
+  .buy-split, .buy-side { display: block; min-width: 0; }
+  @media (min-width: 1000px) {
+    .modal-overlay:not(.page) .modal-wrap:has(.buy-split) { max-width: 640px; }
+    .buy-split { display: grid; grid-template-columns: 210px 1fr; gap: 30px; align-items: center; padding: 4px 6px 2px; }
+    .buy-split .buy-pop { padding: 0; }
+    .buy-split .buy-pop img, .buy-split .buy-pop .bp-icon-fallback { width: 168px; height: 168px; margin-bottom: 16px; border-radius: 22px; }
+    .buy-split .buy-pop .win-title { font-size: 20px; }
+    .buy-split .buy-pop .modal-sub { margin-bottom: 6px; }
+    .buy-split .buy-side .variant-row { margin-top: 0; }
+    .buy-split .buy-side .qty-row { margin-top: 0; justify-content: flex-start; }
+    .buy-split .buy-side .modal-sub { text-align: left !important; }
+    .buy-split .buy-side .btn { width: 100%; }
   }
   /* ===== Bildirishnomalar markazi ===== */
   .hdr-right { display: flex; align-items: center; gap: 10px; }
@@ -2229,6 +2261,8 @@ window.MTP = (function () {
       if (scroller) {
         // Sahifa allaqachon ochiq: faqat ichini almashtiramiz, tugmalar joyida qoladi (animatsiyasi uzilmaydi)
         document.querySelectorAll('.cw-seg').forEach((el, i) => { el.className = 'cw-seg ' + segCls(i); });
+        const cwBtn = document.querySelector('.cw-back');
+        if (cwBtn) { cwBtn.innerHTML = cwBackIcon(); cwBtn.setAttribute('aria-label', cw.step > 0 ? 'Orqaga' : 'Yopish'); }
         scroller.className = 'cw-scroll'; void scroller.offsetWidth;
         if (cw.dir !== 'none') scroller.classList.add(cw.dir);
         scroller.scrollTop = 0;
@@ -2241,7 +2275,7 @@ window.MTP = (function () {
           <div class="cw cw-open">
             <div class="cw-prog-wrap"><div class="cw-prog">${CW_STEPS.map((_, i) => `<div class="cw-seg ${segCls(i)}" onclick="cwGoStep(${i})"></div>`).join('')}</div></div>
             <div class="cw-head">
-              <button class="page-back-btn cw-back" onclick="cwBack()" aria-label="Orqaga"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+              <button class="page-back-btn cw-back" onclick="cwBack()" aria-label="${cw.step > 0 ? 'Orqaga' : 'Yopish'}">${cwBackIcon()}</button>
               <div class="cw-head-title">Kredit olish</div><div class="cw-head-sp"></div>
             </div>
             <div class="cw-scroll" id="cwScroll">
@@ -2279,6 +2313,12 @@ window.MTP = (function () {
       if (nb && !nb.disabled) { e.preventDefault(); cwNext(); }
     });
 
+    // 1-bosqichda "X" (oynani yopish), keyingi bosqichlarda "<" (bitta orqaga)
+    function cwBackIcon() {
+      return cw && cw.step > 0
+        ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>'
+        : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    }
     function cwBack() {
       if (!cw) { closeModal(); return; }
       const btn = document.querySelector('.cw-back');
@@ -5669,6 +5709,8 @@ window.MTP = (function () {
       const scroller = document.getElementById('gwScroll');
       if (scroller) {
         document.querySelectorAll('.cw-seg').forEach((el, i) => { el.className = 'cw-seg ' + segCls(i); });
+        const cwBtn = document.querySelector('.cw-back');
+        if (cwBtn) { cwBtn.innerHTML = cwBackIcon(); cwBtn.setAttribute('aria-label', cw.step > 0 ? 'Orqaga' : 'Yopish'); }
         scroller.className = 'cw-scroll'; void scroller.offsetWidth;
         if (gw.dir !== 'none') scroller.classList.add(gw.dir);
         scroller.scrollTop = 0;
@@ -5785,12 +5827,14 @@ window.MTP = (function () {
       window.__giftSel = { giftId: g.id, variantId: sel ? sel.id : null };
 
       document.getElementById('modalBody').innerHTML = `
+        <div class="buy-split">
         <div class="buy-pop">
           ${media}
           <div class="win-title">${cur.name}</div>
           ${g.event_ribbon && g.event_ribbon.name ? `<div class="modal-sub" style="font-weight:700;">🎉 ${esc(g.event_ribbon.name)}</div>` : ''}
           <div class="modal-sub"><img class="cn" src="icons/coin.png" alt="coin"> ${cur.price} &middot; ${g.quantity === null ? 'Cheksiz' : (g.sold_out ? 'Tugagan' : 'Qoldi: ' + g.quantity)}</div>
         </div>
+        <div class="buy-side">
         ${chips}
         ${g.sold_out ? `
         <button class="btn" style="margin-top:14px" disabled>Qolmagan</button>
@@ -5803,6 +5847,8 @@ window.MTP = (function () {
         <div class="modal-sub" style="text-align:center; margin-top:6px;" id="giftQtyTotal">Jami: <img class="cn" src="icons/coin.png" alt="coin"> ${cur.price}</div>
         <button class="btn" style="margin-top:14px" onclick="confirmBuyGift(${g.id})">Sotib olish</button>
         `}
+        </div>
+        </div>
       `;
       window.__giftUnitPrice = cur.price;
       if (!document.getElementById('modalOverlay').classList.contains('open')) openModal();
