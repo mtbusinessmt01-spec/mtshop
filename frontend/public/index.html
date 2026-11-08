@@ -1438,6 +1438,8 @@
   @supports not selector(::-webkit-scrollbar) {
     * { scrollbar-width: thin; scrollbar-color: rgba(var(--accent2-rgb), .4) transparent; }
   }
+  /* Chekkadan swipe paytida brauzerning o'z "orqaga" surishi aralashmasin */
+  html, body { overscroll-behavior-x: none; }
   /* Sotib olish oynasi: telefonda oddiy ustun, kompyuterda chapda rasm, o'ngda sotib olish qismi */
   .buy-split, .buy-side { display: block; min-width: 0; }
   @media (min-width: 1000px) {
@@ -5992,6 +5994,7 @@ window.MTP = (function () {
 
     function syncNavigation(tab) {
       currentNavTab = tab;
+      if (window.mtBackSync) window.mtBackSync();
       document.querySelectorAll('#bottomNav button[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
       moreNavButton.classList.toggle('active', moreTabs.has(tab));
       updateLiquidIndicator(tab);
@@ -6220,6 +6223,141 @@ window.MTP = (function () {
         if (e.key !== 'Escape' || !ov.classList.contains('open')) return;
         if (ov.classList.contains('page')) pageBack(); else closeModal();
       });
+    })();
+
+
+    // ===== Telefon: chekkadan swipe bilan orqaga + Android "orqaga" tugmasi =====
+    (function setupBackNavigation() {
+      const ov = document.getElementById('modalOverlay');
+      const wrap = ov.querySelector('.modal-wrap');
+      const titleEl = document.getElementById('pageHeadTitle');
+      const isOpen = () => ov.classList.contains('open') && !ov.classList.contains('closing');
+
+      // ---------- 1) Chap chekkadan o'ngga swipe: faqat "<" bor sahifalarda (X da emas) ----------
+      function swipeKind() {
+        if (!isOpen() || ov.classList.contains('split')) return null;
+        if (ov.classList.contains('tall')) return (cw && cw.step > 0) ? 'wizard' : null;   // kredit: 1-bosqichda X bor
+        if (ov.classList.contains('page')) return 'page';
+        return null;
+      }
+      const EDGE = 30;
+      let st = null;
+
+      function setX(px, tr) {
+        const v = px ? `translate3d(${px}px,0,0)` : '';
+        st.target.style.transition = tr; st.target.style.transform = v;
+        if (st.kind === 'page') { titleEl.style.transition = tr; titleEl.style.transform = v; }
+      }
+      function cleanup() {
+        if (!st) return;
+        st.target.style.transition = ''; st.target.style.transform = ''; st.target.style.willChange = ''; st.target.style.boxShadow = '';
+        titleEl.style.transition = ''; titleEl.style.transform = '';
+        ov.style.background = '';
+        st = null;
+      }
+      function popBtn() {
+        const btn = document.querySelector(st.kind === 'wizard' ? '.cw-back' : '.page-back-btn');
+        if (btn) { btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); }
+      }
+
+      document.addEventListener('touchstart', (e) => {
+        st = null;
+        if (e.touches.length !== 1) return;
+        const t = e.touches[0];
+        if (t.clientX > EDGE) return;
+        const kind = swipeKind(); if (!kind) return;
+        const target = kind === 'wizard' ? document.getElementById('cwScroll') : wrap;
+        if (!target) return;
+        st = { kind, top: kind === 'page' && !pageBackFn, target, x0: t.clientX, y0: t.clientY,
+               dx: 0, drag: false, w: window.innerWidth, lx: t.clientX, lt: Date.now(), v: 0 };
+      }, { passive: true });
+
+      document.addEventListener('touchmove', (e) => {
+        if (!st || st.busy) return;
+        const t = e.touches[0];
+        const dx = t.clientX - st.x0, dy = t.clientY - st.y0;
+        if (!st.drag) {
+          if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { st = null; return; }   // bu vertikal skroll
+          if (dx < 8 || dx < Math.abs(dy)) return;
+          st.drag = true;
+          st.target.style.willChange = 'transform';
+          if (st.kind === 'page') {
+            st.target.style.boxShadow = '-14px 0 34px rgba(0,0,0,.5)';
+            if (st.top) ov.style.background = 'transparent';      // ostidan sayt ko'rinib turadi
+          }
+        }
+        e.preventDefault();
+        st.dx = Math.max(0, dx);
+        const now = Date.now();
+        st.v = (t.clientX - st.lx) / Math.max(1, now - st.lt);    // px/ms
+        st.lx = t.clientX; st.lt = now;
+        setX(st.dx, 'none');
+      }, { passive: false });
+
+      function release() {
+        if (!st || !st.drag || st.busy) { if (st && !st.drag) st = null; return; }
+        const commit = st.dx > st.w * 0.33 || (st.v > 0.55 && st.dx > 40);
+        if (!commit) {                                                   // yetarli tortilmadi: joyiga qaytadi
+          setX(0, 'transform .28s cubic-bezier(.22,1,.36,1)');
+          const s0 = st; s0.busy = true;
+          setTimeout(() => { if (st === s0) cleanup(); }, 300);
+          return;
+        }
+        st.busy = true;
+        popBtn();                                                        // orqaga tugmasi bir kattalashib qaytadi
+        setX(st.w, 'transform .22s cubic-bezier(.3,.7,.4,1)');          // sahifa barmoq bilan ketib bo'ladi
+        const s0 = st;
+        setTimeout(() => {
+          if (st !== s0) return;
+          if (s0.kind === 'wizard') {
+            cleanup();
+            if (cw && cw.step > 0) { cw.step--; cw.dir = 'back'; cwRender(); }
+          } else if (s0.top) {
+            setTimeout(() => { closeModal(true); cleanup(); }, 120);     // tugma animatsiyasi tugab bo'lsin
+          } else {
+            cleanup();
+            pageNavDir = 'back';
+            if (pageBackFn) pageBackFn();
+          }
+        }, 230);
+      }
+      document.addEventListener('touchend', release, { passive: true });
+      document.addEventListener('touchcancel', release, { passive: true });
+
+      // ---------- 2) Android / brauzerning "orqaga" tugmasi saytdan chiqarib yubormasin ----------
+      const moreOpen = () => moreSheet.classList.contains('open');
+      const layerActive = () => isOpen() || moreOpen() || currentNavTab !== 'shops';
+      let pushed = false, ignorePop = 0;
+
+      function sync() {
+        if (ignorePop) return;
+        if (layerActive()) {
+          if (!pushed) { try { history.pushState({ mt: 1 }, ''); pushed = true; } catch (_) {} }
+        } else if (pushed) {
+          pushed = false; ignorePop++; history.back();     // endi qatlam yo'q: qo'shilgan yozuvni olib tashlaymiz
+        }
+      }
+      function handleBack() {
+        if (moreOpen()) { setMoreOpen(false); return; }
+        if (isOpen()) {
+          if (ov.classList.contains('tall')) cwBack();          // kredit: "<" yoki "X" bosilgandek
+          else if (ov.classList.contains('page')) pageBack();   // "<" bosilgandek (tugma bir kattalashib qaytadi)
+          else closeModal();
+          return;
+        }
+        if (currentNavTab !== 'shops') renderTab('shops');     // Inventor/Yana bo'limlaridan Shops'ga qaytadi
+      }
+      window.addEventListener('popstate', () => {
+        if (ignorePop) { ignorePop--; sync(); return; }
+        pushed = false;
+        if (!layerActive()) return;     // asosiy sahifada: oddiy orqaga (sayt yopiladi)
+        handleBack();
+        sync();
+      });
+      const mo = new MutationObserver(() => requestAnimationFrame(sync));
+      mo.observe(ov, { attributes: true, attributeFilter: ['class'] });
+      mo.observe(moreSheet, { attributes: true, attributeFilter: ['class'] });
+      window.mtBackSync = () => requestAnimationFrame(sync);
     })();
 
     // To'liq ekran sahifa: tepada orqaga tugmasi va sarlavha bor.
