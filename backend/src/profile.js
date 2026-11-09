@@ -251,7 +251,14 @@ async function avatarFile(userId) {
   return m ? { mime: m[1], buffer: Buffer.from(m[2], 'base64') } : null;
 }
 
+// Onboarding oynasi ko'rilgan (yoki yopilgan) deb belgilanadi
+async function markOnboarded(userId) {
+  await db.prepare("UPDATE users SET onboarded_at = COALESCE(onboarded_at, datetime('now')) WHERE id = ?").run(userId);
+  return { ok: true };
+}
+
 module.exports = {
+  markOnboarded,
   ProfileError, EMOJI_MIN_PRICE, PIN_MIN_PRICE, PIN_MAX,
   emojiMap, emojiFor, pinsFor, editData, setEmoji, clearEmoji, pinGift, unpinGift, reorderPins,
   avatarUrl, withAvatar, setFullName, setAvatar, clearAvatar, avatarFile,

@@ -107,7 +107,9 @@ async function ensureColumn(table, column, definition) {
   const cols = res.rows.map(r => r[1]); // 'name' ustuni PRAGMA table_info'da index 1
   if (!cols.includes(column)) {
     await client.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    return true;   // ustun hozir qo'shildi
   }
+  return false;
 }
 
 async function runMigrations() {
@@ -204,6 +206,11 @@ async function initDb() {
   await ensureColumn('users', 'sessions_valid_after', 'TEXT');
   // Profil: Ism Familiya va profil rasmi (rasm base64 sifatida, alohida URL orqali beriladi)
   await ensureColumn('users', 'full_name', 'TEXT');
+  // Onboarding (birinchi kirishdagi tanishuv oynasi): ko'rilgan vaqti. Ustun yangi qo'shilganda
+  // mavjud foydalanuvchilar uchun "ko'rilgan" deb belgilanadi — faqat yangi hisoblar ko'radi.
+  if (await ensureColumn('users', 'onboarded_at', 'TEXT')) {
+    await client.execute("UPDATE users SET onboarded_at = datetime('now') WHERE onboarded_at IS NULL");
+  }
   await ensureColumn('users', 'avatar_data', 'TEXT');
   await ensureColumn('users', 'avatar_ver', 'INTEGER');
   // Pullik profil kartasi uslubi (card_styles jadvali 008 migratsiyada)

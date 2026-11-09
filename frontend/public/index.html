@@ -79,6 +79,61 @@
     transition: transform .15s ease, filter .15s ease;
   }
   .coin-sheet-ok:active { transform: scale(.97); filter: brightness(1.1); }
+
+  /* ---- Onboarding: birinchi kirishdagi tanishuv oynasi ---- */
+  .ob-overlay {
+    position: fixed; inset: 0; z-index: 130; display: none; align-items: flex-end; justify-content: center; padding: 14px;
+    background: rgba(0,0,0,.42);
+    backdrop-filter: blur(calc(14px * var(--blur-k))); -webkit-backdrop-filter: blur(calc(14px * var(--blur-k)));
+  }
+  .ob-overlay.open { display: flex; animation: ovFadeIn calc(240ms * var(--anim-k)) ease backwards; }
+  .ob-overlay.open.closing { animation: ovFadeOut calc(260ms * var(--anim-k)) ease forwards; pointer-events: none; }
+  .ob-wrap {
+    position: relative; width: 100%; max-width: 440px; margin-bottom: calc(14px + env(safe-area-inset-bottom));
+    animation: obUp calc(440ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards;
+  }
+  .ob-overlay.closing .ob-wrap { animation: sheetOut calc(260ms * var(--anim-k)) cubic-bezier(.4,0,1,1) forwards; }
+  @keyframes obUp { from { transform: translateY(70px); opacity: 0; } }
+  /* Orqadagi ikkinchi qatlam (sheet orqasidan ko'rinib turadi) */
+  .ob-wrap::before {
+    content: ''; position: absolute; left: 0; right: 0; top: -22px; height: 140px; z-index: 0;
+    border-radius: 44px 44px 0 0; background: var(--w140); border: 1px solid var(--w160); border-bottom: 0;
+  }
+  .ob-sheet {
+    position: relative; z-index: 1; background: var(--card); border: 1px solid var(--w160); border-radius: 40px;
+    padding: 18px 22px 22px; box-shadow: 0 20px 50px rgba(0,0,0,.4); overflow: hidden;
+  }
+  .ob-x {
+    width: 42px; height: 42px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; cursor: pointer;
+    background: var(--w140); color: var(--text); -webkit-tap-highlight-color: transparent;
+    transition: transform .15s ease, filter .15s ease;
+  }
+  .ob-x:active { transform: scale(.92); filter: brightness(1.15); }
+  .ob-step { animation: obStepIn calc(380ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards; }
+  @keyframes obStepIn { from { opacity: 0; transform: translateX(28px); } }
+  .ob-prev {
+    position: relative; width: 62%; height: 300px; margin: -6px auto 20px; overflow: hidden;
+    border-radius: 34px 34px 0 0; background: var(--w90); padding: 10px 8px 0;
+  }
+  .ob-prev::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 34%; pointer-events: none;
+    background: linear-gradient(to bottom, transparent, var(--card));
+  }
+  .ob-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ob-card { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 8px 8px; border-radius: 20px; background: var(--w140); }
+  .ob-sq { width: 66%; aspect-ratio: 1; border-radius: 14px; display: block; }
+  .ob-sq.r { border-radius: 50%; }
+  .ob-pill { width: 100%; padding: 4px 0; border-radius: 999px; background: #fff; color: #111; font-size: 12px; text-align: center; }
+  .ob-title { font-size: 24px; font-weight: 800; margin: 0 0 6px; }
+  .ob-text { font-size: 18px; line-height: 1.4; min-height: 4.2em; margin: 0 0 18px; color: var(--text); }
+  .ob-next {
+    display: block; width: 100%; height: 56px; border: 0; border-radius: 999px; cursor: pointer;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff; font: inherit; font-size: 20px; font-weight: 600;
+    transition: transform .15s ease, filter .15s ease;
+  }
+  .ob-next:active { transform: scale(.97); filter: brightness(1.1); }
+  @media (max-height: 700px) { .ob-prev { height: 210px; } .ob-text { font-size: 16px; } }
+  @media (min-width: 1000px) { .ob-overlay { align-items: center; } .ob-wrap { margin-bottom: 0; } }
   main {
     flex: 1;
     overflow-y: auto;
@@ -1600,6 +1655,17 @@ window.MTP = (function () {
     </div>
   </div>
 
+
+  <div class="ob-overlay" id="obOverlay" role="dialog" aria-modal="true" aria-label="Qo'llanma">
+    <div class="ob-wrap">
+      <div class="ob-sheet">
+        <button class="ob-x" type="button" id="obX" aria-label="Yopish"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <div class="ob-stage" id="obStage"></div>
+        <button class="ob-next" type="button" id="obNext">Next</button>
+      </div>
+    </div>
+  </div>
+
   <script src="config.js"></script>
   <script>
     // ===== Tranzaksiya PIN =====
@@ -1845,7 +1911,8 @@ window.MTP = (function () {
         setInterval(refreshEvent, 30000);
         // Kirganda bildirishnomalar ketma-ket chiqadi: kafillik so'rovi -> qarzdor to'lamadi -> kafildan yechildi -> kafil eslatmasi -> kelgan narsalar
         noticeSteps = [checkGuarantorRequests, checkGuarantorOverdues, checkGuarantorCharged, checkBorrowerReminders, checkIncomingTransfers];
-        nextNotice();
+        // Yangi hisob birinchi marta kirganda avval tanishuv oynasi chiqadi, yopilgach bildirishnomalar davom etadi
+        if (!currentUser.onboarded_at) showOnboarding({ done: nextNotice }); else nextNotice();
         setInterval(pollGuarantorRequests, 30000);
         setInterval(pollBorrowerAccept, 30000);
         pollBorrowerAccept();
@@ -4273,6 +4340,11 @@ window.MTP = (function () {
           <button class="st-row" type="button" onclick="openPinGifts()"><span class="st-emo">📌</span><span>Qadalgan giftlar</span><span class="st-chev">›</span></button>
         </div>
 
+        <div class="st-section">Yordam</div>
+        <div class="st-list" style="margin-top:0;">
+          <button class="st-row" type="button" onclick="showOnboarding({ replay: true })"><span class="st-emo">📖</span><span>Qo'llanma</span><span class="st-chev">›</span></button>
+        </div>
+
 
         <button class="btn secondary" type="button" style="margin-top:26px;" onclick="logout()">Hisobdan chiqish</button>
       `;
@@ -6183,6 +6255,78 @@ window.MTP = (function () {
         _coin3dInst = api.mount(host, { url: 'coin.glb', onReady: () => host.classList.add('ready') });
       }).catch(() => { /* 3D ishlamasa oddiy rasm ko'rinib turadi */ });
     }
+
+
+    // ===== Onboarding: birinchi marta kirgan foydalanuvchiga imkoniyatlar bilan tanishuv =====
+    // Faqat yangi hisoblarda avtomatik chiqadi (users.onboarded_at bo'sh bo'lsa). X yoki oxirgi "Next" bosilsa
+    // serverga "ko'rilgan" deb yoziladi. Sozlamalar > Profile > Qo'llanma orqali qayta ko'rish mumkin.
+    const OB_STEPS = [
+      { title: 'Gift sotib olish', text: 'Gift sotib olish uchun gift kartasidagi ko’rishni bosing',
+        cards: [['#165f86', 'Ko’rish'], ['#e97132', 'Ko’rish'], ['#00b050', 'Ko’rish'], ['#ffff00', 'Ko’rish']] },
+      { title: 'Inventor', text: 'Sotib olingan giftlar shu yerga tushadi. Xohlasangiz giftni hozirgi narxiga qarab qaytarib sotishingiz mumkin',
+        cards: [['#e97132', 'Sotish'], ['#00b050', 'Sotish'], ['#165f86', 'Sotish'], ['#ffff00', 'Sotish']] },
+      { title: 'Case ochish', text: 'Coin to’lab case sotib oling va xohlagan vaqtda oching: ichidan gift yoki coin chiqadi',
+        cards: [['#00b050', 'Ochish'], ['#165f86', 'Ochish'], ['#ffff00', 'Ochish'], ['#e97132', 'Ochish']] },
+      { title: 'Jo’natmoq', text: 'Boshqa foydalanuvchiga gift, coin yoki case yuborish uchun uning username’ini kiriting', round: true,
+        cards: [['#165f86', 'Yuborish'], ['#e97132', 'Yuborish'], ['#00b050', 'Yuborish'], ['#ffff00', 'Yuborish']] },
+      { title: 'MyPet', text: 'Pet sotib oling va ovqatlantirib turing: u sizga coin olib keladi. Ovqatlantirmasangiz kasal bo’ladi',
+        cards: [['#e97132', 'Ovqat'], ['#165f86', 'Davolash'], ['#00b050', 'Ovqat'], ['#ffff00', 'Davolash']] },
+      { title: 'Kredit va Trade', text: 'Coin yetmasa kredit oling, boshqa foydalanuvchi bilan esa giftlaringizni Trade orqali almashing',
+        cards: [['#165f86', 'Kredit'], ['#00b050', 'Trade'], ['#e97132', 'Kredit'], ['#ffff00', 'Trade']] },
+    ];
+    let _obIdx = 0, _obReplay = false, _obDone = null, _obTimer = null;
+
+    function obRender() {
+      const s = OB_STEPS[_obIdx];
+      const cards = s.cards.map(c => `<div class="ob-card"><span class="ob-sq${s.round ? ' r' : ''}" style="background:${c[0]}"></span><span class="ob-pill">${c[1]}</span></div>`).join('');
+      document.getElementById('obStage').innerHTML = `
+        <div class="ob-step">
+          <div class="ob-prev"><div class="ob-grid">${cards}</div></div>
+          <div class="ob-title">${s.title}</div>
+          <div class="ob-text">${s.text}</div>
+        </div>`;
+    }
+
+    function showOnboarding(opts) {
+      opts = opts || {};
+      const ov = document.getElementById('obOverlay');
+      if (ov.classList.contains('open')) return;
+      if (_obTimer) { clearTimeout(_obTimer); _obTimer = null; }
+      ov.classList.remove('closing');
+      _obIdx = 0; _obReplay = !!opts.replay; _obDone = opts.done || null;
+      obRender();
+      ov.classList.add('open');
+      setTimeout(() => { const b = document.getElementById('obNext'); if (b) b.focus({ preventScroll: true }); }, 60);
+    }
+
+    function obClose() {
+      const ov = document.getElementById('obOverlay');
+      if (!ov.classList.contains('open') || ov.classList.contains('closing')) return;
+      if (!_obReplay) {                                        // birinchi marta ko'rilgani serverga yoziladi
+        if (currentUser) currentUser.onboarded_at = new Date().toISOString();
+        profileApi('POST', '/onboarding');
+      }
+      const finish = () => {
+        _obTimer = null;
+        ov.classList.remove('open', 'closing');
+        const cb = _obDone; _obDone = null;
+        if (cb) cb();
+      };
+      const k = MTP.animK();
+      if (REDUCED_MOTION || k === 0) { finish(); return; }
+      ov.classList.add('closing');
+      _obTimer = setTimeout(finish, Math.round(260 * k) + 40);
+    }
+
+    document.getElementById('obX').addEventListener('click', obClose);
+    document.getElementById('obNext').addEventListener('click', () => {
+      if (_obIdx >= OB_STEPS.length - 1) { obClose(); return; }
+      _obIdx++;
+      obRender();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.getElementById('obOverlay').classList.contains('open')) obClose();
+    });
 
     // Oynani tutqichdan pastga tortib yopish, fonni bosib yopish, Escape
     (function setupSheetGestures() {

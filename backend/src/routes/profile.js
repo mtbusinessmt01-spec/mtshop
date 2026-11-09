@@ -74,4 +74,9 @@ router.get('/users/:id/avatar', authMiddleware, h(async (req, res) => {
   res.send(f.buffer);
 }));
 
+// Onboarding (birinchi kirishdagi tanishuv) ko'rilgan deb belgilanadi
+router.post('/profile/onboarding', authMiddleware, h(async (req, res) => {
+  res.json(await profile.markOnboarded(req.user.id));
+}));
+
 module.exports = router;
