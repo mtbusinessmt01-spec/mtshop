@@ -96,11 +96,11 @@
   @keyframes obUp { from { transform: translateY(70px); opacity: 0; } }
   /* Orqadagi ikkinchi qatlam (sheet orqasidan ko'rinib turadi) */
   .ob-wrap::before {
-    content: ''; position: absolute; left: 0; right: 0; top: -22px; height: 140px; z-index: 0;
-    border-radius: 44px 44px 0 0; background: var(--w140); border: 1px solid var(--w160); border-bottom: 0;
+    content: ''; position: absolute; left: 0; right: 0; top: -70px; height: 200px; z-index: 0;
+    border-radius: 56px 56px 0 0; background: var(--w160);
   }
   .ob-sheet {
-    position: relative; z-index: 1; background: var(--card); border: 1px solid var(--w160); border-radius: 40px;
+    position: relative; z-index: 1; background: var(--card); border-radius: 48px;
     padding: 18px 22px 22px; box-shadow: 0 20px 50px rgba(0,0,0,.4); overflow: hidden;
   }
   .ob-x {
@@ -132,6 +132,28 @@
     transition: transform .15s ease, filter .15s ease;
   }
   .ob-next:active { transform: scale(.97); filter: brightness(1.1); }
+
+  .ob-badge { position: absolute; top: 6px; right: 8px; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; }
+  .ob-card { position: relative; }
+  .ob-sq.q { display: grid; place-items: center; color: #fff; font-size: 28px; font-weight: 800; text-shadow: 0 1px 4px rgba(0,0,0,.35); }
+  .ob-rows { display: flex; flex-direction: column; gap: 10px; }
+  .ob-row { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 22px; background: var(--w140); }
+  .ob-av { width: 38px; height: 38px; border-radius: 50%; flex: none; }
+  .ob-lines { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .ob-ln { height: 8px; border-radius: 999px; background: var(--w300, rgba(255,255,255,.28)); }
+  .ob-ln.s { width: 60%; }
+  .ob-row .ob-pill { width: auto; padding: 4px 10px; }
+  .ob-pet { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px 12px 12px; border-radius: 24px; background: var(--w140); }
+  .ob-pet .ob-sq { width: 46%; }
+  .ob-bar { width: 100%; height: 8px; border-radius: 999px; background: rgba(0,0,0,.28); overflow: hidden; }
+  .ob-bar i { display: block; height: 100%; border-radius: 999px; }
+  .ob-btns { display: flex; gap: 8px; width: 100%; }
+  .ob-btns .ob-pill { flex: 1; }
+  .ob-swap { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center; padding: 12px 8px; border-radius: 22px; background: var(--w140); }
+  .ob-side { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .ob-side .ob-sq { width: 56%; }
+  .ob-arrow { font-size: 22px; font-weight: 800; color: var(--text); }
+  .ob-mini { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 22px; background: var(--w140); }
   @media (max-height: 700px) { .ob-prev { height: 210px; } .ob-text { font-size: 16px; } }
   @media (min-width: 1000px) { .ob-overlay { align-items: center; } .ob-wrap { margin-bottom: 0; } }
   main {
@@ -6260,28 +6282,50 @@ window.MTP = (function () {
     // ===== Onboarding: birinchi marta kirgan foydalanuvchiga imkoniyatlar bilan tanishuv =====
     // Faqat yangi hisoblarda avtomatik chiqadi (users.onboarded_at bo'sh bo'lsa). X yoki oxirgi "Next" bosilsa
     // serverga "ko'rilgan" deb yoziladi. Sozlamalar > Profile > Qo'llanma orqali qayta ko'rish mumkin.
+    const OB_BLUE = '#165f86', OB_ORANGE = '#e97132', OB_GREEN = '#00b050', OB_YELLOW = '#ffff00';
     const OB_STEPS = [
-      { title: 'Gift sotib olish', text: 'Gift sotib olish uchun gift kartasidagi ko’rishni bosing',
-        cards: [['#165f86', 'Ko’rish'], ['#e97132', 'Ko’rish'], ['#00b050', 'Ko’rish'], ['#ffff00', 'Ko’rish']] },
-      { title: 'Inventor', text: 'Sotib olingan giftlar shu yerga tushadi. Xohlasangiz giftni hozirgi narxiga qarab qaytarib sotishingiz mumkin',
-        cards: [['#e97132', 'Sotish'], ['#00b050', 'Sotish'], ['#165f86', 'Sotish'], ['#ffff00', 'Sotish']] },
-      { title: 'Case ochish', text: 'Coin to’lab case sotib oling va xohlagan vaqtda oching: ichidan gift yoki coin chiqadi',
-        cards: [['#00b050', 'Ochish'], ['#165f86', 'Ochish'], ['#ffff00', 'Ochish'], ['#e97132', 'Ochish']] },
-      { title: 'Jo’natmoq', text: 'Boshqa foydalanuvchiga gift, coin yoki case yuborish uchun uning username’ini kiriting', round: true,
-        cards: [['#165f86', 'Yuborish'], ['#e97132', 'Yuborish'], ['#00b050', 'Yuborish'], ['#ffff00', 'Yuborish']] },
-      { title: 'MyPet', text: 'Pet sotib oling va ovqatlantirib turing: u sizga coin olib keladi. Ovqatlantirmasangiz kasal bo’ladi',
-        cards: [['#e97132', 'Ovqat'], ['#165f86', 'Davolash'], ['#00b050', 'Ovqat'], ['#ffff00', 'Davolash']] },
-      { title: 'Kredit va Trade', text: 'Coin yetmasa kredit oling, boshqa foydalanuvchi bilan esa giftlaringizni Trade orqali almashing',
-        cards: [['#165f86', 'Kredit'], ['#00b050', 'Trade'], ['#e97132', 'Kredit'], ['#ffff00', 'Trade']] },
+      { kind: 'grid', title: 'Gift sotib olish', text: 'Gift sotib olish uchun gift kartasidagi ko’rishni bosing',
+        cards: [[OB_BLUE, 'Ko’rish'], [OB_ORANGE, 'Ko’rish'], [OB_GREEN, 'Ko’rish'], [OB_YELLOW, 'Ko’rish']] },
+      { kind: 'grid', badge: true, title: 'Inventor', text: 'Sotib olingan giftlar shu yerga tushadi. Xohlasangiz giftni hozirgi narxiga qarab qaytarib sotishingiz mumkin',
+        cards: [[OB_ORANGE, 'Sotish'], [OB_GREEN, 'Sotish'], [OB_BLUE, 'Sotish'], [OB_YELLOW, 'Sotish']] },
+      { kind: 'grid', q: true, title: 'Case ochish', text: 'Coin to’lab case sotib oling va xohlagan vaqtda oching: ichidan gift yoki coin chiqadi',
+        cards: [[OB_GREEN, 'Ochish'], [OB_BLUE, 'Ochish'], [OB_YELLOW, 'Ochish'], [OB_ORANGE, 'Ochish']] },
+      { kind: 'rows', title: 'Jo’natmoq', text: 'Boshqa foydalanuvchiga gift, coin yoki case yuborish uchun uning username’ini kiriting',
+        cards: [[OB_BLUE, 'Yuborish'], [OB_ORANGE, 'Yuborish'], [OB_GREEN, 'Yuborish'], [OB_YELLOW, 'Yuborish']] },
+      { kind: 'pet', title: 'MyPet', text: 'Pet sotib oling va ovqatlantirib turing: u sizga coin olib keladi. Ovqatlantirmasangiz kasal bo’ladi' },
+      { kind: 'swap', title: 'Kredit va Trade', text: 'Coin yetmasa kredit oling, boshqa foydalanuvchi bilan esa giftlaringizni Trade orqali almashing' },
     ];
     let _obIdx = 0, _obReplay = false, _obDone = null, _obTimer = null;
 
+    function obPreview(s) {
+      const sq = (c, r, q) => `<span class="ob-sq${r ? ' r' : ''}${q ? ' q' : ''}" style="background:${c}">${q ? '?' : ''}</span>`;
+      if (s.kind === 'rows') {
+        return `<div class="ob-rows">${s.cards.map(c => `<div class="ob-row"><span class="ob-av" style="background:${c[0]}"></span><div class="ob-lines"><i class="ob-ln"></i><i class="ob-ln s"></i></div><span class="ob-pill">${c[1]}</span></div>`).join('')}</div>`;
+      }
+      if (s.kind === 'pet') {
+        return `<div class="ob-pet">${sq(OB_ORANGE, false)}
+            <div class="ob-bar"><i style="width:72%;background:${OB_GREEN}"></i></div>
+            <div class="ob-bar"><i style="width:40%;background:${OB_BLUE}"></i></div>
+            <div class="ob-btns"><span class="ob-pill">Ovqat</span><span class="ob-pill">Davolash</span></div>
+          </div>
+          <div class="ob-mini"><div class="ob-bar"><i style="width:55%;background:${OB_YELLOW}"></i></div></div>`;
+      }
+      if (s.kind === 'swap') {
+        return `<div class="ob-swap">
+            <div class="ob-side">${sq(OB_BLUE)}${sq(OB_GREEN)}</div>
+            <span class="ob-arrow">⇄</span>
+            <div class="ob-side">${sq(OB_ORANGE)}${sq(OB_YELLOW)}</div>
+          </div>
+          <div class="ob-mini"><div class="ob-lines"><i class="ob-ln"></i><i class="ob-ln s"></i></div><div class="ob-btns"><span class="ob-pill">Kredit</span><span class="ob-pill">Trade</span></div></div>`;
+      }
+      return `<div class="ob-grid">${s.cards.map((c, i) => `<div class="ob-card">${s.badge && i % 2 === 0 ? `<span class="ob-badge">×${i + 2}</span>` : ''}${sq(c[0], false, s.q)}<span class="ob-pill">${c[1]}</span></div>`).join('')}</div>`;
+    }
+
     function obRender() {
       const s = OB_STEPS[_obIdx];
-      const cards = s.cards.map(c => `<div class="ob-card"><span class="ob-sq${s.round ? ' r' : ''}" style="background:${c[0]}"></span><span class="ob-pill">${c[1]}</span></div>`).join('');
       document.getElementById('obStage').innerHTML = `
         <div class="ob-step">
-          <div class="ob-prev"><div class="ob-grid">${cards}</div></div>
+          <div class="ob-prev">${obPreview(s)}</div>
           <div class="ob-title">${s.title}</div>
           <div class="ob-text">${s.text}</div>
         </div>`;
