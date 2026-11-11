@@ -112,23 +112,23 @@
   .ob-step { animation: obStepIn calc(380ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards; }
   @keyframes obStepIn { from { opacity: 0; transform: translateX(28px); } }
   .ob-prev {
-    position: relative; width: 62%; height: 300px; margin: -6px auto 20px; overflow: hidden;
-    border-radius: 34px 34px 0 0; background: var(--w90); padding: 10px 8px 0;
+    position: relative; width: 70%; aspect-ratio: 278 / 346; margin: 2px auto 22px; overflow: hidden;
+    border-radius: 21% 21% 0 0 / 17% 17% 0 0; background: var(--w90); padding: 12.6% 2% 0;
   }
   .ob-prev::after {
-    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 34%; pointer-events: none;
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 22%; pointer-events: none;
     background: linear-gradient(to bottom, transparent, var(--card));
   }
-  .ob-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .ob-card { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 8px 8px; border-radius: 20px; background: var(--w140); }
-  .ob-sq { width: 66%; aspect-ratio: 1; border-radius: 14px; display: block; }
+  .ob-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .ob-card { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 8px 10px; border-radius: 24px; background: var(--w140); }
+  .ob-sq { width: 64%; aspect-ratio: 1; border-radius: 16px; display: block; }
   .ob-sq.r { border-radius: 50%; }
   .ob-pill { width: 100%; padding: 4px 0; border-radius: 999px; background: #fff; color: #111; font-size: 12px; text-align: center; }
-  .ob-title { font-size: 24px; font-weight: 800; margin: 0 0 6px; }
-  .ob-text { font-size: 18px; line-height: 1.4; min-height: 4.2em; margin: 0 0 18px; color: var(--text); }
+  .ob-title { font-size: 26px; font-weight: 800; letter-spacing: -.01em; margin: 0 0 6px; }
+  .ob-text { font-size: 21px; line-height: 1.32; min-height: 5.28em; margin: 0 0 18px; color: var(--text); }
   .ob-next {
-    display: block; width: 100%; height: 56px; border: 0; border-radius: 999px; cursor: pointer;
-    background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff; font: inherit; font-size: 20px; font-weight: 600;
+    display: block; width: 70%; height: 58px; margin: 0 auto; border: 0; border-radius: 999px; cursor: pointer;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff; font: inherit; font-size: 22px; font-weight: 500;
     transition: transform .15s ease, filter .15s ease;
   }
   .ob-next:active { transform: scale(.97); filter: brightness(1.1); }
@@ -140,8 +140,9 @@
   .ob-row { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 22px; background: var(--w140); }
   .ob-av { width: 38px; height: 38px; border-radius: 50%; flex: none; }
   .ob-lines { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-  .ob-ln { height: 8px; border-radius: 999px; background: var(--w300, rgba(255,255,255,.28)); }
+  .ob-ln { display: block; width: 100%; height: 8px; border-radius: 999px; background: var(--w300, rgba(255,255,255,.28)); }
   .ob-ln.s { width: 60%; }
+  .ob-lines { min-width: 0; }
   .ob-row .ob-pill { width: auto; padding: 4px 10px; }
   .ob-pet { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px 12px 12px; border-radius: 24px; background: var(--w140); }
   .ob-pet .ob-sq { width: 46%; }
@@ -154,7 +155,7 @@
   .ob-side .ob-sq { width: 56%; }
   .ob-arrow { font-size: 22px; font-weight: 800; color: var(--text); }
   .ob-mini { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 22px; background: var(--w140); }
-  @media (max-height: 700px) { .ob-prev { height: 210px; } .ob-text { font-size: 16px; } }
+  @media (max-height: 700px) { .ob-prev { width: 52%; } .ob-text { font-size: 17px; } .ob-title { font-size: 22px; } }
   @media (min-width: 1000px) { .ob-overlay { align-items: center; } .ob-wrap { margin-bottom: 0; } }
   main {
     flex: 1;
