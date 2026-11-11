@@ -87,21 +87,22 @@
     backdrop-filter: blur(calc(14px * var(--blur-k))); -webkit-backdrop-filter: blur(calc(14px * var(--blur-k)));
   }
   .ob-overlay.open { display: flex; animation: ovFadeIn calc(240ms * var(--anim-k)) ease backwards; }
-  .ob-overlay.open.closing { animation: ovFadeOut calc(260ms * var(--anim-k)) ease forwards; pointer-events: none; }
+  .ob-overlay.open.closing { animation: ovFadeOut calc(320ms * var(--anim-k)) ease forwards; pointer-events: none; }
   .ob-wrap {
     position: relative; width: 100%; max-width: 440px; margin-bottom: calc(14px + env(safe-area-inset-bottom));
-    animation: obUp calc(440ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards;
+    animation: obUp calc(480ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards;
   }
-  .ob-overlay.closing .ob-wrap { animation: sheetOut calc(260ms * var(--anim-k)) cubic-bezier(.4,0,1,1) forwards; }
-  @keyframes obUp { from { transform: translateY(70px); opacity: 0; } }
+  .ob-overlay.closing .ob-wrap { animation: obDown calc(320ms * var(--anim-k)) cubic-bezier(.5,0,.9,.4) forwards; }
+  @keyframes obUp { from { transform: translateY(100vh); } }
+  @keyframes obDown { to { transform: translateY(100vh); } }
   /* Orqadagi ikkinchi qatlam (sheet orqasidan ko'rinib turadi) */
   .ob-wrap::before {
     content: ''; position: absolute; left: 0; right: 0; top: -70px; height: 200px; z-index: 0;
-    border-radius: 56px 56px 0 0; background: var(--w160);
+    border-radius: 48px 48px 0 0; background: #3b404c; background: color-mix(in srgb, var(--card) 78%, #fff 22%);
   }
   .ob-sheet {
     position: relative; z-index: 1; background: var(--card); border-radius: 48px;
-    padding: 18px 22px 22px; box-shadow: 0 20px 50px rgba(0,0,0,.4); overflow: hidden;
+    padding: 18px 22px 22px; overflow: hidden;
   }
   .ob-x {
     width: 42px; height: 42px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; cursor: pointer;
@@ -6360,7 +6361,7 @@ window.MTP = (function () {
       const k = MTP.animK();
       if (REDUCED_MOTION || k === 0) { finish(); return; }
       ov.classList.add('closing');
-      _obTimer = setTimeout(finish, Math.round(260 * k) + 40);
+      _obTimer = setTimeout(finish, Math.round(320 * k) + 40);
     }
 
     document.getElementById('obX').addEventListener('click', obClose);
