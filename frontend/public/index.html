@@ -1557,6 +1557,53 @@
   .np-times label { display: flex; align-items: center; gap: 8px; flex: 1; font-size: 13px; color: var(--muted); }
   .np-time { flex: 1; min-width: 0; padding: 9px 10px; border-radius: 12px; border: 1px solid var(--w60); background: var(--card); color: inherit; font: inherit; font-size: 15px; }
   .np-saved { text-align: center; font-size: 12px; color: var(--muted); min-height: 16px; margin-top: 8px; }
+  /* ===== YANGI OYNA USLUBI (maket bo'yicha, telefon) =====
+     1) Oddiy oyna (sheet): yon va pastdan bo'sh joy bilan "suzib turuvchi" karta, hamma burchaklari yumaloq.
+     2) Sahifa oynalari (Sozlamalar, Profile, Promokod, Kreditim, Hayvonim...): ekranning ~90% ini egallovchi
+        pastdan chiqadigan oyna, tepasida orqadagi sahifa xiralashib ko'rinib turadi, chap tepada yumaloq orqaga tugmasi.
+     Kompyuterda (>=1000px) eski joylashuv saqlanadi. Blur/shisha sozlamalari (Personalizm) avvalgidek ishlaydi. */
+  @media (max-width: 999.98px) {
+    :root { --sheet-top: max(calc(env(safe-area-inset-top) + 56px), 9.5dvh); }
+
+    /* 1) Oddiy oyna */
+    .modal-overlay:not(.page):not(.tall) { padding: 0 10px; background: rgba(0,0,0,0.40); }
+    .modal-overlay:not(.page):not(.tall) .modal-wrap { margin-bottom: calc(10px + env(safe-area-inset-bottom)); }
+    .modal-overlay:not(.page):not(.tall) .modal-box { border-radius: 36px; padding-left: 22px; padding-right: 22px; padding-bottom: 26px; }
+
+    /* 2) Sahifa oynasi */
+    .modal-overlay.page:not(.split) {
+      background: rgba(0,0,0,0.45);
+      align-items: flex-end; justify-content: center;
+    }
+    .modal-overlay.page:not(.split) .modal-wrap {
+      max-width: 540px; width: 100%; margin: 0;
+      height: calc(100dvh - var(--sheet-top));
+    }
+    .modal-overlay.page:not(.split) .modal-box {
+      background: var(--bg);
+      border: 1px solid var(--w100); border-bottom: none;
+      border-radius: 32px 32px 0 0;
+      box-shadow: 0 -12px 40px rgba(0,0,0,0.45);
+      padding: 72px 16px calc(32px + env(safe-area-inset-bottom));
+    }
+    .modal-overlay.page:not(.split) .page-head {
+      top: var(--sheet-top); left: 0; right: 0;
+      max-width: 540px; margin: 0 auto;
+      padding: 16px 16px 26px;
+      border-radius: 32px 32px 0 0;
+      background: linear-gradient(to bottom, var(--bg) 62%, rgba(0,0,0,0));
+    }
+    .modal-overlay.page:not(.split) .page-head-inner { max-width: none; }
+
+    /* Animatsiya: oyna pastdan chiqadi / pastga tushadi (shaffoflik yo'q, oyna doim 100% ko'rinadi), orqa fon esa xiralashadi */
+    .modal-overlay.open.page:not(.split) { animation: ovFadeIn calc(260ms * var(--anim-k)) ease backwards; }
+    .modal-overlay.open.page.closing:not(.split) { animation: ovFadeOut calc(290ms * var(--anim-k)) ease forwards; background: rgba(0,0,0,0.45); pointer-events: none; }
+    .modal-overlay.open.page:not(.split) .modal-wrap { animation: pageSheetIn calc(420ms * var(--anim-k)) cubic-bezier(.22,1,.36,1) backwards; }
+    .modal-overlay.open.page.closing:not(.split) .modal-wrap { animation: pageSheetOut calc(290ms * var(--anim-k)) cubic-bezier(.5,0,1,.6) forwards; }
+    .modal-overlay.open.page.closing:not(.split) .page-head { background: transparent; }
+    @keyframes pageSheetIn { from { transform: translateY(100dvh); } to { transform: none; } }
+    @keyframes pageSheetOut { from { transform: none; } to { transform: translateY(100dvh); } }
+  }
 </style>
 <script>
 // MTshop Personalizm: sozlamalar qurilmada saqlanadi, sahifa chizilishidan oldin qo'llanadi
